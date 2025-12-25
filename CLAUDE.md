@@ -9,11 +9,50 @@
 **Hellcrawler** is a 16-bit pixel art idle RPG auto-battler where players command a military tank against waves of demonic invaders. Built with Phaser 3, TypeScript, and Electron for Steam release.
 
 ### Key Documents
+- `docs/MasterPlan.md` - **THE SOURCE OF TRUTH** for current progress and next steps
 - `docs/GDD.md` - Game Design Document (gameplay, systems, content)
 - `docs/PRD.md` - Product Requirements Document (technical specs, architecture)
 - `docs/QUICKREF.md` - Implementation cheatsheet
 
 **Always consult these documents before implementing new features.**
+
+---
+
+## 🚨 MASTER PLAN - CRITICAL
+
+**The `docs/MasterPlan.md` file MUST be kept updated at all times.**
+
+### When to Update MasterPlan.md
+- ✅ After completing ANY task in the current phase
+- ✅ After completing a day's work
+- ✅ After finishing a phase or sprint
+- ✅ When discovering new blockers or requirements
+- ✅ When making architecture decisions
+- ✅ When adding technical debt
+
+### What to Update
+- Mark tasks as complete (⏳ → ✅)
+- Update "Current Phase" and "Current Focus"
+- Add notes to completed items
+- Log any new decisions in "Architecture Decisions Log"
+- Add discovered issues to "Known Technical Debt"
+- Update the Changelog
+
+### How to Update
+```markdown
+# Change task status
+| 1-2 | Main Menu + Pause Scene | ⏳ |  →  | 1-2 | Main Menu + Pause Scene | ✅ |
+
+# Update current status
+**Current Phase:** MVP - Phase 1, Week 1
+**Current Focus:** Main Menu Scene
+
+# Add to changelog
+### December 2024
+- Completed Main Menu and Pause scenes
+```
+
+**NEVER leave MasterPlan.md stale. The plan is only useful if it reflects reality.**
 
 ---
 
@@ -378,6 +417,130 @@ npm run typecheck    # TypeScript check
 
 ---
 
+## 🎮 PHASER SKILL USAGE
+
+**Always use the `/phaser` skill when implementing Phaser-related features.**
+
+The Phaser skill provides battle-tested patterns and best practices for:
+- Scene management and transitions
+- Physics and collision detection
+- Sprite animations and tweens
+- Input handling
+- Object pooling patterns
+- Performance optimization
+
+```
+# Invoke in Claude Code
+/phaser
+```
+
+Use it when:
+- Creating new scenes
+- Implementing game mechanics
+- Working with physics bodies
+- Optimizing rendering
+- Debugging Phaser-specific issues
+
+---
+
+## 🖥️ DEV SERVER MANAGEMENT
+
+**IMPORTANT: Only run ONE dev server at a time.**
+
+Before starting a new dev server, always kill any existing ones:
+
+```bash
+# Check for running dev servers
+lsof -ti:5173,5174,5175,3000,3001,3002 | xargs kill -9 2>/dev/null
+
+# Or kill by process name
+pkill -f "vite" 2>/dev/null
+
+# Then start fresh
+npm run dev
+```
+
+Common ports used:
+- `5173-5175`: Vite dev server
+- `3000-3002`: Alternative ports when others are busy
+
+**Why this matters:**
+- Multiple servers waste memory
+- Port conflicts cause confusing errors
+- HMR can get confused with multiple instances
+- Playwright tests may connect to wrong server
+
+---
+
+## 🎭 PLAYWRIGHT E2E TESTING
+
+### Setup
+```bash
+# Install Playwright browsers (first time only)
+npx playwright install chromium
+```
+
+### Running Tests
+```bash
+# Run all e2e tests
+npm run test:e2e
+
+# Run with headed browser (visible)
+npm run test:e2e:headed
+
+# Run specific test file
+npx playwright test tests/e2e/gameplay.spec.ts
+
+# Debug mode (step through)
+npx playwright test --debug
+```
+
+### Writing Tests
+```typescript
+// tests/e2e/example.spec.ts
+import { test, expect } from '@playwright/test';
+
+test('game loads and displays tank', async ({ page }) => {
+  await page.goto('http://localhost:5173');
+
+  // Wait for Phaser to initialize
+  await page.waitForFunction(() => {
+    return (window as any).game?.isRunning;
+  });
+
+  // Check canvas exists
+  const canvas = page.locator('canvas');
+  await expect(canvas).toBeVisible();
+});
+```
+
+### Test Patterns for Phaser Games
+```typescript
+// Wait for specific game state
+await page.waitForFunction(() => {
+  const scene = (window as any).game?.scene?.getScene('GameScene');
+  return scene?.tank !== undefined;
+});
+
+// Simulate keyboard input
+await page.keyboard.press('1'); // Activate skill 1
+
+// Check game state via exposed globals
+const gold = await page.evaluate(() => {
+  return (window as any).gameState?.economy?.gold;
+});
+expect(gold).toBeGreaterThan(0);
+```
+
+### Best Practices
+- Always wait for Phaser initialization before assertions
+- Expose necessary game state to `window` for testing
+- Use `page.waitForFunction` for game state checks
+- Keep tests focused on user-visible behavior
+- Don't test internal implementation details
+
+---
+
 ## 📝 COMMIT CONVENTIONS
 
 ```
@@ -421,22 +584,38 @@ this.add.sprite(x, y, 'enemies-act1', 'enemy-imp-walk-0');
 
 ## 📋 MVP CHECKLIST
 
-Phase 1 must include:
-- [ ] Tank with built-in cannon (2.5s fire rate)
-- [ ] 3 modules: Machine Gun, Missile Pod, Repair Drone
-- [ ] Each module has 2 skills
-- [ ] Module drops with 4 rarities
-- [ ] 11 possible stat rolls
-- [ ] Act 1: 2 zones, 7 waves each
-- [ ] 4 enemy types (Imp, Hellhound, Possessed Soldier, Fire Skull)
-- [ ] Boss: Corrupted Sentinel
-- [ ] XP system (exponential curve)
-- [ ] Gold economy
-- [ ] Near Death system
-- [ ] Save/Load on zone complete
-- [ ] Basic UI (HP, Gold, Module slots)
-- [ ] Object pooling for all spawned entities
-- [ ] 60 FPS on minimum spec
+### Core Systems (Backend) ✅
+- [x] Tank with built-in cannon (2.5s fire rate)
+- [x] 3 modules: Machine Gun, Missile Pod, Repair Drone
+- [x] Each module has 2 skills + auto-mode
+- [x] Module drops with 4 rarities
+- [x] 11 possible stat rolls
+- [x] Act 1: 2 zones, 7 waves each
+- [x] 4 enemy types (Imp, Hellhound, Possessed Soldier, Fire Skull)
+- [x] Boss: Corrupted Sentinel
+- [x] XP system (exponential curve)
+- [x] Gold economy
+- [x] Near Death system
+- [x] Save/Load on zone complete
+- [x] Object pooling for all spawned entities
+- [x] Input system for skills (1-10 keys)
+
+### UI/UX Systems (Missing/Partial) ⚠️
+- [ ] Main Menu scene (New Game, Continue, Settings, Quit)
+- [ ] Pause Menu scene (Resume, Modules, Upgrades, Shop)
+- [ ] Module Inventory screen (browse, equip, sell)
+- [ ] Module Slot upgrade UI (upgrade slot levels with gold)
+- [ ] Shop screen (purchase new slots)
+- [ ] Loot drop visuals (drops on field, pickup interaction)
+- [ ] Zone completion summary screen
+- [ ] Settings screen (volume, keybinds)
+- [ ] Near Death revive button UI
+
+### Polish (Post-MVP)
+- [ ] Audio (SFX + music)
+- [ ] VFX (muzzle flash, explosions, impacts)
+- [ ] 60 FPS verification with 30 enemies
+- [ ] E2E tests for critical flows
 
 ---
 
