@@ -458,10 +458,9 @@ export class GameState {
 
     this.eventManager.emit(GameEvents.MODULE_EQUIPPED, {
       moduleId: module.id,
+      moduleType: module.type,
       slotIndex,
-      rarity: module.rarity,
-      type: module.type,
-      previousModuleId: previousModule?.id,
+      previousModuleId: previousModule?.id ?? null,
     });
 
     if (import.meta.env.DEV) {

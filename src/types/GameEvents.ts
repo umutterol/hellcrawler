@@ -23,8 +23,15 @@ export enum GameEvents {
   // Module Events
   MODULE_DROPPED = 'module:dropped',
   MODULE_EQUIPPED = 'module:equipped',
+  MODULE_UNEQUIPPED = 'module:unequipped',
   MODULE_SOLD = 'module:sold',
   SKILL_ACTIVATED = 'skill:activated',
+  SKILL_COOLDOWN_STARTED = 'skill:cooldown_started',
+  SKILL_COOLDOWN_ENDED = 'skill:cooldown_ended',
+
+  // Slot Events
+  SLOT_UNLOCKED = 'slot:unlocked',
+  SLOT_UPGRADED = 'slot:upgraded',
 
   // Wave Events
   WAVE_STARTED = 'wave:started',
@@ -122,10 +129,15 @@ export interface ModuleDroppedPayload {
 
 export interface ModuleEquippedPayload {
   moduleId: string;
+  moduleType: string;
   slotIndex: number;
-  rarity: 'uncommon' | 'rare' | 'epic' | 'legendary';
-  type: string;
-  previousModuleId?: string;
+  previousModuleId: string | null;
+}
+
+export interface ModuleUnequippedPayload {
+  moduleId: string;
+  moduleType: string;
+  slotIndex: number;
 }
 
 export interface ModuleSoldPayload {
@@ -138,8 +150,29 @@ export interface SkillActivatedPayload {
   skillId: string;
   skillName: string;
   moduleId: string;
+  slotIndex: number;
   targetCount: number;
   damage?: number;
+}
+
+export interface SkillCooldownPayload {
+  skillId: string;
+  skillName: string;
+  moduleId: string;
+  slotIndex: number;
+  cooldownDuration: number;
+}
+
+// Slot Event Payloads
+export interface SlotUnlockedPayload {
+  slotIndex: number;
+  cost: number;
+}
+
+export interface SlotUpgradedPayload {
+  slotIndex: number;
+  newLevel: number;
+  cost: number;
 }
 
 // Wave Event Payloads
@@ -235,8 +268,13 @@ export type EventPayloadMap = {
   [GameEvents.GOLD_CHANGED]: GoldChangedPayload;
   [GameEvents.MODULE_DROPPED]: ModuleDroppedPayload;
   [GameEvents.MODULE_EQUIPPED]: ModuleEquippedPayload;
+  [GameEvents.MODULE_UNEQUIPPED]: ModuleUnequippedPayload;
   [GameEvents.MODULE_SOLD]: ModuleSoldPayload;
   [GameEvents.SKILL_ACTIVATED]: SkillActivatedPayload;
+  [GameEvents.SKILL_COOLDOWN_STARTED]: SkillCooldownPayload;
+  [GameEvents.SKILL_COOLDOWN_ENDED]: SkillCooldownPayload;
+  [GameEvents.SLOT_UNLOCKED]: SlotUnlockedPayload;
+  [GameEvents.SLOT_UPGRADED]: SlotUpgradedPayload;
   [GameEvents.WAVE_STARTED]: WaveStartedPayload;
   [GameEvents.WAVE_COMPLETED]: WaveCompletedPayload;
   [GameEvents.ZONE_COMPLETED]: ZoneCompletedPayload;
