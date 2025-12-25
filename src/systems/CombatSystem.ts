@@ -52,13 +52,23 @@ export class CombatSystem {
 
     // Enemy vs Tank hitbox (melee range)
     // Use the tank's physics hitbox, not the container
+    const hitbox = this.tank.getHitbox();
+    if (import.meta.env.DEV) {
+      const body = hitbox.body as Phaser.Physics.Arcade.Body;
+      console.log(`[CombatSystem] Setting up enemy-tank overlap. Hitbox pos: (${hitbox.x}, ${hitbox.y}), body: ${body ? `size=${body.width}x${body.height}, offset=(${body.offset.x}, ${body.offset.y})` : 'null'}`);
+    }
+
     this.enemyTankOverlap = this.scene.physics.add.overlap(
       this.enemies,
-      this.tank.getHitbox(),
+      hitbox,
       this.onEnemyReachTank as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
       undefined,
       this
     );
+
+    if (import.meta.env.DEV) {
+      console.log('[CombatSystem] Enemy-tank overlap registered:', this.enemyTankOverlap ? 'success' : 'failed');
+    }
   }
 
   /**
@@ -158,21 +168,37 @@ export class CombatSystem {
    * Handle enemy reaching the tank for melee attack
    */
   private onEnemyReachTank(
-    enemyObj: Phaser.GameObjects.GameObject,
-    _tankObj: Phaser.GameObjects.GameObject
+    obj1: Phaser.GameObjects.GameObject,
+    obj2: Phaser.GameObjects.GameObject
   ): void {
-    const enemy = enemyObj as Enemy;
+    if (import.meta.env.DEV) {
+      console.log(`[CombatSystem] onEnemyReachTank called: obj1=${obj1.constructor.name}, obj2=${obj2.constructor.name}`);
+    }
+
+    // Determine which object is the enemy (could be either depending on overlap order)
+    let enemy: Enemy | null = null;
+
+    if (obj1 instanceof Enemy) {
+      enemy = obj1;
+    } else if (obj2 instanceof Enemy) {
+      enemy = obj2;
+    }
+
+    if (!enemy) {
+      if (import.meta.env.DEV) {
+        console.warn('[CombatSystem] Neither object is an Enemy!');
+      }
+      return;
+    }
 
     if (!enemy.active || !enemy.isAlive()) return;
 
     const currentTime = this.scene.time.now;
-    const attackRange = enemy.getAttackRange();
-
-    // Check if enemy is in attack range
     const tankPos = this.tank.getPosition();
-    const distance = Math.abs(enemy.x - tankPos.x);
 
-    if (distance <= attackRange && enemy.canAttack(currentTime)) {
+    // Since overlap callback fired, enemy is in contact with tank hitbox - they can attack
+    // No need for additional distance check - physics overlap handles proximity
+    if (enemy.canAttack(currentTime)) {
       const damage = enemy.attack(currentTime);
       if (damage > 0) {
         const config = enemy.getConfig();

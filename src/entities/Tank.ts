@@ -78,12 +78,28 @@ export class Tank extends Phaser.GameObjects.Container {
     this.add(this.cannonSprite);
 
     // Create physics hitbox for enemy collision detection
-    // Position it at the tank's world position with a reasonable size
-    this.hitbox = this.scene.physics.add.sprite(this.x, this.y - 32, 'tank-placeholder');
-    this.hitbox.setVisible(false); // Invisible, just for physics
+    // Hitbox extends from tank position (x=200) to enemy stop position (x=400) + margin
+    // Position hitbox center at x=300 (midpoint between tank and enemy stop)
+    const hitboxWidth = 250; // Covers from tank (200) to past enemy stop (400+50)
+    const hitboxHeight = 80;
+    const hitboxCenterX = this.x + 100; // Center between tank and where enemies stop
+
+    this.hitbox = this.scene.physics.add.sprite(hitboxCenterX, this.y - 40, 'tank-placeholder');
+    this.hitbox.setVisible(import.meta.env.DEV); // Visible in dev for debugging
+    this.hitbox.setAlpha(0.3);
     this.hitbox.setImmovable(true);
-    this.hitbox.body?.setSize(80, 64); // Tank-sized hitbox
+
+    // Set body size centered on sprite
+    const body = this.hitbox.body as Phaser.Physics.Arcade.Body;
+    if (body) {
+      body.setSize(hitboxWidth, hitboxHeight);
+      body.setOffset(-hitboxWidth / 2 + 16, -hitboxHeight / 2 + 16); // Center the body
+    }
     this.hitbox.setData('tank', this); // Reference back to tank
+
+    if (import.meta.env.DEV) {
+      console.log(`[Tank] Hitbox created at (${this.hitbox.x}, ${this.hitbox.y}), body size: ${hitboxWidth}x${hitboxHeight}`);
+    }
   }
 
   private createHealthBar(): void {
