@@ -179,17 +179,18 @@ export class GameState {
 
     this.tankXP += actualAmount;
 
-    const xpToNext = calculateXPRequired(this.tankLevel);
-
     this.eventManager.emit(GameEvents.XP_GAINED, {
       amount: actualAmount,
       currentXp: this.tankXP,
-      xpToNextLevel: xpToNext,
+      xpToNextLevel: calculateXPRequired(this.tankLevel),
       source,
     });
 
-    // Check for level-up
-    while (this.tankXP >= xpToNext && this.tankLevel < GAME_CONFIG.MAX_TANK_LEVEL) {
+    // Check for level-up (recalculate xpToNext each iteration)
+    while (
+      this.tankXP >= calculateXPRequired(this.tankLevel) &&
+      this.tankLevel < GAME_CONFIG.MAX_TANK_LEVEL
+    ) {
       this.levelUp();
     }
   }

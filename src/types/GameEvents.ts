@@ -69,12 +69,13 @@ export interface EnemyDiedPayload {
 
 export interface DamageDealtPayload {
   sourceId: string;
-  sourceType: 'tank' | 'skill';
+  sourceType: 'tank' | 'skill' | 'module';
   targetId: string;
   targetType: 'enemy' | 'boss';
   damage: number;
-  isCritical: boolean;
+  isCrit: boolean;
   remainingHealth: number;
+  maxHealth: number;
 }
 
 export interface DamageTakenPayload {

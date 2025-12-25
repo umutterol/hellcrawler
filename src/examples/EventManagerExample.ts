@@ -152,15 +152,16 @@ export class CombatSystem {
 
   private trackDamage(payload: {
     sourceId: string;
-    sourceType: 'tank' | 'skill';
+    sourceType: 'tank' | 'skill' | 'module';
     targetId: string;
     targetType: 'enemy' | 'boss';
     damage: number;
-    isCritical: boolean;
+    isCrit: boolean;
     remainingHealth: number;
+    maxHealth: number;
   }): void {
     console.log(
-      `${payload.sourceType} dealt ${payload.damage} damage${payload.isCritical ? ' (CRITICAL!)' : ''}`
+      `${payload.sourceType} dealt ${payload.damage} damage${payload.isCrit ? ' (CRITICAL!)' : ''}`
     );
   }
 }
@@ -175,16 +176,17 @@ export class UISystem {
 
   private showDamageNumber(payload: {
     sourceId: string;
-    sourceType: 'tank' | 'skill';
+    sourceType: 'tank' | 'skill' | 'module';
     targetId: string;
     targetType: 'enemy' | 'boss';
     damage: number;
-    isCritical: boolean;
+    isCrit: boolean;
     remainingHealth: number;
+    maxHealth: number;
   }): void {
     // Create floating damage number in UI
     console.log(
-      `Display: ${payload.damage}${payload.isCritical ? '!' : ''}`
+      `Display: ${payload.damage}${payload.isCrit ? '!' : ''}`
     );
   }
 }
@@ -200,12 +202,13 @@ export class StatsSystem {
 
   private recordDamage(payload: {
     sourceId: string;
-    sourceType: 'tank' | 'skill';
+    sourceType: 'tank' | 'skill' | 'module';
     targetId: string;
     targetType: 'enemy' | 'boss';
     damage: number;
-    isCritical: boolean;
+    isCrit: boolean;
     remainingHealth: number;
+    maxHealth: number;
   }): void {
     this.totalDamageDealt += payload.damage;
   }
