@@ -92,19 +92,21 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite implements IPoolabl
     this.setActive(true);
     this.setVisible(true);
 
-    // Enable physics body and sync position
+    // Enable physics body and explicitly reset position
     const body = this.body as Phaser.Physics.Arcade.Body;
     if (body) {
       body.setEnable(true);
-      body.updateFromGameObject();
+      // Reset body position explicitly to match sprite
+      body.reset(x, y);
     }
 
     // Configure based on type
     this.configureByType(config);
 
-    // Set initial velocity
+    // Set initial velocity (after body reset)
     if (config.type !== ProjectileType.Beam) {
       this.setVelocityX(config.speed);
+      this.setVelocityY(0); // Ensure no vertical velocity
     }
 
     // Store homing target if applicable
@@ -117,6 +119,10 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite implements IPoolabl
    * Deactivate this projectile and return to pool
    */
   public deactivate(): void {
+    if (import.meta.env.DEV && this.active) {
+      console.log(`[Projectile] Deactivating ${this.projectileId} at (${this.x.toFixed(0)}, ${this.y.toFixed(0)}), lifetime=${this.lifetime.toFixed(0)}ms`);
+    }
+
     this.setActive(false);
     this.setVisible(false);
     this.setVelocity(0, 0);
@@ -235,6 +241,9 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite implements IPoolabl
     // Update lifetime
     this.lifetime += delta;
     if (this.lifetime >= this.maxLifetime) {
+      if (import.meta.env.DEV) {
+        console.log(`[Projectile] ${this.projectileId} expired (lifetime)`);
+      }
       this.deactivate();
       return;
     }
@@ -246,6 +255,9 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite implements IPoolabl
 
     // Deactivate if off screen
     if (this.x > 2000 || this.x < -50 || this.y < -50 || this.y > 1130) {
+      if (import.meta.env.DEV) {
+        console.log(`[Projectile] ${this.projectileId} off screen at (${this.x.toFixed(0)}, ${this.y.toFixed(0)})`);
+      }
       this.deactivate();
     }
   }

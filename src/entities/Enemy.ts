@@ -83,16 +83,17 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
     this.setActive(true);
     this.setVisible(true);
 
-    // Enable physics body and configure it
+    // Enable physics body and explicitly reset position
     const body = this.body as Phaser.Physics.Arcade.Body;
     if (body) {
       body.setEnable(true);
-      // Sync body to sprite position with offset for bottom-center origin
-      body.updateFromGameObject();
+      // Reset body position explicitly to match sprite
+      body.reset(x, y);
     }
 
-    // Set velocity to move left toward tank
+    // Set velocity to move left toward tank (after body reset)
     this.setVelocityX(-config.speed);
+    this.setVelocityY(0);
 
     // Apply visual based on category
     this.applyVisualsByCategory(config.category);

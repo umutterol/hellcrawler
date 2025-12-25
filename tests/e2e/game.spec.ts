@@ -1,19 +1,40 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
+
+// Configure tests to run serially to avoid race conditions with dev server
+test.describe.configure({ mode: 'serial' });
+
+// Helper to set up console logging before navigation
+async function setupConsoleCapture(page: Page): Promise<string[]> {
+  const messages: string[] = [];
+  page.on('console', (msg) => {
+    messages.push(msg.text());
+  });
+  return messages;
+}
+
+// Helper to wait for specific console message
+async function waitForMessage(
+  page: Page,
+  messages: string[],
+  pattern: string,
+  timeout: number = 10000
+): Promise<boolean> {
+  const startTime = Date.now();
+  while (Date.now() - startTime < timeout) {
+    if (messages.some((msg) => msg.includes(pattern))) {
+      return true;
+    }
+    await page.waitForTimeout(100);
+  }
+  return false;
+}
 
 test.describe('Hellcrawler Game', () => {
-  test.beforeEach(async ({ page }) => {
-    // Navigate to game
-    await page.goto('/');
-
-    // Wait for Phaser to initialize (canvas element appears)
-    await expect(page.locator('canvas')).toBeVisible({ timeout: 10000 });
-  });
-
   test('should load the game canvas', async ({ page }) => {
-    const canvas = page.locator('canvas');
-    await expect(canvas).toBeVisible();
+    await page.goto('/');
+    await expect(page.locator('canvas')).toBeVisible({ timeout: 10000 });
 
-    // Verify canvas has proper dimensions
+    const canvas = page.locator('canvas');
     const box = await canvas.boundingBox();
     expect(box).toBeTruthy();
     expect(box!.width).toBeGreaterThan(0);
@@ -21,98 +42,63 @@ test.describe('Hellcrawler Game', () => {
   });
 
   test('should start with wave 1', async ({ page }) => {
-    // Wait for game to initialize and first wave to start
-    await page.waitForTimeout(2000);
+    const consoleMessages = await setupConsoleCapture(page);
+    await page.goto('/');
+    await expect(page.locator('canvas')).toBeVisible({ timeout: 10000 });
 
-    // Check console for wave start message
-    const consoleMessages: string[] = [];
-    page.on('console', (msg) => {
-      consoleMessages.push(msg.text());
-    });
-
-    // Wait a bit for console messages
-    await page.waitForTimeout(500);
-
-    // The wave should have started (check debug logs)
-    // In production, we'd check UI elements instead
-    const canvas = page.locator('canvas');
-    await expect(canvas).toBeVisible();
+    // Wait for wave to start
+    const hasWaveStart = await waitForMessage(page, consoleMessages, '[WaveSystem] Started wave', 5000);
+    expect(hasWaveStart).toBe(true);
   });
 
   test('should spawn enemies after wave starts', async ({ page }) => {
-    // Capture console messages to verify enemy spawning
-    const consoleMessages: string[] = [];
-    page.on('console', (msg) => {
-      consoleMessages.push(msg.text());
-    });
+    const consoleMessages = await setupConsoleCapture(page);
+    await page.goto('/');
+    await expect(page.locator('canvas')).toBeVisible({ timeout: 10000 });
 
-    // Wait for enemies to spawn (wave starts after 1s delay, spawns begin)
-    await page.waitForTimeout(3000);
-
-    // Verify enemy activation messages appeared
-    const hasEnemySpawn = consoleMessages.some((msg) =>
-      msg.includes('[Enemy] Activated')
-    );
+    // Wait for enemies to spawn
+    const hasEnemySpawn = await waitForMessage(page, consoleMessages, '[Enemy] Activated', 5000);
     expect(hasEnemySpawn).toBe(true);
   });
 
   test('should fire cannon and spawn projectiles', async ({ page }) => {
-    // Capture console messages
-    const consoleMessages: string[] = [];
-    page.on('console', (msg) => {
-      consoleMessages.push(msg.text());
-    });
+    const consoleMessages = await setupConsoleCapture(page);
+    await page.goto('/');
+    await expect(page.locator('canvas')).toBeVisible({ timeout: 10000 });
 
     // Wait for cannon to fire (2.5s cooldown from start)
-    await page.waitForTimeout(4000);
-
-    // Verify projectile was fired
-    const hasProjectileFire = consoleMessages.some((msg) =>
-      msg.includes('[Projectile] Activated')
-    );
+    const hasProjectileFire = await waitForMessage(page, consoleMessages, '[Projectile] Activated', 6000);
     expect(hasProjectileFire).toBe(true);
   });
 
   test('should detect collisions and deal damage', async ({ page }) => {
-    // Capture console messages
-    const consoleMessages: string[] = [];
-    page.on('console', (msg) => {
-      consoleMessages.push(msg.text());
-    });
+    const consoleMessages = await setupConsoleCapture(page);
+    await page.goto('/');
+    await expect(page.locator('canvas')).toBeVisible({ timeout: 10000 });
 
-    // Wait for enemies to approach and get hit
-    await page.waitForTimeout(8000);
+    // Enemies spawn at X=1970, move at ~80-120 speed, need to travel 1700px to reach projectiles
+    // This takes about 14-21 seconds. Meanwhile cannon fires every 2.5s
+    // Wait longer to ensure combat has happened
+    const hasCombat = await waitForMessage(page, consoleMessages, '[CombatSystem] Overlap detected', 25000)
+      || consoleMessages.some((msg) => msg.includes('[CombatSystem] Spawning damage number'));
 
-    // Verify overlap detection happened
-    const hasOverlapDetection = consoleMessages.some((msg) =>
-      msg.includes('[CombatSystem] Overlap detected')
-    );
+    // If no overlap detected, at least verify cannon is firing at enemies
+    if (!hasCombat) {
+      console.log('No combat detected. Messages:');
+      consoleMessages.filter(m => m.includes('[CombatSystem]') || m.includes('[Enemy]') || m.includes('[Projectile]'))
+        .forEach(m => console.log(`  ${m.substring(0, 150)}`));
+    }
 
-    // If no overlap, check if damage numbers spawned
-    const hasDamageNumber = consoleMessages.some((msg) =>
-      msg.includes('[CombatSystem] Spawning damage number')
-    );
-
-    // At least one of these should be true if combat is working
-    expect(hasOverlapDetection || hasDamageNumber).toBe(true);
+    expect(hasCombat).toBe(true);
   });
 
   test('should show FPS counter in dev mode', async ({ page }) => {
-    // Wait for game to load
-    await page.waitForTimeout(2000);
+    const consoleMessages = await setupConsoleCapture(page);
+    await page.goto('/');
+    await expect(page.locator('canvas')).toBeVisible({ timeout: 10000 });
 
-    // Check console for active counts (logged every second)
-    const consoleMessages: string[] = [];
-    page.on('console', (msg) => {
-      consoleMessages.push(msg.text());
-    });
-
-    await page.waitForTimeout(2000);
-
-    // Should have periodic status logs
-    const hasStatusLog = consoleMessages.some((msg) =>
-      msg.includes('[CombatSystem] Active:')
-    );
+    // Wait for status log
+    const hasStatusLog = await waitForMessage(page, consoleMessages, '[CombatSystem] Active:', 5000);
     expect(hasStatusLog).toBe(true);
   });
 
@@ -122,23 +108,19 @@ test.describe('Hellcrawler Game', () => {
       errors.push(error.message);
     });
 
+    await page.goto('/');
+    await expect(page.locator('canvas')).toBeVisible({ timeout: 10000 });
+
     // Wait for game to run a bit
     await page.waitForTimeout(5000);
 
-    // Check for unexpected errors (filter out known warnings if any)
-    const unexpectedErrors = errors.filter(
-      (e) => !e.includes('expected_warning')
-    );
-    expect(unexpectedErrors).toHaveLength(0);
+    // Check for unexpected errors
+    expect(errors).toHaveLength(0);
   });
 });
 
 test.describe('Game Performance', () => {
   test('should maintain acceptable frame rate', async ({ page }) => {
-    await page.goto('/');
-    await expect(page.locator('canvas')).toBeVisible({ timeout: 10000 });
-
-    // Monitor console for FPS warnings
     const lowFpsWarnings: string[] = [];
     page.on('console', (msg) => {
       const text = msg.text();
@@ -146,6 +128,9 @@ test.describe('Game Performance', () => {
         lowFpsWarnings.push(text);
       }
     });
+
+    await page.goto('/');
+    await expect(page.locator('canvas')).toBeVisible({ timeout: 10000 });
 
     // Let game run for several seconds
     await page.waitForTimeout(10000);
@@ -155,16 +140,15 @@ test.describe('Game Performance', () => {
   });
 
   test('should handle enemy pool correctly', async ({ page }) => {
-    await page.goto('/');
-    await expect(page.locator('canvas')).toBeVisible({ timeout: 10000 });
-
-    // Capture pool status messages
     const poolMessages: string[] = [];
     page.on('console', (msg) => {
       if (msg.text().includes('Active:')) {
         poolMessages.push(msg.text());
       }
     });
+
+    await page.goto('/');
+    await expect(page.locator('canvas')).toBeVisible({ timeout: 10000 });
 
     // Wait for multiple waves
     await page.waitForTimeout(15000);

@@ -131,51 +131,31 @@ export class GameScene extends Phaser.Scene {
 
   private createEntityGroups(): void {
     // Create physics groups for collision detection
-    // maxSize helps with pooling, runChildUpdate runs preUpdate on children
+    // runChildUpdate runs preUpdate on children automatically
     this.enemies = this.physics.add.group({
-      classType: Enemy,
-      maxSize: GAME_CONFIG.POOL_SIZES.ENEMIES_PER_TYPE,
       runChildUpdate: true,
     });
 
     this.projectiles = this.physics.add.group({
-      classType: Projectile,
-      maxSize: GAME_CONFIG.POOL_SIZES.PROJECTILES,
       runChildUpdate: true,
     });
   }
 
   private createPools(): void {
-    // Pre-create enemies in the pool using group's createMultiple
-    // This ensures proper physics body setup
-    this.enemies.createMultiple({
-      classType: Enemy,
-      quantity: GAME_CONFIG.POOL_SIZES.ENEMIES_PER_TYPE,
-      active: false,
-      visible: false,
-      key: 'enemy-placeholder',
-    });
-
-    // Deactivate all enemies properly
-    this.enemies.getChildren().forEach((child) => {
-      const enemy = child as Enemy;
+    // Pre-create enemies in the pool manually
+    // Enemy constructor already adds to scene and physics, so don't add again
+    for (let i = 0; i < GAME_CONFIG.POOL_SIZES.ENEMIES_PER_TYPE; i++) {
+      const enemy = new Enemy(this);
+      this.enemies.add(enemy); // Don't add to scene again, just track in group
       enemy.deactivate();
-    });
+    }
 
     // Pre-create projectiles in the pool
-    this.projectiles.createMultiple({
-      classType: Projectile,
-      quantity: GAME_CONFIG.POOL_SIZES.PROJECTILES,
-      active: false,
-      visible: false,
-      key: 'bullet-placeholder',
-    });
-
-    // Deactivate all projectiles properly
-    this.projectiles.getChildren().forEach((child) => {
-      const projectile = child as Projectile;
+    for (let i = 0; i < GAME_CONFIG.POOL_SIZES.PROJECTILES; i++) {
+      const projectile = new Projectile(this);
+      this.projectiles.add(projectile);
       projectile.deactivate();
-    });
+    }
 
     if (import.meta.env.DEV) {
       console.log(`[GameScene] Created pools: ${this.enemies.getChildren().length} enemies, ${this.projectiles.getChildren().length} projectiles`);
