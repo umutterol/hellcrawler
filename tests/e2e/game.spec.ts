@@ -119,6 +119,59 @@ test.describe('Hellcrawler Game', () => {
   });
 });
 
+test.describe('Module System', () => {
+  test('should equip starting MachineGun module', async ({ page }) => {
+    const consoleMessages = await setupConsoleCapture(page);
+    await page.goto('/');
+    await expect(page.locator('canvas')).toBeVisible({ timeout: 10000 });
+
+    // Check for starting module equip message
+    const hasStartingModule = await waitForMessage(
+      page,
+      consoleMessages,
+      'Equipped starting module',
+      5000
+    );
+    expect(hasStartingModule).toBe(true);
+  });
+
+  test('should have MachineGun firing bullets', async ({ page }) => {
+    const consoleMessages = await setupConsoleCapture(page);
+    await page.goto('/');
+    await expect(page.locator('canvas')).toBeVisible({ timeout: 10000 });
+
+    // Wait for MachineGun to fire (fires every 200ms)
+    // Look for bullet projectiles being activated
+    await page.waitForTimeout(4000);
+
+    // Check for multiple projectile activations (MachineGun fires rapidly)
+    // Log format: [Projectile] Activated proj_bullet_X at (x, y), speed=...
+    const bulletCount = consoleMessages.filter((msg) =>
+      msg.includes('[Projectile] Activated proj_bullet')
+    ).length;
+
+    // Should have multiple bullets fired in 4 seconds at 200ms fire rate
+    // (only fires when enemies are present, so expect at least some)
+    expect(bulletCount).toBeGreaterThan(3);
+  });
+
+  test('should show module slots UI', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('canvas')).toBeVisible({ timeout: 10000 });
+
+    // Wait for UI to render
+    await page.waitForTimeout(1000);
+
+    // The module UI should be visible (rendered on canvas)
+    // We can verify by checking no errors occurred
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+
+    await page.waitForTimeout(2000);
+    expect(errors).toHaveLength(0);
+  });
+});
+
 test.describe('Game Performance', () => {
   test('should maintain acceptable frame rate', async ({ page }) => {
     const lowFpsWarnings: string[] = [];

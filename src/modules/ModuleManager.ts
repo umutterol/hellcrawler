@@ -38,6 +38,9 @@ export class ModuleManager {
   private tankX: number = 200;
   private tankY: number = 540;
 
+  // Projectile group for modules to spawn bullets
+  private projectileGroup: Phaser.GameObjects.Group | null = null;
+
   // Constants
   private static readonly MAX_SLOTS = 5;
   private static readonly MAX_INVENTORY = 50;
@@ -49,6 +52,18 @@ export class ModuleManager {
 
     // Initialize slots
     this.initializeSlots();
+  }
+
+  /**
+   * Set the projectile group for modules to use
+   */
+  public setProjectileGroup(group: Phaser.GameObjects.Group): void {
+    this.projectileGroup = group;
+
+    // Update existing modules
+    for (const module of this.activeModules.values()) {
+      module.setProjectileGroup(group);
+    }
   }
 
   /**
@@ -164,6 +179,9 @@ export class ModuleManager {
 
     if (newModule) {
       newModule.setPosition(this.tankX, this.tankY);
+      if (this.projectileGroup) {
+        newModule.setProjectileGroup(this.projectileGroup);
+      }
       this.activeModules.set(slotIndex, newModule);
     }
 
@@ -347,6 +365,9 @@ export class ModuleManager {
 
         if (module) {
           module.setPosition(this.tankX, this.tankY);
+          if (this.projectileGroup) {
+            module.setProjectileGroup(this.projectileGroup);
+          }
           this.activeModules.set(i, module);
         }
       }

@@ -3,7 +3,6 @@ import { ModuleItemData, ModuleSkill, ModuleType } from '../types/ModuleTypes';
 import { StatType } from '../types/GameTypes';
 import { EventManager, getEventManager } from '../managers/EventManager';
 import { GameEvents } from '../types/GameEvents';
-import { poolManager } from '../managers/PoolManager';
 import { Projectile } from '../entities/Projectile';
 import { Enemy } from '../entities/Enemy';
 
@@ -28,6 +27,7 @@ interface SkillState {
 export abstract class BaseModule {
   protected scene: Phaser.Scene;
   protected eventManager: EventManager;
+  protected projectileGroup: Phaser.GameObjects.Group | null = null;
 
   // Module data
   protected moduleData: ModuleItemData;
@@ -70,6 +70,13 @@ export abstract class BaseModule {
 
     // Cache stat bonuses
     this.cacheStats();
+  }
+
+  /**
+   * Set the projectile group for spawning projectiles
+   */
+  public setProjectileGroup(group: Phaser.GameObjects.Group): void {
+    this.projectileGroup = group;
   }
 
   /**
@@ -312,7 +319,13 @@ export abstract class BaseModule {
    * Helper: Get projectile from pool
    */
   protected getProjectile(): Projectile | null {
-    return poolManager.get<Projectile>('projectiles');
+    if (!this.projectileGroup) {
+      if (import.meta.env.DEV) {
+        console.warn('[BaseModule] No projectile group set!');
+      }
+      return null;
+    }
+    return this.projectileGroup.getFirstDead(false) as Projectile | null;
   }
 
   /**
