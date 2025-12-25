@@ -13,6 +13,7 @@ import { ModuleItem } from '../modules/ModuleItem';
 import { ModuleType } from '../types/ModuleTypes';
 import { Rarity } from '../types/GameTypes';
 import { getGameState } from '../state/GameState';
+import { getSaveManager, SaveManager } from '../managers/SaveManager';
 
 /**
  * Main Game Scene - Core gameplay loop
@@ -45,6 +46,9 @@ export class GameScene extends Phaser.Scene {
   private gameUI!: GameUI;
   private moduleSlotUI!: ModuleSlotUI;
   private fpsText: Phaser.GameObjects.Text | null = null;
+
+  // Save system
+  private saveManager!: SaveManager;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -84,6 +88,16 @@ export class GameScene extends Phaser.Scene {
   private initializeManagers(): void {
     // Managers are singletons - no initialization needed here
     // EventManager and GameState are accessed via their getInstance() methods
+
+    // Initialize save manager and try to load saved game
+    this.saveManager = getSaveManager();
+    if (this.saveManager.hasSave()) {
+      const loaded = this.saveManager.load();
+      if (loaded && import.meta.env.DEV) {
+        const info = this.saveManager.getSaveInfo();
+        console.log('[GameScene] Loaded save:', info);
+      }
+    }
   }
 
   private createBackground(): void {

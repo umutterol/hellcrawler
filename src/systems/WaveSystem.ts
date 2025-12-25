@@ -175,7 +175,7 @@ export class WaveSystem {
           elites: [{ type: this.randomElite(), count: 2 }],
         };
       case 7:
-        // Boss wave - zone 1 = super elite, zone 2 = boss
+        // Boss wave - zone 1 = super elite, zone 2 = boss (Corrupted Sentinel per GDD)
         if (zone === 1) {
           return {
             fodder: [],
@@ -186,7 +186,7 @@ export class WaveSystem {
           return {
             fodder: [],
             elites: [],
-            boss: zone === 2 ? EnemyType.InfernalWarlord : EnemyType.LordOfFlames,
+            boss: EnemyType.CorruptedSentinel, // Act 1 Boss per GDD
           };
         }
       default:

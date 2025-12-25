@@ -29,6 +29,12 @@ export class GameUI {
   private xpBarBg!: Phaser.GameObjects.Graphics;
   private enemyCountText!: Phaser.GameObjects.Text;
 
+  // HP Bar elements
+  private hpBar!: Phaser.GameObjects.Graphics;
+  private hpBarBg!: Phaser.GameObjects.Graphics;
+  private hpText!: Phaser.GameObjects.Text;
+  private nearDeathIndicator!: Phaser.GameObjects.Text;
+
   // State
   private displayedGold: number = 0;
   private goldTween: Phaser.Tweens.Tween | null = null;
@@ -118,6 +124,54 @@ export class GameUI {
 
     this.xpBar = this.scene.add.graphics();
     this.container.add(this.xpBar);
+
+    // HP Bar (below XP bar)
+    this.createHPBar();
+  }
+
+  private createHPBar(): void {
+    const padding = 20;
+    const hpBarWidth = 300;
+    const hpBarHeight = 20;
+    const hpBarY = padding + 55;
+
+    // HP Bar background
+    this.hpBarBg = this.scene.add.graphics();
+    this.hpBarBg.fillStyle(0x333333, 1);
+    this.hpBarBg.fillRoundedRect(padding, hpBarY, hpBarWidth, hpBarHeight, 6);
+    this.hpBarBg.lineStyle(2, 0x000000, 1);
+    this.hpBarBg.strokeRoundedRect(padding, hpBarY, hpBarWidth, hpBarHeight, 6);
+    this.container.add(this.hpBarBg);
+
+    // HP Bar fill
+    this.hpBar = this.scene.add.graphics();
+    this.container.add(this.hpBar);
+
+    // HP Text (centered on bar)
+    this.hpText = this.scene.add.text(padding + hpBarWidth / 2, hpBarY + hpBarHeight / 2, '', {
+      fontSize: '14px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 2,
+    });
+    this.hpText.setOrigin(0.5, 0.5);
+    this.container.add(this.hpText);
+
+    // Near Death indicator (hidden by default)
+    this.nearDeathIndicator = this.scene.add.text(padding + hpBarWidth + 10, hpBarY + hpBarHeight / 2, '⚠ CRITICAL', {
+      fontSize: '14px',
+      color: '#ff0000',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 2,
+    });
+    this.nearDeathIndicator.setOrigin(0, 0.5);
+    this.nearDeathIndicator.setVisible(false);
+    this.container.add(this.nearDeathIndicator);
+
+    // Initial HP update
+    this.updateHPBar();
   }
 
   private subscribeToEvents(): void {
@@ -127,6 +181,9 @@ export class GameUI {
     this.eventManager.on(GameEvents.WAVE_STARTED, this.onWaveStarted, this);
     this.eventManager.on(GameEvents.WAVE_COMPLETED, this.onWaveCompleted, this);
     this.eventManager.on(GameEvents.ENEMY_DIED, this.onEnemyDied, this);
+    this.eventManager.on(GameEvents.DAMAGE_TAKEN, this.onDamageTaken, this);
+    this.eventManager.on(GameEvents.NEAR_DEATH_ENTERED, this.onNearDeathEntered, this);
+    this.eventManager.on(GameEvents.TANK_REVIVED, this.onTankRevived, this);
   }
 
   private onGoldChanged(payload: { newGold: number; change: number }): void {
@@ -164,6 +221,94 @@ export class GameUI {
   private onEnemyDied(_payload: unknown): void {
     // Update enemy count if we're tracking it
     // This will be handled by WaveSystem updating us
+  }
+
+  private onDamageTaken(_payload: { damage: number; remainingHealth: number }): void {
+    this.updateHPBar();
+    this.flashHPBar();
+  }
+
+  private onNearDeathEntered(_payload: { currentHealth: number }): void {
+    this.updateHPBar();
+    this.showNearDeathIndicator();
+  }
+
+  private onTankRevived(_payload: { restoredHealth: number }): void {
+    this.updateHPBar();
+    this.hideNearDeathIndicator();
+  }
+
+  private updateHPBar(): void {
+    const stats = this.gameState.getTankStats();
+    const currentHP = stats.currentHP;
+    const maxHP = stats.maxHP;
+    const percent = Math.max(0, Math.min(currentHP / maxHP, 1));
+
+    const padding = 20;
+    const hpBarWidth = 300;
+    const hpBarHeight = 20;
+    const hpBarY = padding + 55;
+
+    this.hpBar.clear();
+
+    // Color based on health percentage
+    let color = 0x00ff00; // Green
+    if (percent <= 0.2) {
+      color = 0xff0000; // Red (Near Death)
+    } else if (percent <= 0.5) {
+      color = 0xffff00; // Yellow
+    }
+
+    // Fill bar
+    if (percent > 0) {
+      this.hpBar.fillStyle(color, 1);
+      this.hpBar.fillRoundedRect(
+        padding + 2,
+        hpBarY + 2,
+        (hpBarWidth - 4) * percent,
+        hpBarHeight - 4,
+        4
+      );
+    }
+
+    // Update text
+    this.hpText.setText(`${this.formatNumber(currentHP)} / ${this.formatNumber(maxHP)}`);
+
+    // Show near death indicator if below 20%
+    if (percent <= 0.2 && currentHP > 0) {
+      this.showNearDeathIndicator();
+    } else {
+      this.hideNearDeathIndicator();
+    }
+  }
+
+  private flashHPBar(): void {
+    // Flash effect when taking damage
+    this.hpBarBg.setAlpha(0.5);
+    this.scene.time.delayedCall(100, () => {
+      this.hpBarBg.setAlpha(1);
+    });
+  }
+
+  private showNearDeathIndicator(): void {
+    this.nearDeathIndicator.setVisible(true);
+
+    // Pulsing animation
+    if (!this.scene.tweens.isTweening(this.nearDeathIndicator)) {
+      this.scene.tweens.add({
+        targets: this.nearDeathIndicator,
+        alpha: { from: 1, to: 0.3 },
+        duration: 500,
+        yoyo: true,
+        repeat: -1,
+      });
+    }
+  }
+
+  private hideNearDeathIndicator(): void {
+    this.nearDeathIndicator.setVisible(false);
+    this.scene.tweens.killTweensOf(this.nearDeathIndicator);
+    this.nearDeathIndicator.setAlpha(1);
   }
 
   private animateGoldChange(targetGold: number, change: number): void {
@@ -256,6 +401,7 @@ export class GameUI {
     this.updateZoneText();
     this.updateLevel(this.gameState.getTankLevel());
     this.updateXPBar();
+    this.updateHPBar();
     this.displayedGold = this.gameState.getGold();
     this.goldText.setText(this.formatNumber(this.displayedGold));
   }
@@ -286,11 +432,15 @@ export class GameUI {
     this.eventManager.off(GameEvents.WAVE_STARTED, this.onWaveStarted, this);
     this.eventManager.off(GameEvents.WAVE_COMPLETED, this.onWaveCompleted, this);
     this.eventManager.off(GameEvents.ENEMY_DIED, this.onEnemyDied, this);
+    this.eventManager.off(GameEvents.DAMAGE_TAKEN, this.onDamageTaken, this);
+    this.eventManager.off(GameEvents.NEAR_DEATH_ENTERED, this.onNearDeathEntered, this);
+    this.eventManager.off(GameEvents.TANK_REVIVED, this.onTankRevived, this);
 
     if (this.goldTween) {
       this.goldTween.stop();
     }
 
+    this.scene.tweens.killTweensOf(this.nearDeathIndicator);
     this.container.destroy(true);
   }
 }

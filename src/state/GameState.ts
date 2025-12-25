@@ -265,6 +265,7 @@ export class GameState {
 
   /**
    * Deal damage to the tank
+   * IMPORTANT: Tank cannot die - HP minimum is 1 (Near Death system)
    */
   public takeDamage(amount: number, sourceId: string, sourceType: 'enemy' | 'boss'): void {
     const previousHP = this.tankStats.currentHP;
@@ -273,7 +274,9 @@ export class GameState {
     const defenseReduction = this.tankStats.defense / (this.tankStats.defense + 100);
     const actualDamage = Math.floor(amount * (1 - defenseReduction));
 
-    this.tankStats.currentHP = Math.max(0, this.tankStats.currentHP - actualDamage);
+    // CRITICAL: Tank cannot die - minimum HP is 1
+    // This implements the Near Death mechanic from the GDD
+    this.tankStats.currentHP = Math.max(1, this.tankStats.currentHP - actualDamage);
 
     this.eventManager.emit(GameEvents.DAMAGE_TAKEN, {
       targetId: 'player-tank',
@@ -290,7 +293,7 @@ export class GameState {
     const wasAboveThreshold = previousHP / this.tankStats.maxHP >= 0.2;
     const isNowBelowThreshold = healthPercent < 0.2;
 
-    if (wasAboveThreshold && isNowBelowThreshold && this.tankStats.currentHP > 0) {
+    if (wasAboveThreshold && isNowBelowThreshold) {
       this.eventManager.emit(GameEvents.NEAR_DEATH_ENTERED, {
         currentHealth: this.tankStats.currentHP,
         maxHealth: this.tankStats.maxHP,

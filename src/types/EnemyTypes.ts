@@ -50,9 +50,11 @@ export enum EnemyType {
   VoidReaver = 'voidReaver',
 
   // Boss
-  /** Act 1 Zone 1 boss */
+  /** Act 1 Zone 2 boss - Main boss for Act 1 (per GDD) */
+  CorruptedSentinel = 'corruptedSentinel',
+  /** Act 1 Zone 1 boss - placeholder for future content */
   InfernalWarlord = 'infernalWarlord',
-  /** Act 1 Zone 2 boss */
+  /** Act 1 Zone 2 boss - placeholder for future content */
   LordOfFlames = 'lordOfFlames',
 }
 

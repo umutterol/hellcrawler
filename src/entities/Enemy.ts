@@ -456,6 +456,15 @@ export const ENEMY_CONFIGS: Record<EnemyType, EnemyConfig> = {
   },
 
   // Bosses
+  [EnemyType.CorruptedSentinel]: {
+    type: EnemyType.CorruptedSentinel,
+    category: EnemyCategory.Boss,
+    hp: 2500,
+    damage: 25,
+    speed: 45,
+    xpReward: 600,
+    goldReward: 400,
+  },
   [EnemyType.InfernalWarlord]: {
     type: EnemyType.InfernalWarlord,
     category: EnemyCategory.Boss,
