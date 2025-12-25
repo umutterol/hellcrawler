@@ -36,8 +36,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
   // Constants
   private static readonly HEALTH_BAR_WIDTH = 30;
   private static readonly HEALTH_BAR_HEIGHT = 4;
-  private static readonly HEALTH_BAR_OFFSET_Y = -20;
-  private static readonly STOP_X_POSITION = 280; // Stop near tank (tank is at x=200)
+  private static readonly HEALTH_BAR_OFFSET_Y = -40;
+  private static readonly STOP_X_POSITION = 480; // Stop near tank (tank is at x=200)
   private static idCounter: number = 0;
 
   constructor(scene: Phaser.Scene, x: number = 0, y: number = 0) {
