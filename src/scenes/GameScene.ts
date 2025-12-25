@@ -5,7 +5,14 @@ import { Enemy } from '../entities/Enemy';
 import { Projectile } from '../entities/Projectile';
 import { CombatSystem } from '../systems/CombatSystem';
 import { WaveSystem } from '../systems/WaveSystem';
+import { LootSystem } from '../systems/LootSystem';
 import { GameUI } from '../ui/GameUI';
+import { ModuleSlotUI } from '../ui/ModuleSlotUI';
+import { ModuleManager } from '../modules/ModuleManager';
+import { ModuleItem } from '../modules/ModuleItem';
+import { ModuleType } from '../types/ModuleTypes';
+import { Rarity } from '../types/GameTypes';
+import { getGameState } from '../state/GameState';
 
 /**
  * Main Game Scene - Core gameplay loop
@@ -29,9 +36,14 @@ export class GameScene extends Phaser.Scene {
   // Systems
   private combatSystem!: CombatSystem;
   private waveSystem!: WaveSystem;
+  private lootSystem!: LootSystem;
+
+  // Module system
+  private moduleManager!: ModuleManager;
 
   // UI
   private gameUI!: GameUI;
+  private moduleSlotUI!: ModuleSlotUI;
   private fpsText: Phaser.GameObjects.Text | null = null;
 
   constructor() {
@@ -170,6 +182,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   private initializeSystems(): void {
+    const gameState = getGameState();
+
+    // Module manager handles equipped modules
+    this.moduleManager = new ModuleManager(this, gameState);
+    this.moduleManager.setTankPosition(this.tank.x, this.tank.y);
+
     // Combat system handles projectile-enemy and enemy-tank collisions
     this.combatSystem = new CombatSystem(
       this,
@@ -180,14 +198,47 @@ export class GameScene extends Phaser.Scene {
 
     // Wave system handles enemy spawning
     this.waveSystem = new WaveSystem(this, this.enemies);
+
+    // Loot system handles module drops
+    this.lootSystem = new LootSystem(this);
+
+    // Equip starting module (1× Uncommon Machine Gun per GDD)
+    this.equipStartingModule();
+  }
+
+  /**
+   * Equip the starting module - 1× Uncommon Machine Gun
+   * Per GDD: "Player begins with: 1× Uncommon Machine Gun (random stat roll)"
+   */
+  private equipStartingModule(): void {
+    // Check if player already has modules equipped (loaded save)
+    const slot0 = this.moduleManager.getSlot(0);
+    if (slot0 && slot0.hasModule()) {
+      if (import.meta.env.DEV) {
+        console.log('[GameScene] Starting module already equipped (loaded save)');
+      }
+      return;
+    }
+
+    // Generate starting Uncommon Machine Gun
+    const startingModule = ModuleItem.generate(ModuleType.MachineGun, Rarity.Uncommon);
+
+    // Equip to slot 0
+    this.moduleManager.equipModule(0, startingModule);
+
+    if (import.meta.env.DEV) {
+      console.log('[GameScene] Equipped starting module:', startingModule.getTypeName());
+      console.log('[GameScene] Stats:', startingModule.getStats());
+    }
   }
 
   private createUI(): void {
     this.gameUI = new GameUI(this);
+    this.moduleSlotUI = new ModuleSlotUI(this, this.moduleManager);
 
     // FPS counter (dev only)
     if (import.meta.env.DEV) {
-      this.fpsText = this.add.text(GAME_CONFIG.WIDTH - 80, GAME_CONFIG.HEIGHT - 30, 'FPS: --', {
+      this.fpsText = this.add.text(GAME_CONFIG.WIDTH - 80, GAME_CONFIG.HEIGHT - 130, 'FPS: --', {
         fontSize: '16px',
         color: '#00ff00',
       });
@@ -215,8 +266,20 @@ export class GameScene extends Phaser.Scene {
     // Update wave system (handles enemy spawning)
     this.waveSystem.update(time, delta);
 
+    // Get active enemies for module targeting
+    const activeEnemies = this.enemies.getChildren().filter(
+      (child) => (child as Enemy).active && (child as Enemy).isAlive()
+    ) as Enemy[];
+
+    // Update module manager (fires modules, updates cooldowns)
+    this.moduleManager.update(time, delta, activeEnemies);
+
+    // Update loot system
+    this.lootSystem.update(time, delta);
+
     // Update UI
     this.gameUI.update(time, delta);
+    this.moduleSlotUI.update(time, delta);
     this.gameUI.updateEnemyCount(this.waveSystem.getEnemiesRemaining());
 
     // Update FPS counter
@@ -242,7 +305,10 @@ export class GameScene extends Phaser.Scene {
   shutdown(): void {
     this.combatSystem.destroy();
     this.waveSystem.destroy();
+    this.lootSystem.destroy();
+    this.moduleManager.destroy();
     this.gameUI.destroy();
+    this.moduleSlotUI.destroy();
     this.tank.destroy();
   }
 }
