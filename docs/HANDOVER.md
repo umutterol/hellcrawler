@@ -62,18 +62,27 @@ Shows "A" indicator below each skill cooldown circle:
 - Green (#00ff00) when auto-mode is enabled
 - Gray (#444444) when disabled
 
+### Tank Stats Upgrade UI (IMPLEMENTED)
+**Location:** `src/ui/TankStatsUI.ts`
+
+Full upgrade panel for 4 tank stats:
+- **Max HP**: +10 HP per level
+- **Defense**: +0.5% per level
+- **HP Regen**: +0.5/s per level
+- **Enemy Slow**: +1% per level (affects enemy approach speed)
+
+Features:
+- Toggle with TAB key
+- Cost: `(level + 1) * 100` gold
+- Stats capped by tank level
+- Visual feedback for upgrade success/failure
+- Button states: upgradeable (green), need gold (orange), at cap (gray)
+
 ---
 
 ## Remaining MVP Tasks
 
-### Priority 1: Tank Stats UI
-- [ ] Create `src/ui/TankStatsUI.ts` - Upgrade panel for 4 stats
-- [ ] Add `upgradeTankStat()` to GameState (gold-based, not skill points)
-- [ ] Stats: Max HP (+10), Defense (+0.5%), HP Regen (+0.5/s), Movement Speed (+1%)
-- [ ] Cost formula: `level * 100` gold
-- [ ] Cap: All stats capped by tank level
-
-### Priority 2: Testing
+### Priority 1: Testing
 - [ ] Unit tests for damage calculation with auto-mode penalty
 - [ ] Unit tests for stat upgrade formulas
 - [ ] E2E tests for skill activation flow

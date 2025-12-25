@@ -45,6 +45,21 @@ export enum Rarity {
 }
 
 /**
+ * Tank-specific stats that can be upgraded with gold
+ * These are separate from module stats
+ */
+export enum TankStatType {
+  /** +10 Max HP per level */
+  MaxHP = 'maxHP',
+  /** +0.5% Defense per level */
+  Defense = 'defense',
+  /** +0.5 HP/s Regen per level */
+  HPRegen = 'hpRegen',
+  /** +1% enemy slow per level (affects enemy approach speed) */
+  MoveSpeed = 'moveSpeed',
+}
+
+/**
  * All possible stat types in the game
  * Used for module stats and tank progression
  */

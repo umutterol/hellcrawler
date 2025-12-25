@@ -15,7 +15,7 @@
  * - Progression tracking
  */
 
-import { TankStats, StatType } from '../types/GameTypes';
+import { TankStats, StatType, TankStatType } from '../types/GameTypes';
 import { ModuleSlotData, ModuleItemData } from '../types/ModuleTypes';
 import { SaveData } from '../types/SaveTypes';
 import { GameEvents } from '../types/GameEvents';
@@ -36,6 +36,7 @@ export class GameState {
   private tankXP: number;
   private tankStats: TankStats;
   private statLevels: Map<StatType, number>;
+  private tankStatLevels: Map<TankStatType, number>;
 
   // Economy state
   private gold: number;
@@ -72,6 +73,12 @@ export class GameState {
     this.statLevels = new Map(
       Object.entries(defaultState.tank.statLevels) as [StatType, number][]
     );
+    this.tankStatLevels = new Map([
+      [TankStatType.MaxHP, 0],
+      [TankStatType.Defense, 0],
+      [TankStatType.HPRegen, 0],
+      [TankStatType.MoveSpeed, 0],
+    ]);
 
     this.gold = defaultState.economy.gold;
     this.essences = new Map(Object.entries(defaultState.economy.essences));
@@ -261,6 +268,121 @@ export class GameState {
     }
 
     return true;
+  }
+
+  /**
+   * Upgrade a tank stat using gold
+   * Per GDD: Cost = level * 100 gold, capped by tank level
+   *
+   * @returns true if upgrade successful, false if insufficient gold or at cap
+   */
+  public upgradeTankStat(stat: TankStatType): boolean {
+    const currentLevel = this.tankStatLevels.get(stat) ?? 0;
+
+    // Check tank level cap
+    if (currentLevel >= this.tankLevel) {
+      if (import.meta.env.DEV) {
+        console.warn(
+          `[GameState] Tank stat ${stat} at cap (${currentLevel}/${this.tankLevel})`
+        );
+      }
+      return false;
+    }
+
+    // Calculate cost: (currentLevel + 1) * 100
+    const cost = (currentLevel + 1) * 100;
+
+    // Check if player can afford
+    if (!this.spendGold(cost, 'upgrade')) {
+      return false;
+    }
+
+    // Upgrade the stat
+    this.tankStatLevels.set(stat, currentLevel + 1);
+
+    // Apply stat bonus to tankStats
+    this.applyTankStatBonus(stat, currentLevel + 1);
+
+    // Emit event so UI can update
+    this.eventManager.emit(GameEvents.TANK_STAT_UPGRADED, {
+      stat,
+      newLevel: currentLevel + 1,
+      newValue: this.getTankStatValue(stat),
+      cost,
+    });
+
+    if (import.meta.env.DEV) {
+      console.log(
+        `[GameState] Upgraded tank stat ${stat} to level ${currentLevel + 1} for ${cost} gold`
+      );
+    }
+
+    return true;
+  }
+
+  /**
+   * Get the current value of a tank stat
+   */
+  private getTankStatValue(stat: TankStatType): number {
+    switch (stat) {
+      case TankStatType.MaxHP:
+        return this.tankStats.maxHP;
+      case TankStatType.Defense:
+        return this.tankStats.defense;
+      case TankStatType.HPRegen:
+        return this.tankStats.hpRegen;
+      case TankStatType.MoveSpeed:
+        return this.tankStats.moveSpeed;
+      default:
+        return 0;
+    }
+  }
+
+  /**
+   * Apply tank stat bonus based on level
+   */
+  private applyTankStatBonus(stat: TankStatType, level: number): void {
+    switch (stat) {
+      case TankStatType.MaxHP:
+        // +10 HP per level
+        this.tankStats.maxHP = 100 + level * 10;
+        break;
+      case TankStatType.Defense:
+        // +0.5% defense per level (stored as flat value for formula)
+        this.tankStats.defense = level * 0.5;
+        break;
+      case TankStatType.HPRegen:
+        // +0.5 HP/s per level
+        this.tankStats.hpRegen = level * 0.5;
+        break;
+      case TankStatType.MoveSpeed:
+        // +1% enemy slow per level (stored as percentage)
+        this.tankStats.moveSpeed = level;
+        break;
+    }
+  }
+
+  /**
+   * Get tank stat level
+   */
+  public getTankStatLevel(stat: TankStatType): number {
+    return this.tankStatLevels.get(stat) ?? 0;
+  }
+
+  /**
+   * Get tank stat upgrade cost
+   */
+  public getTankStatUpgradeCost(stat: TankStatType): number {
+    const currentLevel = this.tankStatLevels.get(stat) ?? 0;
+    return (currentLevel + 1) * 100;
+  }
+
+  /**
+   * Check if tank stat can be upgraded (not at cap)
+   */
+  public canUpgradeTankStat(stat: TankStatType): boolean {
+    const currentLevel = this.tankStatLevels.get(stat) ?? 0;
+    return currentLevel < this.tankLevel;
   }
 
   /**

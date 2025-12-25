@@ -45,6 +45,7 @@ export enum GameEvents {
   // Tank Events
   NEAR_DEATH_ENTERED = 'tank:near_death_entered',
   TANK_REVIVED = 'tank:revived',
+  TANK_STAT_UPGRADED = 'tank:stat_upgraded',
 
   // Save Events
   GAME_SAVED = 'save:saved',
@@ -238,6 +239,13 @@ export interface TankRevivedPayload {
   cooldownDuration: number;
 }
 
+export interface TankStatUpgradedPayload {
+  stat: string;
+  newLevel: number;
+  newValue: number;
+  cost: number;
+}
+
 // Save Event Payloads
 export interface GameSavedPayload {
   timestamp: number;
@@ -283,6 +291,7 @@ export type EventPayloadMap = {
   [GameEvents.BOSS_DEFEATED]: BossDefeatedPayload;
   [GameEvents.NEAR_DEATH_ENTERED]: NearDeathEnteredPayload;
   [GameEvents.TANK_REVIVED]: TankRevivedPayload;
+  [GameEvents.TANK_STAT_UPGRADED]: TankStatUpgradedPayload;
   [GameEvents.GAME_SAVED]: GameSavedPayload;
   [GameEvents.GAME_LOADED]: GameLoadedPayload;
 };

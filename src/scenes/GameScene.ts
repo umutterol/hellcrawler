@@ -8,6 +8,7 @@ import { WaveSystem } from '../systems/WaveSystem';
 import { LootSystem } from '../systems/LootSystem';
 import { GameUI } from '../ui/GameUI';
 import { ModuleSlotUI } from '../ui/ModuleSlotUI';
+import { TankStatsUI } from '../ui/TankStatsUI';
 import { ModuleManager } from '../modules/ModuleManager';
 import { ModuleItem } from '../modules/ModuleItem';
 import { ModuleType } from '../types/ModuleTypes';
@@ -46,6 +47,7 @@ export class GameScene extends Phaser.Scene {
   // UI
   private gameUI!: GameUI;
   private moduleSlotUI!: ModuleSlotUI;
+  private tankStatsUI!: TankStatsUI;
   private fpsText: Phaser.GameObjects.Text | null = null;
 
   // Save system
@@ -258,6 +260,12 @@ export class GameScene extends Phaser.Scene {
   private createUI(): void {
     this.gameUI = new GameUI(this);
     this.moduleSlotUI = new ModuleSlotUI(this, this.moduleManager);
+    this.tankStatsUI = new TankStatsUI(this);
+
+    // Wire TAB key to toggle tank stats panel
+    this.inputManager.setTabCallback(() => {
+      this.tankStatsUI.toggle();
+    });
 
     // FPS counter (dev only)
     if (import.meta.env.DEV) {
@@ -336,6 +344,7 @@ export class GameScene extends Phaser.Scene {
     this.inputManager.destroy();
     this.gameUI.destroy();
     this.moduleSlotUI.destroy();
+    this.tankStatsUI.destroy();
     this.tank.destroy();
   }
 }
