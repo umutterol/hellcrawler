@@ -50,10 +50,11 @@ export class CombatSystem {
       this
     );
 
-    // Enemy vs Tank (melee range)
+    // Enemy vs Tank hitbox (melee range)
+    // Use the tank's physics hitbox, not the container
     this.enemyTankOverlap = this.scene.physics.add.overlap(
       this.enemies,
-      this.tank,
+      this.tank.getHitbox(),
       this.onEnemyReachTank as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
       undefined,
       this

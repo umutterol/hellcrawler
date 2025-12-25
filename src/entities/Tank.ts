@@ -28,6 +28,9 @@ export class Tank extends Phaser.GameObjects.Container {
   private healthBar!: Phaser.GameObjects.Graphics;
   private healthBarBg!: Phaser.GameObjects.Graphics;
 
+  // Physics hitbox for enemy collision
+  private hitbox!: Phaser.Physics.Arcade.Sprite;
+
   // Combat state
   private isNearDeath: boolean = false;
   private nearDeathTimer: number = 0;
@@ -73,6 +76,14 @@ export class Tank extends Phaser.GameObjects.Container {
     this.cannonSprite.setScale(2);
     this.cannonSprite.setVisible(false); // Hidden, part of main sprite
     this.add(this.cannonSprite);
+
+    // Create physics hitbox for enemy collision detection
+    // Position it at the tank's world position with a reasonable size
+    this.hitbox = this.scene.physics.add.sprite(this.x, this.y - 32, 'tank-placeholder');
+    this.hitbox.setVisible(false); // Invisible, just for physics
+    this.hitbox.setImmovable(true);
+    this.hitbox.body?.setSize(80, 64); // Tank-sized hitbox
+    this.hitbox.setData('tank', this); // Reference back to tank
   }
 
   private createHealthBar(): void {
@@ -318,11 +329,21 @@ export class Tank extends Phaser.GameObjects.Container {
   }
 
   /**
+   * Get the physics hitbox for collision detection
+   */
+  public getHitbox(): Phaser.Physics.Arcade.Sprite {
+    return this.hitbox;
+  }
+
+  /**
    * Cleanup on destruction
    */
   public destroy(): void {
     this.eventManager.off(GameEvents.DAMAGE_TAKEN, this.onDamageTaken, this);
     this.eventManager.off(GameEvents.TANK_REVIVED, this.onRevived, this);
+    if (this.hitbox) {
+      this.hitbox.destroy();
+    }
     super.destroy();
   }
 }
