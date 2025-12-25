@@ -14,6 +14,7 @@ interface SkillState {
   currentCooldown: number;
   isActive: boolean;
   activeTimeRemaining: number;
+  autoModeEnabled: boolean; // Auto-trigger when cooldown expires
 }
 
 /**
@@ -45,6 +46,15 @@ export abstract class BaseModule {
 
   // Skill state
   protected skills: SkillState[] = [];
+
+  // Auto-mode penalty (10% damage reduction per GDD)
+  protected static readonly AUTO_MODE_DAMAGE_PENALTY = 0.9;
+
+  // Track if current damage is from auto-mode (for penalty application)
+  protected isAutoModeActive: boolean = false;
+
+  // Enemies reference for auto-mode skill triggers
+  protected lastKnownEnemies: Enemy[] = [];
 
   // Stats cache (computed from module stats)
   protected cachedStats: Map<StatType, number> = new Map();
@@ -89,6 +99,7 @@ export abstract class BaseModule {
         currentCooldown: 0,
         isActive: false,
         activeTimeRemaining: 0,
+        autoModeEnabled: false, // Default to manual activation
       });
     }
   }
@@ -140,6 +151,11 @@ export abstract class BaseModule {
       damage *= 2.0 + critDamageBonus; // Base 200% crit + bonus
     }
 
+    // Apply auto-mode penalty (10% reduction per GDD)
+    if (this.isAutoModeActive) {
+      damage *= BaseModule.AUTO_MODE_DAMAGE_PENALTY;
+    }
+
     // Apply variance (90-110%)
     damage *= Phaser.Math.FloatBetween(0.9, 1.1);
 
@@ -174,11 +190,13 @@ export abstract class BaseModule {
   public abstract fire(currentTime: number, enemies: Enemy[]): void;
 
   /**
-   * Update module state (cooldowns, active skills)
+   * Update module state (cooldowns, active skills, auto-mode triggers)
    */
   public update(_time: number, delta: number): void {
     // Update skill cooldowns
-    for (const skillState of this.skills) {
+    for (let i = 0; i < this.skills.length; i++) {
+      const skillState = this.skills[i]!;
+
       if (skillState.currentCooldown > 0) {
         skillState.currentCooldown -= delta;
         if (skillState.currentCooldown <= 0) {
@@ -203,12 +221,31 @@ export abstract class BaseModule {
         }
       }
     }
+
+    // Auto-mode: Continuously check and trigger skills when ready
+    // This runs every frame to ensure auto-mode works reliably
+    if (this.lastKnownEnemies.length > 0) {
+      for (let i = 0; i < this.skills.length; i++) {
+        const skillState = this.skills[i]!;
+        if (skillState.autoModeEnabled && skillState.currentCooldown <= 0) {
+          this.activateSkill(i, this.lastKnownEnemies, true);
+        }
+      }
+    }
+  }
+
+  /**
+   * Store enemies reference for auto-mode (called from fire())
+   */
+  protected updateEnemiesReference(enemies: Enemy[]): void {
+    this.lastKnownEnemies = enemies;
   }
 
   /**
    * Activate a skill by index (0 or 1)
+   * @param isAutoMode - If true, damage penalty will be applied
    */
-  public activateSkill(skillIndex: number, enemies: Enemy[]): boolean {
+  public activateSkill(skillIndex: number, enemies: Enemy[], isAutoMode: boolean = false): boolean {
     if (skillIndex < 0 || skillIndex >= this.skills.length) {
       return false;
     }
@@ -220,8 +257,14 @@ export abstract class BaseModule {
       return false;
     }
 
+    // Set auto-mode flag for damage calculation
+    this.isAutoModeActive = isAutoMode;
+
     // Activate the skill
     this.onSkillActivate(skillState.skill, enemies);
+
+    // Reset auto-mode flag after activation
+    this.isAutoModeActive = false;
 
     // Set duration if applicable
     if (skillState.skill.duration > 0) {
@@ -240,6 +283,7 @@ export abstract class BaseModule {
       moduleId: this.moduleData.id,
       slotIndex: this.slotIndex,
       targetCount: enemies.length,
+      isAutoMode,
     });
 
     this.eventManager.emit(GameEvents.SKILL_COOLDOWN_STARTED, {
@@ -249,6 +293,10 @@ export abstract class BaseModule {
       slotIndex: this.slotIndex,
       cooldownDuration: skillState.currentCooldown,
     });
+
+    if (import.meta.env.DEV) {
+      console.log(`[BaseModule] Skill ${skillState.skill.name} activated${isAutoMode ? ' (auto-mode, 10% penalty)' : ''}`);
+    }
 
     return true;
   }
@@ -292,6 +340,41 @@ export abstract class BaseModule {
   public isSkillActive(skillIndex: number): boolean {
     const skill = this.skills[skillIndex];
     return skill ? skill.isActive : false;
+  }
+
+  /**
+   * Check if auto-mode is enabled for a skill
+   */
+  public isAutoModeEnabled(skillIndex: number): boolean {
+    const skill = this.skills[skillIndex];
+    return skill ? skill.autoModeEnabled : false;
+  }
+
+  /**
+   * Toggle auto-mode for a skill
+   * @returns The new auto-mode state
+   */
+  public toggleAutoMode(skillIndex: number): boolean {
+    const skill = this.skills[skillIndex];
+    if (!skill) return false;
+
+    skill.autoModeEnabled = !skill.autoModeEnabled;
+
+    if (import.meta.env.DEV) {
+      console.log(`[BaseModule] Skill ${skill.skill.name} auto-mode: ${skill.autoModeEnabled ? 'ON' : 'OFF'}`);
+    }
+
+    return skill.autoModeEnabled;
+  }
+
+  /**
+   * Set auto-mode for a skill
+   */
+  public setAutoMode(skillIndex: number, enabled: boolean): void {
+    const skill = this.skills[skillIndex];
+    if (skill) {
+      skill.autoModeEnabled = enabled;
+    }
   }
 
   /**

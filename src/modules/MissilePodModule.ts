@@ -40,6 +40,9 @@ export class MissilePodModule extends BaseModule {
    * Fire missiles at enemies
    */
   public fire(currentTime: number, enemies: Enemy[]): void {
+    // Store enemies reference for auto-mode skill triggers
+    this.updateEnemiesReference(enemies);
+
     // Handle barrage firing
     if (this.barrageActive && this.barrageMissilesRemaining > 0) {
       if (currentTime >= this.barrageNextFireTime) {

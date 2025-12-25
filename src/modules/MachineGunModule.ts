@@ -51,6 +51,9 @@ export class MachineGunModule extends BaseModule {
    * Fire bullets at enemies
    */
   public fire(currentTime: number, enemies: Enemy[]): void {
+    // Store enemies reference for auto-mode skill triggers
+    this.updateEnemiesReference(enemies);
+
     if (!this.canFire(currentTime) || enemies.length === 0) {
       return;
     }

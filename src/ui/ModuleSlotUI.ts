@@ -19,6 +19,8 @@ interface SlotUIElement {
   skill2Cooldown: Phaser.GameObjects.Graphics;
   skill1Key: Phaser.GameObjects.Text;
   skill2Key: Phaser.GameObjects.Text;
+  skill1Auto: Phaser.GameObjects.Text;
+  skill2Auto: Phaser.GameObjects.Text;
 }
 
 /**
@@ -210,6 +212,35 @@ export class ModuleSlotUI {
     });
     slotContainer.add(slotNum);
 
+    // Auto-mode indicators (small "A" next to skill indicators)
+    const skill1Auto = this.scene.add.text(
+      8,
+      size + 18,
+      'A',
+      {
+        fontSize: '8px',
+        color: '#444444',
+        fontStyle: 'bold',
+      }
+    );
+    skill1Auto.setOrigin(0.5, 0);
+    skill1Auto.setVisible(false);
+    slotContainer.add(skill1Auto);
+
+    const skill2Auto = this.scene.add.text(
+      size - 8,
+      size + 18,
+      'A',
+      {
+        fontSize: '8px',
+        color: '#444444',
+        fontStyle: 'bold',
+      }
+    );
+    skill2Auto.setOrigin(0.5, 0);
+    skill2Auto.setVisible(false);
+    slotContainer.add(skill2Auto);
+
     return {
       container: slotContainer,
       background,
@@ -220,6 +251,8 @@ export class ModuleSlotUI {
       skill2Cooldown,
       skill1Key,
       skill2Key,
+      skill1Auto,
+      skill2Auto,
     };
   }
 
@@ -298,10 +331,12 @@ export class ModuleSlotUI {
       const activeModule = this.moduleManager.getActiveModule(i);
 
       if (!element || !activeModule) {
-        // Clear cooldown displays
+        // Clear cooldown displays and hide auto-mode indicators
         if (element) {
           element.skill1Cooldown.clear();
           element.skill2Cooldown.clear();
+          element.skill1Auto.setVisible(false);
+          element.skill2Auto.setVisible(false);
         }
         continue;
       }
@@ -323,6 +358,18 @@ export class ModuleSlotUI {
         activeModule,
         1
       );
+
+      // Update auto-mode indicators
+      const skill1AutoEnabled = activeModule.isAutoModeEnabled(0);
+      const skill2AutoEnabled = activeModule.isAutoModeEnabled(1);
+
+      element.skill1Auto.setVisible(true);
+      element.skill1Auto.setColor(skill1AutoEnabled ? '#00ff00' : '#444444');
+      element.skill1Auto.setAlpha(skill1AutoEnabled ? 1 : 0.5);
+
+      element.skill2Auto.setVisible(true);
+      element.skill2Auto.setColor(skill2AutoEnabled ? '#00ff00' : '#444444');
+      element.skill2Auto.setAlpha(skill2AutoEnabled ? 1 : 0.5);
     }
   }
 

@@ -76,7 +76,9 @@ export class RepairDroneModule extends BaseModule {
   /**
    * Repair drone doesn't fire - does passive healing instead
    */
-  public fire(_currentTime: number, _enemies: Enemy[]): void {
+  public fire(_currentTime: number, enemies: Enemy[]): void {
+    // Store enemies reference for auto-mode skill triggers
+    this.updateEnemiesReference(enemies);
     // No firing - healing is done in update
   }
 

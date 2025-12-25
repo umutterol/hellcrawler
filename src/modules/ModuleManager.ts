@@ -296,6 +296,27 @@ export class ModuleManager {
   }
 
   /**
+   * Toggle auto-mode for a skill
+   * @returns The new auto-mode state, or false if module not found
+   */
+  public toggleAutoMode(slotIndex: number, skillIndex: number): boolean {
+    const module = this.activeModules.get(slotIndex);
+    if (!module) return false;
+
+    return module.toggleAutoMode(skillIndex);
+  }
+
+  /**
+   * Check if auto-mode is enabled for a skill
+   */
+  public isAutoModeEnabled(slotIndex: number, skillIndex: number): boolean {
+    const module = this.activeModules.get(slotIndex);
+    if (!module) return false;
+
+    return module.isAutoModeEnabled(skillIndex);
+  }
+
+  /**
    * Get active module for a slot
    */
   public getActiveModule(slotIndex: number): BaseModule | null {

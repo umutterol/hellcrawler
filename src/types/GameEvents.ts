@@ -153,6 +153,7 @@ export interface SkillActivatedPayload {
   slotIndex: number;
   targetCount: number;
   damage?: number;
+  isAutoMode?: boolean; // True if skill was auto-triggered
 }
 
 export interface SkillCooldownPayload {

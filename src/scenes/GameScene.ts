@@ -14,6 +14,7 @@ import { ModuleType } from '../types/ModuleTypes';
 import { Rarity } from '../types/GameTypes';
 import { getGameState } from '../state/GameState';
 import { getSaveManager, SaveManager } from '../managers/SaveManager';
+import { InputManager } from '../managers/InputManager';
 
 /**
  * Main Game Scene - Core gameplay loop
@@ -49,6 +50,9 @@ export class GameScene extends Phaser.Scene {
 
   // Save system
   private saveManager!: SaveManager;
+
+  // Input handling
+  private inputManager!: InputManager;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -219,6 +223,10 @@ export class GameScene extends Phaser.Scene {
 
     // Equip starting module (1× Uncommon Machine Gun per GDD)
     this.equipStartingModule();
+
+    // Initialize input manager for skill hotkeys
+    this.inputManager = new InputManager();
+    this.inputManager.setScene(this);
   }
 
   /**
@@ -289,6 +297,9 @@ export class GameScene extends Phaser.Scene {
     // Update module manager (fires modules, updates cooldowns)
     this.moduleManager.update(time, delta, activeEnemies);
 
+    // Update input manager (checks for skill key presses)
+    this.inputManager.update(this.moduleManager, activeEnemies);
+
     // Update loot system
     this.lootSystem.update(time, delta);
 
@@ -322,6 +333,7 @@ export class GameScene extends Phaser.Scene {
     this.waveSystem.destroy();
     this.lootSystem.destroy();
     this.moduleManager.destroy();
+    this.inputManager.destroy();
     this.gameUI.destroy();
     this.moduleSlotUI.destroy();
     this.tank.destroy();
