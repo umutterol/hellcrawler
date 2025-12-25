@@ -1,0 +1,45 @@
+{
+  "name": "hellcrawler",
+  "version": "1.0.0",
+  "description": "16-bit pixel art idle RPG auto-battler",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "format": "prettier --write src/**/*.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/umutterol/hellcrawler.git"
+  },
+  "keywords": [
+    "game",
+    "phaser",
+    "idle",
+    "rpg"
+  ],
+  "author": "Umut Erol",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/umutterol/hellcrawler/issues"
+  },
+  "homepage": "https://github.com/umutterol/hellcrawler#readme",
+  "devDependencies": {
+    "@types/node": "^25.0.3",
+    "@typescript-eslint/eslint-plugin": "^8.50.1",
+    "@typescript-eslint/parser": "^8.50.1",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "prettier": "^3.7.4",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.0"
+  },
+  "dependencies": {
+    "phaser": "^3.90.0"
+  }
+}

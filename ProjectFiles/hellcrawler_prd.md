@@ -1,0 +1,1270 @@
+# HELLCRAWLER - Product Requirements Document (PRD)
+## Version 1.0 | December 2024
+
+---
+
+# TABLE OF CONTENTS
+
+1. [Product Overview](#1-product-overview)
+2. [Technical Architecture](#2-technical-architecture)
+3. [Development Phases](#3-development-phases)
+4. [Feature Specifications](#4-feature-specifications)
+5. [System Requirements](#5-system-requirements)
+6. [Asset Pipeline](#6-asset-pipeline)
+7. [Testing Strategy](#7-testing-strategy)
+8. [Deployment & Distribution](#8-deployment--distribution)
+9. [Tools & MCP Integration](#9-tools--mcp-integration)
+10. [Risk Assessment](#10-risk-assessment)
+
+---
+
+# 1. PRODUCT OVERVIEW
+
+## 1.1 Product Summary
+
+| Attribute | Value |
+|-----------|-------|
+| Product Name | Hellcrawler |
+| Version | 1.0.0 |
+| Platform | Windows, macOS (Steam) |
+| Engine | Phaser 3.80+ |
+| Language | TypeScript |
+| Packaging | Electron |
+| Price | $3.99 - $4.99 |
+
+## 1.2 Success Criteria
+
+### MVP Success (Phase 1)
+- [ ] Playable Act 1 with 2 zones, 14 waves
+- [ ] 3 working modules (Machine Gun, Missile Pod, Repair Drone)
+- [ ] Basic UI (HP bar, gold, module slots)
+- [ ] Tank with built-in cannon
+- [ ] Enemy spawning and combat
+- [ ] Module drops and equipping
+- [ ] Save/Load functionality
+
+### Full Release Success
+- [ ] All 8 Acts complete
+- [ ] All 10 modules implemented
+- [ ] Paragon system functional
+- [ ] Boss summoning system
+- [ ] Steam integration (achievements, cloud save)
+- [ ] 60 FPS on minimum spec hardware
+
+## 1.3 Stakeholders
+
+| Role | Responsibility |
+|------|----------------|
+| Developer (Claude Code) | Implementation |
+| Designer (Umut) | Design decisions, asset provision |
+| QA | Testing via Playwright MCP |
+
+---
+
+# 2. TECHNICAL ARCHITECTURE
+
+## 2.1 Technology Stack
+
+```
+┌─────────────────────────────────────────┐
+│              ELECTRON                    │
+│  ┌─────────────────────────────────┐    │
+│  │           PHASER 3               │    │
+│  │  ┌─────────────────────────┐    │    │
+│  │  │      TYPESCRIPT          │    │    │
+│  │  │  ┌─────────────────┐    │    │    │
+│  │  │  │   GAME LOGIC    │    │    │    │
+│  │  │  └─────────────────┘    │    │    │
+│  │  └─────────────────────────┘    │    │
+│  └─────────────────────────────────┘    │
+└─────────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────┐
+│           STEAM SDK                      │
+│  - Achievements                          │
+│  - Cloud Save                            │
+│  - Overlay                               │
+└─────────────────────────────────────────┘
+```
+
+## 2.2 Project Structure
+
+```
+hellcrawler/
+├── package.json
+├── tsconfig.json
+├── vite.config.ts
+├── electron/
+│   ├── main.ts                 # Electron main process
+│   ├── preload.ts              # Preload scripts
+│   └── steam.ts                # Steam SDK integration
+├── src/
+│   ├── main.ts                 # Game entry point
+│   ├── config/
+│   │   ├── GameConfig.ts       # Phaser configuration
+│   │   ├── Constants.ts        # Game constants
+│   │   ├── ModuleData.ts       # Module definitions
+│   │   ├── EnemyData.ts        # Enemy definitions
+│   │   ├── BossData.ts         # Boss definitions
+│   │   └── ActData.ts          # Act/Zone definitions
+│   ├── scenes/
+│   │   ├── BootScene.ts        # Asset loading
+│   │   ├── MainMenuScene.ts    # Main menu
+│   │   ├── GameScene.ts        # Main gameplay
+│   │   ├── UIScene.ts          # HUD overlay
+│   │   ├── PauseScene.ts       # Pause menu
+│   │   ├── ModuleScene.ts      # Module management
+│   │   ├── UpgradeScene.ts     # Tank upgrades
+│   │   └── ShopScene.ts        # Slot purchases
+│   ├── entities/
+│   │   ├── Tank.ts             # Player tank
+│   │   ├── BuiltInCannon.ts    # Tank's main cannon
+│   │   ├── Enemy.ts            # Base enemy class
+│   │   ├── EnemyTypes/         # Enemy subclasses
+│   │   │   ├── FodderEnemy.ts
+│   │   │   ├── EliteEnemy.ts
+│   │   │   ├── SuperElite.ts
+│   │   │   └── Boss.ts
+│   │   ├── Projectile.ts       # Base projectile
+│   │   └── DamageNumber.ts     # Floating damage text
+│   ├── modules/
+│   │   ├── Module.ts           # Base module class
+│   │   ├── ModuleSlot.ts       # Slot container
+│   │   ├── ModuleItem.ts       # Droppable module item
+│   │   ├── types/
+│   │   │   ├── MachineGun.ts
+│   │   │   ├── MissilePod.ts
+│   │   │   ├── RepairDrone.ts
+│   │   │   ├── ShieldGenerator.ts
+│   │   │   ├── LaserCutter.ts
+│   │   │   ├── TeslaCoil.ts
+│   │   │   ├── Flamethrower.ts
+│   │   │   ├── EMPEmitter.ts
+│   │   │   ├── Mortar.ts
+│   │   │   └── MainCannon.ts
+│   │   └── skills/
+│   │       └── ModuleSkills.ts # Skill definitions
+│   ├── systems/
+│   │   ├── CombatSystem.ts     # Damage calculations
+│   │   ├── WaveSystem.ts       # Wave spawning
+│   │   ├── LootSystem.ts       # Drop generation
+│   │   ├── XPSystem.ts         # Experience/leveling
+│   │   ├── EconomySystem.ts    # Gold management
+│   │   ├── EssenceSystem.ts    # Boss summoning
+│   │   ├── ParagonSystem.ts    # Prestige mechanics
+│   │   └── SaveSystem.ts       # Save/Load
+│   ├── managers/
+│   │   ├── PoolManager.ts      # Object pooling
+│   │   ├── AudioManager.ts     # Sound/Music
+│   │   ├── InputManager.ts     # Controls
+│   │   └── EventManager.ts     # Event bus
+│   ├── ui/
+│   │   ├── components/
+│   │   │   ├── HealthBar.ts
+│   │   │   ├── ModuleSlotUI.ts
+│   │   │   ├── SkillButton.ts
+│   │   │   ├── GoldDisplay.ts
+│   │   │   ├── WaveIndicator.ts
+│   │   │   └── DamageNumber.ts
+│   │   └── screens/
+│   │       ├── ModuleInventory.ts
+│   │       ├── TankUpgrades.ts
+│   │       └── Shop.ts
+│   ├── utils/
+│   │   ├── MathUtils.ts        # Math helpers
+│   │   ├── FormatUtils.ts      # Number formatting (235K)
+│   │   ├── RandomUtils.ts      # RNG helpers
+│   │   └── PoolUtils.ts        # Pool helpers
+│   └── types/
+│       ├── GameTypes.ts        # Type definitions
+│       ├── ModuleTypes.ts
+│       ├── EnemyTypes.ts
+│       └── SaveTypes.ts
+├── public/
+│   └── assets/
+│       ├── sprites/
+│       │   ├── tank/
+│       │   ├── modules/
+│       │   ├── enemies/
+│       │   ├── bosses/
+│       │   ├── projectiles/
+│       │   └── effects/
+│       ├── backgrounds/
+│       ├── ui/
+│       └── audio/
+│           ├── sfx/
+│           └── music/
+└── tests/
+    ├── unit/
+    └── e2e/
+```
+
+## 2.3 Core Classes
+
+### Tank.ts
+```typescript
+interface TankStats {
+  maxHP: number;
+  currentHP: number;
+  defense: number;
+  hpRegen: number;
+  moveSpeed: number;
+}
+
+interface TankProgression {
+  level: number;
+  xp: number;
+  xpToNext: number;
+  statLevels: {
+    maxHP: number;
+    defense: number;
+    hpRegen: number;
+    moveSpeed: number;
+  };
+}
+
+class Tank extends Phaser.GameObjects.Container {
+  stats: TankStats;
+  progression: TankProgression;
+  moduleSlots: ModuleSlot[];
+  builtInCannon: BuiltInCannon;
+  isNearDeath: boolean;
+  nearDeathTimer: number;
+  
+  takeDamage(amount: number): void;
+  heal(amount: number): void;
+  enterNearDeath(): void;
+  revive(): void;
+  gainXP(amount: number): void;
+  upgradeStat(stat: string): boolean;
+}
+```
+
+### ModuleSlot.ts
+```typescript
+interface ModuleSlotData {
+  index: number;
+  level: number;
+  equipped: ModuleItem | null;
+  unlocked: boolean;
+}
+
+class ModuleSlot {
+  data: ModuleSlotData;
+  
+  equip(module: ModuleItem): boolean;
+  unequip(): ModuleItem | null;
+  upgrade(): boolean;
+  getDamageMultiplier(): number;
+  getAttackSpeedMultiplier(): number;
+}
+```
+
+### ModuleItem.ts
+```typescript
+interface ModuleItemData {
+  id: string;
+  type: ModuleType;
+  rarity: Rarity;
+  stats: ModuleStat[];
+  skills: ModuleSkill[];
+}
+
+interface ModuleStat {
+  type: StatType;
+  value: number;
+}
+
+class ModuleItem {
+  data: ModuleItemData;
+  
+  static generate(type: ModuleType, rarity: Rarity): ModuleItem;
+  getSellValue(): number;
+  getStatTotal(statType: StatType): number;
+}
+```
+
+### WaveSystem.ts
+```typescript
+interface WaveConfig {
+  waveNumber: number;
+  fodderCount: number;
+  eliteCount: number;
+  superElite: boolean;
+  boss: BossType | null;
+}
+
+class WaveSystem {
+  currentWave: number;
+  enemiesAlive: number;
+  waveInProgress: boolean;
+  
+  startWave(config: WaveConfig): void;
+  onEnemyDeath(): void;
+  checkWaveComplete(): boolean;
+  getNextWaveConfig(): WaveConfig;
+}
+```
+
+### PoolManager.ts
+```typescript
+class PoolManager {
+  private pools: Map<string, Phaser.GameObjects.Group>;
+  
+  createPool(key: string, classType: any, size: number): void;
+  get(key: string): Phaser.GameObjects.GameObject;
+  release(key: string, object: Phaser.GameObjects.GameObject): void;
+  
+  // Pre-configured pools
+  getEnemy(type: EnemyType): Enemy;
+  getProjectile(type: ProjectileType): Projectile;
+  getDamageNumber(): DamageNumber;
+}
+```
+
+## 2.4 Event System
+
+```typescript
+// Event types
+enum GameEvents {
+  // Combat
+  ENEMY_SPAWNED = 'enemy:spawned',
+  ENEMY_DIED = 'enemy:died',
+  DAMAGE_DEALT = 'damage:dealt',
+  DAMAGE_TAKEN = 'damage:taken',
+  
+  // Progression
+  XP_GAINED = 'xp:gained',
+  LEVEL_UP = 'level:up',
+  GOLD_CHANGED = 'gold:changed',
+  
+  // Modules
+  MODULE_DROPPED = 'module:dropped',
+  MODULE_EQUIPPED = 'module:equipped',
+  MODULE_SOLD = 'module:sold',
+  SKILL_ACTIVATED = 'skill:activated',
+  
+  // Waves
+  WAVE_STARTED = 'wave:started',
+  WAVE_COMPLETED = 'wave:completed',
+  ZONE_COMPLETED = 'zone:completed',
+  
+  // Boss
+  BOSS_SPAWNED = 'boss:spawned',
+  BOSS_DEFEATED = 'boss:defeated',
+  
+  // Tank
+  NEAR_DEATH_ENTERED = 'tank:nearDeath',
+  TANK_REVIVED = 'tank:revived',
+  
+  // Save
+  GAME_SAVED = 'game:saved',
+  GAME_LOADED = 'game:loaded'
+}
+```
+
+## 2.5 State Management
+
+```typescript
+interface GameState {
+  // Tank
+  tank: {
+    level: number;
+    xp: number;
+    stats: TankStats;
+    statLevels: StatLevels;
+    currentHP: number;
+    isNearDeath: boolean;
+  };
+  
+  // Modules
+  modules: {
+    slots: ModuleSlotData[];
+    inventory: ModuleItemData[];
+  };
+  
+  // Progression
+  progression: {
+    currentAct: number;
+    currentZone: number;
+    currentWave: number;
+    bossesDefeated: string[];
+    ubersDefeated: string[];
+  };
+  
+  // Economy
+  economy: {
+    gold: number;
+    essences: Record<string, number>;
+    infernalCores: number;
+  };
+  
+  // Paragon
+  paragon: {
+    timesPrestiged: number;
+    points: ParagonPoints;
+  };
+}
+```
+
+---
+
+# 3. DEVELOPMENT PHASES
+
+## 3.1 Phase 1: MVP (Priority 1)
+
+**Duration:** 2-3 weeks
+**Goal:** Playable Act 1 prototype
+
+### Sprint 1.1: Foundation (Days 1-3)
+- [ ] Project setup (Phaser 3 + TypeScript + Vite)
+- [ ] Basic scene structure (Boot, Game, UI)
+- [ ] Asset loading pipeline
+- [ ] Tank sprite on screen
+- [ ] Basic input handling
+
+### Sprint 1.2: Combat Core (Days 4-7)
+- [ ] Enemy spawning from right
+- [ ] Enemy movement toward tank
+- [ ] Built-in cannon firing
+- [ ] Projectile system
+- [ ] Damage calculation
+- [ ] Enemy death and cleanup
+- [ ] Object pooling for enemies/projectiles
+
+### Sprint 1.3: Modules (Days 8-11)
+- [ ] Module slot system
+- [ ] 3 module types (Machine Gun, Missile Pod, Repair Drone)
+- [ ] Module firing logic
+- [ ] Module skills (2 per module)
+- [ ] Auto-mode toggle
+- [ ] Skill cooldowns
+
+### Sprint 1.4: Progression (Days 12-15)
+- [ ] XP system and tank leveling
+- [ ] Gold drops and collection
+- [ ] Module item drops with rarities
+- [ ] Module stat rolling
+- [ ] Module equipping/swapping
+- [ ] Tank stat upgrades
+
+### Sprint 1.5: Content & Polish (Days 16-21)
+- [ ] Act 1 enemies (4 types)
+- [ ] Wave system (7 waves per zone)
+- [ ] Super Elite at Zone 1 end
+- [ ] Boss 1: Corrupted Sentinel
+- [ ] Basic UI (HP, Gold, Slots)
+- [ ] Save/Load system
+- [ ] Near Death mechanic
+
+### MVP Deliverables
+- Playable Act 1 (2 zones, 14 waves, 1 boss)
+- 3 functional modules with skills
+- Working progression (XP, Gold, Stats)
+- Save/Load
+
+## 3.2 Phase 2: Core Content (Priority 2)
+
+**Duration:** 3-4 weeks
+**Goal:** Full 8 Acts, Boss summoning
+
+### Features
+- [ ] Acts 2-8 (enemies, backgrounds, bosses)
+- [ ] Remaining 7 modules
+- [ ] Boss summoning system (essences)
+- [ ] Module inventory screen
+- [ ] Full upgrade screens
+- [ ] Zone selection/replay
+
+## 3.3 Phase 3: Endgame (Priority 3)
+
+**Duration:** 2-3 weeks
+**Goal:** Paragon, Ubers, all modules
+
+### Features
+- [ ] Paragon/Prestige system
+- [ ] 8 Uber boss variants
+- [ ] Infernal Cores currency
+- [ ] All 10 modules complete
+- [ ] Module skill balancing
+
+## 3.4 Phase 4: Polish (Priority 4)
+
+**Duration:** 2 weeks
+**Goal:** Steam ready
+
+### Features
+- [ ] Steam SDK integration
+- [ ] Achievements (15-20)
+- [ ] Cloud save
+- [ ] Audio implementation
+- [ ] Crew chat bubbles
+- [ ] Performance optimization
+- [ ] Bug fixes
+
+## 3.5 Phase 5: Release
+
+**Duration:** 1 week
+**Goal:** Launch
+
+### Tasks
+- [ ] Steam store page
+- [ ] Marketing assets
+- [ ] Final QA pass
+- [ ] Launch
+
+---
+
+# 4. FEATURE SPECIFICATIONS
+
+## 4.1 Combat System
+
+### F-COMBAT-001: Damage Calculation
+```
+Priority: P1 (MVP)
+Description: Calculate final damage from source to target
+
+Formula:
+  BaseDamage × SlotMultiplier × StatBonuses × CritMultiplier × Variance
+
+Where:
+  SlotMultiplier = 1 + (SlotLevel × 0.01)
+  StatBonuses = 1 + (sum of all relevant % bonuses)
+  CritMultiplier = if crit then 2.0 + CritDamageBonus else 1.0
+  Variance = random(0.9, 1.1)
+
+Acceptance Criteria:
+  - Damage numbers display correctly
+  - Crits show yellow color
+  - Multistrike triggers correctly
+```
+
+### F-COMBAT-002: Near Death System
+```
+Priority: P1 (MVP)
+Description: Tank enters Near Death instead of dying
+
+Trigger: Tank HP reaches 0
+State:
+  - isNearDeath = true
+  - attackSpeedMultiplier = 0.5
+  - canDie = false
+  - reviveTimer = 60 seconds
+
+Revival:
+  - Manual: Click Revive button
+  - Auto: After 60 seconds
+
+Visual:
+  - Smoke particles
+  - Red tint overlay
+  - Warning indicator
+  - Revive button appears
+
+Acceptance Criteria:
+  - Tank never actually dies
+  - 50% attack speed reduction applied
+  - Timer counts down visually
+  - Revive restores full HP
+```
+
+### F-COMBAT-003: Object Pooling
+```
+Priority: P1 (MVP)
+Description: Pool all frequently spawned objects
+
+Pooled Objects:
+  - Enemies (per type)
+  - Projectiles (per type)
+  - Damage numbers
+  - Loot drops
+  - Particle effects
+
+Pool Size Guidelines:
+  - Enemies: 50 per type
+  - Projectiles: 200 total
+  - Damage numbers: 100
+  - Loot drops: 30
+
+Acceptance Criteria:
+  - No runtime instantiation during gameplay
+  - Pool expands if needed (with warning log)
+  - Objects properly reset on release
+```
+
+## 4.2 Module System
+
+### F-MODULE-001: Module Slots
+```
+Priority: P1 (MVP)
+Description: Container for module items
+
+Properties:
+  - index: 0-4
+  - level: 1-160 (capped by tank level)
+  - equipped: ModuleItem | null
+  - unlocked: boolean
+
+Unlock Conditions:
+  - Slot 0: Free
+  - Slot 1: 10,000 Gold
+  - Slot 2: 50,000 Gold
+  - Slot 3: Beat Diaboros + 500,000 Gold
+  - Slot 4: Beat all Ubers + 2,000,000 Gold
+
+Upgrade Effect:
+  - +1% damage per level
+  - +0.5% attack speed per level
+
+Acceptance Criteria:
+  - Slots display correctly in UI
+  - Upgrade costs scale correctly
+  - Level cap enforced
+```
+
+### F-MODULE-002: Module Items
+```
+Priority: P1 (MVP)
+Description: Droppable weapon/ability items
+
+Properties:
+  - id: unique identifier
+  - type: ModuleType enum
+  - rarity: Uncommon | Rare | Epic | Legendary
+  - stats: array of {type, value}
+
+Stat Rolling:
+  - Uncommon: 1 stat, 1-5% range
+  - Rare: 2 stats, 3-8% range
+  - Epic: 3 stats, 5-12% range
+  - Legendary: 4 stats, 8-15% range
+
+Stat Pool:
+  - Damage, AttackSpeed, CritChance, CritDamage
+  - CDR, AoE, Lifesteal, Multistrike, Range
+  - GoldFind, XPBonus
+
+Acceptance Criteria:
+  - Stats roll within rarity ranges
+  - No duplicate stat types on same item
+  - Sell value correct per rarity
+```
+
+### F-MODULE-003: Module Skills
+```
+Priority: P1 (MVP)
+Description: Active abilities per module type
+
+Per Module:
+  - 2 skills each
+  - Cooldown-based
+  - Manual or auto-cast
+
+Auto-Mode:
+  - Toggle per module
+  - 10% damage reduction when auto
+
+Acceptance Criteria:
+  - Skills activate on button press
+  - Cooldowns track correctly
+  - Auto-mode applies penalty
+  - Multiple same-type modules = multiple skill instances
+```
+
+## 4.3 Progression System
+
+### F-PROG-001: Tank XP & Leveling
+```
+Priority: P1 (MVP)
+Description: Experience-based tank progression
+
+XP Formula: Floor(100 × (1.15 ^ Level))
+Max Level: 160
+
+XP Sources:
+  - Fodder: 5-10
+  - Elite: 25-50
+  - Super Elite: 100-200
+  - Bosses: 500-10,000
+
+Level Up Effects:
+  - Increases stat upgrade cap
+  - Increases slot upgrade cap
+  - May unlock content
+
+Acceptance Criteria:
+  - XP bar fills correctly
+  - Level up notification
+  - Caps enforced
+```
+
+### F-PROG-002: Paragon System
+```
+Priority: P4
+Description: Prestige system after beating Act 8
+
+Trigger: Defeat Diaboros
+
+Resets:
+  - Tank Level → 1
+  - All Stat Levels → 0
+  - Gold → 0
+  - Zone Progress → Act 1
+
+Keeps:
+  - Unlocked Module Slots
+  - Module Inventory
+  - Paragon Points/Upgrades
+  - Bosses Defeated (for essence access)
+
+Paragon Stats (upgraded with Infernal Cores):
+  - Global Damage: +1% per point (max 100)
+  - Global Attack Speed: +1% (max 100)
+  - Max HP: +2% (max 100)
+  - Defense: +1% (max 100)
+  - Gold Find: +2% (max 50)
+  - Essence Drop Rate: +2% (max 50)
+
+Acceptance Criteria:
+  - Correct data preserved/reset
+  - Paragon bonuses apply globally
+  - Infernal Cores only from Ubers
+```
+
+## 4.4 Wave System
+
+### F-WAVE-001: Wave Management
+```
+Priority: P1 (MVP)
+Description: Control enemy wave spawning
+
+Structure:
+  - 1 Zone = 7 Waves
+  - Wave 1-6: Regular combat
+  - Wave 7: Super Elite OR Boss
+
+Wave Composition Scaling:
+  Wave 1: 5 Fodder
+  Wave 2: 8 Fodder
+  Wave 3: 6 Fodder + 1 Elite
+  Wave 4: 10 Fodder + 1 Elite
+  Wave 5: 8 Fodder + 2 Elite
+  Wave 6: 12 Fodder + 2 Elite
+  Wave 7: Special
+
+Wave Completion:
+  - All enemies dead
+  - Brief pause (2 seconds)
+  - Next wave starts
+
+Acceptance Criteria:
+  - Waves spawn correctly
+  - Pause between waves
+  - Zone complete triggers properly
+```
+
+## 4.5 Save System
+
+### F-SAVE-001: Auto-Save
+```
+Priority: P1 (MVP)
+Description: Automatic game saving
+
+Trigger: Zone completion
+Location: 
+  - Local: AppData/Hellcrawler/save.json
+  - Cloud: Steam Cloud (Phase 4)
+
+Data: Full GameState object
+Format: JSON (compressed, optionally encrypted)
+
+Acceptance Criteria:
+  - Save triggers on zone clear
+  - Load restores exact state
+  - Corruption handling (backup)
+```
+
+---
+
+# 5. SYSTEM REQUIREMENTS
+
+## 5.1 Minimum Specifications
+
+| Component | Requirement |
+|-----------|-------------|
+| OS | Windows 10 / macOS 10.14 |
+| Processor | Intel i3 / AMD Ryzen 3 |
+| Memory | 4 GB RAM |
+| Graphics | Integrated graphics |
+| Storage | 500 MB |
+
+## 5.2 Recommended Specifications
+
+| Component | Requirement |
+|-----------|-------------|
+| OS | Windows 11 / macOS 12 |
+| Processor | Intel i5 / AMD Ryzen 5 |
+| Memory | 8 GB RAM |
+| Graphics | Dedicated GPU |
+| Storage | 500 MB SSD |
+
+## 5.3 Performance Budgets
+
+| Metric | Target | Max |
+|--------|--------|-----|
+| Frame Rate | 60 FPS | - |
+| Frame Time | 16.67ms | 20ms |
+| Memory | 150 MB | 300 MB |
+| Draw Calls | 50 | 100 |
+| Entities | 30 | 50 |
+| Projectiles | 100 | 200 |
+
+---
+
+# 6. ASSET PIPELINE
+
+## 6.1 Asset Sources
+
+All visual assets sourced from existing GameDevMarket packs:
+- Gothicvania (enemies, bosses)
+- Tiny RPG (backgrounds, items)
+- Warped Assets (modules, effects)
+- SunnyLand (effects, UI elements)
+- Explosion Packs 1-9
+- Magic Packs 1-12
+
+## 6.2 Asset Organization
+
+```
+public/assets/
+├── sprites/
+│   ├── tank/
+│   │   └── tank.png              # Main tank sprite
+│   ├── modules/
+│   │   ├── machine-gun.png
+│   │   ├── missile-pod.png
+│   │   └── ... (10 modules)
+│   ├── enemies/
+│   │   ├── act1/
+│   │   │   ├── imp.png
+│   │   │   ├── hellhound.png
+│   │   │   └── ...
+│   │   └── act2-8/...
+│   ├── bosses/
+│   │   ├── corrupted-sentinel.png
+│   │   └── ... (8 bosses)
+│   ├── projectiles/
+│   │   ├── bullet.png
+│   │   ├── missile.png
+│   │   └── ...
+│   └── effects/
+│       ├── explosions/
+│       ├── magic/
+│       └── ...
+├── backgrounds/
+│   ├── act1-city.png
+│   ├── act2-urban.png
+│   └── ... (8 backgrounds)
+├── ui/
+│   ├── health-bar.png
+│   ├── module-slot.png
+│   ├── buttons/
+│   └── icons/
+└── audio/
+    ├── sfx/
+    │   ├── weapons/
+    │   ├── impacts/
+    │   └── ui/
+    └── music/
+        ├── act1-theme.mp3
+        └── ...
+```
+
+## 6.3 Spritesheet Format
+
+Use Phaser's standard atlas format:
+```json
+{
+  "frames": {
+    "enemy-imp-walk-0": {
+      "frame": {"x": 0, "y": 0, "w": 32, "h": 32},
+      "sourceSize": {"w": 32, "h": 32}
+    },
+    "enemy-imp-walk-1": {...}
+  },
+  "meta": {
+    "image": "enemies-act1.png",
+    "size": {"w": 512, "h": 512}
+  }
+}
+```
+
+## 6.4 Asset Loading Strategy
+
+```typescript
+// BootScene.ts
+preload() {
+  // Critical (blocking)
+  this.load.image('tank', 'sprites/tank/tank.png');
+  this.load.atlas('ui', 'ui/ui.png', 'ui/ui.json');
+  
+  // Act-specific (load per act)
+  this.load.atlas('enemies-act1', ...);
+  this.load.image('bg-act1', ...);
+  
+  // On-demand (load when needed)
+  // Boss sprites, effects, etc.
+}
+```
+
+---
+
+# 7. TESTING STRATEGY
+
+## 7.1 Unit Testing
+
+Framework: Vitest
+
+Coverage Targets:
+- Systems: 90%
+- Utils: 95%
+- Core logic: 85%
+
+Key Test Areas:
+```typescript
+// Damage calculation
+describe('CombatSystem', () => {
+  it('calculates base damage correctly');
+  it('applies crit multiplier');
+  it('handles multistrike');
+  it('respects defense reduction');
+});
+
+// Module stat rolling
+describe('ModuleItem', () => {
+  it('rolls correct number of stats per rarity');
+  it('keeps values within rarity ranges');
+  it('prevents duplicate stat types');
+});
+
+// XP curve
+describe('XPSystem', () => {
+  it('calculates XP requirements correctly');
+  it('handles level up');
+  it('respects max level');
+});
+```
+
+## 7.2 Integration Testing
+
+Framework: Playwright (via MCP)
+
+Test Scenarios:
+```typescript
+// Full gameplay loop
+test('complete Act 1', async () => {
+  await game.start();
+  await game.playZone(1);
+  await game.playZone(2);
+  expect(game.act).toBe(2);
+});
+
+// Save/Load
+test('save and load preserves state', async () => {
+  const stateBefore = game.getState();
+  await game.save();
+  await game.reload();
+  const stateAfter = game.getState();
+  expect(stateAfter).toEqual(stateBefore);
+});
+```
+
+## 7.3 Performance Testing
+
+Metrics to track:
+- FPS during max enemy count
+- Memory usage over time
+- Load times
+- Save/Load times
+
+Benchmarks:
+```typescript
+test('maintains 60fps with 30 enemies', async () => {
+  game.spawnEnemies(30);
+  const fps = await game.measureFPS(5000);
+  expect(fps).toBeGreaterThan(58);
+});
+```
+
+---
+
+# 8. DEPLOYMENT & DISTRIBUTION
+
+## 8.1 Build Pipeline
+
+```bash
+# Development
+npm run dev          # Vite dev server (web)
+npm run dev:electron # Electron dev mode
+
+# Production
+npm run build        # Build web version
+npm run build:win    # Build Windows executable
+npm run build:mac    # Build macOS executable
+npm run build:all    # Build all platforms
+```
+
+## 8.2 Electron Configuration
+
+```javascript
+// electron-builder.config.js
+module.exports = {
+  appId: 'com.hellcrawler.game',
+  productName: 'Hellcrawler',
+  directories: {
+    output: 'dist-electron'
+  },
+  win: {
+    target: 'nsis',
+    icon: 'build/icon.ico'
+  },
+  mac: {
+    target: 'dmg',
+    icon: 'build/icon.icns',
+    category: 'public.app-category.games'
+  },
+  steam: {
+    appId: 'XXXXXXX' // Steam App ID
+  }
+};
+```
+
+## 8.3 Steam Integration
+
+Required SDK Features:
+- Steamworks.js for Electron
+- Achievements
+- Cloud Save
+- Overlay
+
+```typescript
+// steam.ts
+import { init, achievement, cloud } from 'steamworks.js';
+
+export function initSteam() {
+  const client = init(STEAM_APP_ID);
+  return client;
+}
+
+export function unlockAchievement(id: string) {
+  achievement.activate(id);
+}
+
+export async function cloudSave(data: string) {
+  await cloud.writeFile('save.json', data);
+}
+
+export async function cloudLoad(): Promise<string> {
+  return await cloud.readFile('save.json');
+}
+```
+
+## 8.4 Release Checklist
+
+Pre-Release:
+- [ ] All P1-P3 features complete
+- [ ] Performance targets met
+- [ ] No critical bugs
+- [ ] Save system tested thoroughly
+- [ ] Steam build uploaded
+- [ ] Achievements configured
+- [ ] Store page complete
+- [ ] Marketing assets ready
+
+Launch Day:
+- [ ] Steam build set to live
+- [ ] Announcement posted
+- [ ] Monitor for critical issues
+- [ ] Hotfix plan ready
+
+---
+
+# 9. TOOLS & MCP INTEGRATION
+
+## 9.1 Development Tools
+
+| Tool | Purpose |
+|------|---------|
+| Vite | Build tool, HMR |
+| TypeScript | Type safety |
+| ESLint | Code quality |
+| Prettier | Code formatting |
+| Vitest | Unit testing |
+
+## 9.2 MCP Servers
+
+### Phaser Editor MCP
+```json
+{
+  "mcpServers": {
+    "phaser-editor": {
+      "command": "npx",
+      "args": ["@phaserjs/editor-mcp-server"]
+    }
+  }
+}
+```
+
+Use for:
+- Scene editing
+- Tilemap operations
+- Asset management
+- Level generation assistance
+
+### Playwright MCP (Testing)
+```json
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["@anthropic/mcp-server-playwright"]
+    }
+  }
+}
+```
+
+Use for:
+- E2E testing
+- Visual regression
+- Performance benchmarks
+
+### Filesystem MCP
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-filesystem", "/project/path"]
+    }
+  }
+}
+```
+
+Use for:
+- Asset organization
+- Build script management
+- Configuration updates
+
+## 9.3 Recommended Workflow
+
+1. **Scene Design:** Use Phaser Editor MCP for visual scene composition
+2. **Code Generation:** Claude Code for TypeScript implementation
+3. **Testing:** Playwright MCP for automated testing
+4. **Asset Management:** Filesystem MCP for organization
+
+---
+
+# 10. RISK ASSESSMENT
+
+## 10.1 Technical Risks
+
+| Risk | Probability | Impact | Mitigation |
+|------|-------------|--------|------------|
+| Performance issues with many entities | Medium | High | Object pooling, profiling |
+| Save corruption | Low | Critical | Backup saves, validation |
+| Steam SDK integration issues | Medium | Medium | Early integration, fallback |
+| Memory leaks | Medium | High | Careful pool management |
+
+## 10.2 Scope Risks
+
+| Risk | Probability | Impact | Mitigation |
+|------|-------------|--------|------------|
+| Feature creep | High | Medium | Strict phase boundaries |
+| Art asset delays | Low | Medium | Placeholder system |
+| Balance issues | High | Medium | Spreadsheet-driven, iterate |
+
+## 10.3 Contingency Plans
+
+**If MVP takes longer than 3 weeks:**
+- Reduce to 1 zone (7 waves)
+- Cut to 2 modules
+- Simplify UI
+
+**If performance targets not met:**
+- Reduce max enemies to 20
+- Simplify effects
+- Lower target to 30 FPS fallback
+
+**If Steam integration fails:**
+- Release DRM-free on itch.io first
+- Add Steam later as update
+
+---
+
+# APPENDICES
+
+## Appendix A: Glossary
+
+| Term | Definition |
+|------|------------|
+| Fodder | Weak enemies killed in 1-2 hits |
+| Elite | Medium enemies with abilities |
+| Super Elite | Mini-boss at zone midpoint |
+| Module | Weapon/ability item that goes in slots |
+| Slot | Permanent socket on tank |
+| Near Death | State when HP reaches 0 |
+| Paragon | Prestige system after Act 8 |
+
+## Appendix B: API Reference
+
+See separate TypeScript documentation generated from source.
+
+## Appendix C: Config Files
+
+### GameConfig.ts
+```typescript
+export const GAME_CONFIG = {
+  // Display
+  WIDTH: 1920,
+  HEIGHT: 1080,
+  FPS: 60,
+  
+  // Combat
+  BASE_CRIT_MULTIPLIER: 2.0,
+  DAMAGE_VARIANCE: 0.1,
+  NEAR_DEATH_ATTACK_SPEED: 0.5,
+  NEAR_DEATH_REVIVE_TIME: 60,
+  
+  // Progression
+  MAX_TANK_LEVEL: 160,
+  XP_BASE: 100,
+  XP_EXPONENT: 1.15,
+  
+  // Economy
+  SLOT_COSTS: [0, 10000, 50000, 500000, 2000000],
+  STAT_UPGRADE_BASE_COST: 100,
+  
+  // Modules
+  RARITY_STAT_COUNTS: { uncommon: 1, rare: 2, epic: 3, legendary: 4 },
+  RARITY_STAT_RANGES: {
+    uncommon: [1, 5],
+    rare: [3, 8],
+    epic: [5, 12],
+    legendary: [8, 15]
+  },
+  
+  // Waves
+  WAVES_PER_ZONE: 7,
+  ZONES_PER_ACT: 2,
+  TOTAL_ACTS: 8,
+  WAVE_PAUSE_DURATION: 2000
+};
+```
+
+---
+
+**Document Version:** 1.0
+**Last Updated:** December 2024
+**Author:** Product Team
+**Status:** APPROVED FOR DEVELOPMENT
