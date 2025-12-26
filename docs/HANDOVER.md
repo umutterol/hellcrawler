@@ -46,6 +46,57 @@ Hellcrawler is a 16-bit pixel art idle RPG auto-battler built with Phaser 3, Typ
 
 ## Recently Completed
 
+### December 27, 2024 Session
+
+#### Visual Asset Integration
+- Created `docs/AssetMapping.md` documenting all asset sources
+- Created `scripts/copy-assets.sh` for automated asset copying
+- Updated `BootScene.ts` to load actual sprite assets (tank, enemies, projectiles, backgrounds)
+- Set up enemy animations: `imp-run`, `hellhound-run`, `soldier-walk`
+
+#### Module Slot Firing Positions
+**Location:** `src/config/GameConfig.ts`, `src/modules/BaseModule.ts`
+
+Each module slot now has a configurable firing position relative to tank:
+```typescript
+MODULE_SLOT_POSITIONS: [
+  { x: 60, y: -70 },   // Slot 0
+  { x: 45, y: -45 },   // Slot 1
+  { x: 30, y: -25 },   // Slot 2
+  { x: 50, y: -60 },   // Slot 3
+  { x: 35, y: -35 },   // Slot 4
+]
+```
+
+Modules use `getFirePosition()` from BaseModule to get their firing position.
+
+#### FPS Optimization (30fps → 57fps)
+**Files Modified:** `src/entities/Enemy.ts`, `src/systems/CombatSystem.ts`
+
+Fixes applied:
+1. **Health Bar Optimization:** Split into `updateHealthBarPosition()` (cheap, every frame) and `redrawHealthBar()` (only on damage)
+2. **Removed Spammy Logging:** Removed console.log from projectile-enemy overlap callback
+3. **flashWhite() Fix:** Now uses lightweight `restoreTint()` instead of expensive `applyVisualsByCategory()`
+4. **restoreTint() Method:** Properly restores elite enemy tints (orange/purple) after damage flash
+
+#### Enemy Hitbox Fix
+**Location:** `src/entities/Enemy.ts` (activate method)
+
+Fixed hitbox offset calculation to use scaled dimensions:
+- `displayWidth`/`displayHeight` (scaled) instead of `width`/`height` (texture)
+- Hitbox is 2x sprite height from ground level
+- Ensures projectiles reliably hit enemies regardless of sprite scale
+
+#### Weapon Targeting Fix
+**Files:** `src/modules/MachineGunModule.ts`, `src/systems/CombatSystem.ts`
+
+All weapons now correctly target the closest enemy:
+- MachineGun: Targets closest enemy, small spread for effect
+- Tank Cannon: Targets closest enemy via `findClosestEnemy()`
+- Verified 10/10 shots aimed correctly in automated testing
+
+---
+
 ### Auto-Mode System (FIXED)
 **Location:** `src/modules/BaseModule.ts`
 

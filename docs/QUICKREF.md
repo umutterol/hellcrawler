@@ -266,9 +266,17 @@ MODULE_SLOT_POSITIONS: [
 ```typescript
 // File: src/entities/Enemy.ts (in activate())
 // All enemies have tall hitboxes for consistent projectile hits
-const hitboxHeight = spriteHeight * 2;  // 2x sprite height
-const hitboxWidth = displayWidth * 0.6; // 60% of sprite width
-// Hitbox extends from ground level upward
+const spriteHeight = this.displayHeight || 32;  // Scaled height
+const spriteWidth = this.displayWidth || 32;    // Scaled width
+const hitboxHeight = spriteHeight * 2;          // 2x sprite height
+const hitboxWidth = Math.max(24, spriteWidth * 0.6); // 60% width, min 24px
+
+body.setSize(hitboxWidth, hitboxHeight);
+body.setOffset(
+  (spriteWidth - hitboxWidth) / 2,    // Center horizontally
+  spriteHeight - hitboxHeight          // Align bottom with feet
+);
+// Hitbox extends from ground level upward (origin 0.5, 1)
 ```
 
 ---

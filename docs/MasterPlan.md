@@ -245,6 +245,32 @@ All must be true before moving to Vertical Slice:
 
 ## Changelog
 
+### December 27, 2024 - Visual Assets & Performance Fixes
+- **Visual Asset Integration:**
+  - Created asset mapping documentation (`docs/AssetMapping.md`)
+  - Created asset copy script (`scripts/copy-assets.sh`)
+  - Updated BootScene to load actual sprite assets (tank, enemies, projectiles, backgrounds)
+  - Integrated enemy sprites: imp, hellhound, possessed soldier, fire skull, boss sentinel
+  - Integrated projectile sprites: bullet, cannon shell, missile
+  - Set up enemy animations (imp-run, hellhound-run, soldier-walk)
+- **Module Slot Firing Positions:**
+  - Added `MODULE_SLOT_POSITIONS` to `GameConfig.ts` - 5 configurable slot positions
+  - Updated `BaseModule.ts` with `getFirePosition()` method for slot-based positioning
+  - All modules now use slot-based firing positions (any module can go in any slot)
+- **Enemy Hitbox Fix:**
+  - Changed hitbox to 2x sprite height from ground level
+  - Fixed offset calculation to use scaled displayWidth/displayHeight
+  - Ensures projectiles reliably hit enemies regardless of sprite size
+- **FPS Optimization (30fps → 57fps):**
+  - Split health bar into `updateHealthBarPosition()` (cheap, every frame) and `redrawHealthBar()` (only on damage)
+  - Removed spammy console.log from projectile-enemy overlap callback
+  - Fixed `flashWhite()` to use lightweight `restoreTint()` instead of expensive `applyVisualsByCategory()`
+  - Added `restoreTint()` method to properly restore elite enemy tints
+- **Targeting Fix:**
+  - All weapons now correctly target closest enemy
+  - Added debug logging to trace targeting (MachineGun, Cannon)
+  - Verified 10/10 shots aimed correctly in automated testing
+
 ### December 2024
 - Initial plan created
 - Prototype phase completed

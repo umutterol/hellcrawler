@@ -4,20 +4,25 @@ node_modules/
 # Build output
 dist/
 dist-electron/
+out/
 
 # IDE
 .idea/
 .vscode/
 *.swp
 *.swo
+*.sublime-*
 
 # OS
 .DS_Store
 Thumbs.db
+Desktop.ini
 
 # Logs
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Environment
 .env
@@ -26,10 +31,24 @@ npm-debug.log*
 
 # Testing
 coverage/
+test-results/
+playwright-report/
+.playwright/
 
-# Temporary
+# Temporary files
 *.tmp
 *.temp
+*.bak
 
-# Assets
+# Purchased assets (not for version control)
 gamedevmarketassets/
+
+# Electron build
+release/
+*.asar
+
+# TypeScript
+*.tsbuildinfo
+
+# Vite
+.vite/
