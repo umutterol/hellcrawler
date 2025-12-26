@@ -80,11 +80,21 @@ export class ModuleManager {
       console.log(`[ModuleManager] onModuleEquipped: slot ${slotIndex}, module ${moduleId}`);
     }
 
-    // Get the module data from GameState
+    // Skip if active module already exists for this slot
+    // (direct equip via equipModule() already created it)
+    const existingActive = this.activeModules.get(slotIndex);
+    if (existingActive) {
+      if (import.meta.env.DEV) {
+        console.log(`[ModuleManager] Active module already exists for slot ${slotIndex}, skipping`);
+      }
+      return;
+    }
+
+    // Get the module data from GameState (for UI-initiated equips via InventoryPanel)
     const slot = this.gameState.getModuleSlots()[slotIndex];
     if (!slot || !slot.equipped) {
       if (import.meta.env.DEV) {
-        console.warn(`[ModuleManager] No module data found for slot ${slotIndex}`);
+        console.warn(`[ModuleManager] No module data found in GameState for slot ${slotIndex}`);
       }
       return;
     }
@@ -260,10 +270,8 @@ export class ModuleManager {
       this.activeModules.delete(slotIndex);
     }
 
-    // Equip to slot
-    const previousData = slot.equip(moduleItem.getData());
-
-    // Create new active module
+    // Create new active module BEFORE equipping to slot
+    // This ensures activeModules is populated before MODULE_EQUIPPED event fires
     const newModule = createModule(
       this.scene,
       moduleItem.getData(),
@@ -279,6 +287,10 @@ export class ModuleManager {
       }
       this.activeModules.set(slotIndex, newModule);
     }
+
+    // Equip to slot (this emits MODULE_EQUIPPED event)
+    // The event handler will skip since activeModules already has an entry
+    const previousData = slot.equip(moduleItem.getData());
 
     // Return previous module as ModuleItem if there was one
     if (previousData) {
