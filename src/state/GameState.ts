@@ -434,7 +434,10 @@ export class GameState {
     source: 'regen' | 'repair_drone' | 'skill' | 'revive' | 'other' = 'other'
   ): void {
     const previousHP = this.tankStats.currentHP;
-    this.tankStats.currentHP = Math.min(this.tankStats.maxHP, this.tankStats.currentHP + amount);
+    // Round to 2 decimal places to avoid floating point precision issues
+    this.tankStats.currentHP = Math.round(
+      Math.min(this.tankStats.maxHP, this.tankStats.currentHP + amount) * 100
+    ) / 100;
 
     const actualHeal = this.tankStats.currentHP - previousHP;
 

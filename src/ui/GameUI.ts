@@ -418,12 +418,14 @@ export class GameUI {
   }
 
   private formatNumber(num: number): string {
-    if (num >= 1_000_000) {
-      return (num / 1_000_000).toFixed(1) + 'M';
-    } else if (num >= 1_000) {
-      return (num / 1_000).toFixed(1) + 'K';
+    // Floor to show whole numbers (no decimals for HP/gold display)
+    const rounded = Math.floor(num);
+    if (rounded >= 1_000_000) {
+      return (rounded / 1_000_000).toFixed(1) + 'M';
+    } else if (rounded >= 1_000) {
+      return (rounded / 1_000).toFixed(1) + 'K';
     }
-    return num.toString();
+    return rounded.toString();
   }
 
   /**
