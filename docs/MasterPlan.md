@@ -50,7 +50,7 @@
 | PanelManager | P1 | ✅ Complete - Single panel logic |
 | TankStatsPanel | P1 | ✅ Complete - Stats + slot upgrades |
 | InventoryPanel | P1 | ✅ Complete - Grid, select, equip/sell |
-| ShopPanel | P1 | 🔄 Placeholder - Needs purchase logic |
+| ShopPanel | P1 | ✅ Complete - Purchase functionality |
 | SettingsPanel | P1 | 🔄 Placeholder - Needs toggle logic |
 | TopBar | P1 | ⏳ Pending |
 | BottomBar refactor | P1 | ⏳ Pending |
@@ -87,16 +87,17 @@
 
 | Day | Task | Status | Notes |
 |-----|------|--------|-------|
-| 1 | ShopPanel | 🔄 | Placeholder complete, needs purchase logic |
+| 1 | ShopPanel | ✅ | Full purchase functionality implemented |
 | 2 | SettingsPanel | 🔄 | Placeholder complete, needs toggle logic |
 | 3 | TopBar | ⏳ | Gold, XP bar, zone, flee button |
 | 4 | BottomBar refactor | ⏳ | HP bar, slots, wave progress |
 | 5 | Near Death overlay | ⏳ | Revive button, timer display |
 
 **Week 2 Deliverables:**
-- [x] ShopPanel: All 5 slots listed (placeholder)
-- [ ] ShopPanel: Purchase buttons with cost
+- [x] ShopPanel: All 5 slots listed
+- [x] ShopPanel: Purchase buttons with cost
 - [x] ShopPanel: Locked slots show requirements
+- [x] ShopPanel: Real-time updates on gold/slot changes
 - [x] SettingsPanel: Display/audio toggles (placeholder)
 - [x] SettingsPanel: Save Game button
 - [x] SettingsPanel: Save & Quit button
@@ -119,7 +120,7 @@ All must be true before moving to Vertical Slice:
 - [ ] Player can upgrade slot levels via TankStatsPanel
 - [x] Player can view all modules in InventoryPanel
 - [x] Player can equip/unequip/sell modules
-- [ ] Player can purchase slots 2-3 via ShopPanel
+- [x] Player can purchase slots 2-3 via ShopPanel
 - [ ] Player can change settings and save game
 - [ ] HUD shows gold, XP, HP, wave progress
 - [ ] Near Death shows revive button
@@ -278,6 +279,17 @@ All must be true before moving to Vertical Slice:
   - 53 unit tests for module inventory system
   - 22 e2e tests for inventory panel UI
   - Total: 89 unit tests, 39 e2e tests passing
+- **ShopPanel Full Implementation:**
+  - Purchase buttons with hover/click effects for slots 2-5
+  - Real-time updates on gold changes and slot unlocks
+  - Boss requirement checking for slots 4-5
+  - Gold display in panel header with K/M formatting
+  - Event-driven rebuild via SLOT_UNLOCKED and GOLD_CHANGED events
+  - Added SLOT_UNLOCKED event emission to GameState.unlockSlot()
+- **Test Coverage Updated:**
+  - 36 unit tests for shop panel logic
+  - 10 e2e tests for shop panel UI
+  - Total: 125 unit tests, 50 e2e tests passing
 
 ---
 
