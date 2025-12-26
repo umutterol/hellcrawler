@@ -8,7 +8,11 @@ import { Rarity } from '../types/GameTypes';
 import { GameState } from '../state/GameState';
 import { Enemy } from '../entities/Enemy';
 import { EventManager, getEventManager } from '../managers/EventManager';
-import { GameEvents } from '../types/GameEvents';
+import {
+  GameEvents,
+  ModuleEquippedPayload,
+  ModuleUnequippedPayload,
+} from '../types/GameEvents';
 
 /**
  * ModuleManager - Manages the module slot system
@@ -52,6 +56,97 @@ export class ModuleManager {
 
     // Initialize slots
     this.initializeSlots();
+
+    // Setup event listeners for UI-initiated equip/unequip
+    this.setupEventListeners();
+  }
+
+  /**
+   * Setup event listeners for module equip/unequip events from UI
+   */
+  private setupEventListeners(): void {
+    this.eventManager.on(GameEvents.MODULE_EQUIPPED, this.onModuleEquipped, this);
+    this.eventManager.on(GameEvents.MODULE_UNEQUIPPED, this.onModuleUnequipped, this);
+  }
+
+  /**
+   * Handle module equipped event from GameState/UI
+   * Creates the active module instance so it can fire and use skills
+   */
+  private onModuleEquipped(payload: ModuleEquippedPayload): void {
+    const { slotIndex, moduleId } = payload;
+
+    if (import.meta.env.DEV) {
+      console.log(`[ModuleManager] onModuleEquipped: slot ${slotIndex}, module ${moduleId}`);
+    }
+
+    // Get the module data from GameState
+    const slot = this.gameState.getModuleSlots()[slotIndex];
+    if (!slot || !slot.equipped) {
+      if (import.meta.env.DEV) {
+        console.warn(`[ModuleManager] No module data found for slot ${slotIndex}`);
+      }
+      return;
+    }
+
+    const moduleData = slot.equipped;
+    if (moduleData.id !== moduleId) {
+      if (import.meta.env.DEV) {
+        console.warn(`[ModuleManager] Module ID mismatch: expected ${moduleId}, got ${moduleData.id}`);
+      }
+      return;
+    }
+
+    // Destroy existing active module if any
+    const existingModule = this.activeModules.get(slotIndex);
+    if (existingModule) {
+      existingModule.destroy();
+      this.activeModules.delete(slotIndex);
+    }
+
+    // Create new active module
+    const newModule = createModule(
+      this.scene,
+      moduleData,
+      slotIndex,
+      slot.level,
+      this.gameState
+    );
+
+    if (newModule) {
+      newModule.setPosition(this.tankX, this.tankY);
+      if (this.projectileGroup) {
+        newModule.setProjectileGroup(this.projectileGroup);
+      }
+      this.activeModules.set(slotIndex, newModule);
+
+      if (import.meta.env.DEV) {
+        console.log(`[ModuleManager] Created active module for slot ${slotIndex}: ${moduleData.type}`);
+      }
+    }
+  }
+
+  /**
+   * Handle module unequipped event from GameState/UI
+   * Destroys the active module instance
+   */
+  private onModuleUnequipped(payload: ModuleUnequippedPayload): void {
+    const { slotIndex } = payload;
+
+    if (import.meta.env.DEV) {
+      console.log(`[ModuleManager] onModuleUnequipped: slot ${slotIndex}`);
+    }
+
+    // Destroy active module
+    const activeModule = this.activeModules.get(slotIndex);
+    if (activeModule) {
+      activeModule.destroy();
+      this.activeModules.delete(slotIndex);
+
+      if (import.meta.env.DEV) {
+        console.log(`[ModuleManager] Destroyed active module for slot ${slotIndex}`);
+      }
+    }
   }
 
   /**
@@ -412,6 +507,10 @@ export class ModuleManager {
    * Cleanup
    */
   public destroy(): void {
+    // Remove event listeners
+    this.eventManager.off(GameEvents.MODULE_EQUIPPED, this.onModuleEquipped, this);
+    this.eventManager.off(GameEvents.MODULE_UNEQUIPPED, this.onModuleUnequipped, this);
+
     this.activeModules.forEach((m) => m.destroy());
     this.activeModules.clear();
     this.inventory = [];

@@ -626,9 +626,19 @@ export class GameState {
       return false;
     }
 
+    // Store module info before clearing
+    const unequippedModule = slot.equipped;
+
     // Move module to inventory
     this.moduleInventory.push(slot.equipped);
     slot.equipped = null;
+
+    // Emit event so ModuleManager can destroy the active module
+    this.eventManager.emit(GameEvents.MODULE_UNEQUIPPED, {
+      moduleId: unequippedModule.id,
+      moduleType: unequippedModule.type,
+      slotIndex,
+    });
 
     if (import.meta.env.DEV) {
       console.log(`[GameState] Unequipped module from slot ${slotIndex}`);
