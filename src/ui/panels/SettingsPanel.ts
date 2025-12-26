@@ -2,6 +2,29 @@ import Phaser from 'phaser';
 import { SlidingPanel } from './SlidingPanel';
 import { PanelType, UI_CONFIG } from '../../config/UIConfig';
 import { getSaveManager } from '../../managers/SaveManager';
+import { getSettingsManager, GameSettings } from '../../managers/SettingsManager';
+
+/**
+ * Toggle row data for tracking interactive elements
+ */
+interface ToggleRowData {
+  key: keyof GameSettings;
+  checkbox: Phaser.GameObjects.Graphics;
+  checkmark: Phaser.GameObjects.Text;
+  hitArea: Phaser.GameObjects.Rectangle;
+}
+
+/**
+ * Slider row data for tracking interactive elements
+ */
+interface SliderRowData {
+  key: keyof GameSettings;
+  track: Phaser.GameObjects.Graphics;
+  handle: Phaser.GameObjects.Rectangle;
+  valueText: Phaser.GameObjects.Text;
+  trackX: number;
+  trackWidth: number;
+}
 
 /**
  * SettingsPanel - Sliding panel for game settings
@@ -12,11 +35,13 @@ import { getSaveManager } from '../../managers/SaveManager';
  * - Audio sliders (master, music, SFX)
  * - Controls reference
  * - Save Game / Save & Quit buttons
- *
- * NOTE: This is a simplified implementation. Full settings
- * functionality will be added when AudioManager is implemented.
  */
 export class SettingsPanel extends SlidingPanel {
+  private toggleRows: ToggleRowData[] = [];
+  private sliderRows: SliderRowData[] = [];
+  private isDraggingSlider: boolean = false;
+  private activeSlider: SliderRowData | null = null;
+
   constructor(scene: Phaser.Scene) {
     super(scene, PanelType.SETTINGS);
     this.setTitle('SETTINGS');
@@ -27,10 +52,18 @@ export class SettingsPanel extends SlidingPanel {
    * Create the panel content
    */
   protected createContent(): void {
+    this.toggleRows = [];
+    this.sliderRows = [];
+
     this.createDisplaySection();
     this.createGameplaySection();
+    this.createAudioSection();
     this.createControlsSection();
     this.createSaveSection();
+
+    // Setup global pointer events for slider dragging
+    this.scene.input.on('pointermove', this.onPointerMove, this);
+    this.scene.input.on('pointerup', this.onPointerUp, this);
   }
 
   /**
@@ -55,14 +88,14 @@ export class SettingsPanel extends SlidingPanel {
     sectionContainer.add(divider);
 
     // Toggle options
-    const toggles = [
-      { label: 'Show Health Bars', value: true },
-      { label: 'Show Damage Numbers', value: true },
-      { label: 'Show Enemy HP Text', value: true },
+    const toggles: { label: string; key: keyof GameSettings }[] = [
+      { label: 'Show Health Bars', key: 'showHealthBars' },
+      { label: 'Show Damage Numbers', key: 'showDamageNumbers' },
+      { label: 'Show Enemy HP Text', key: 'showEnemyHPText' },
     ];
 
     toggles.forEach((toggle, index) => {
-      const toggleRow = this.createToggleRow(toggle.label, toggle.value, 32 + index * 32);
+      const toggleRow = this.createToggleRow(toggle.label, toggle.key, 32 + index * 32);
       sectionContainer.add(toggleRow);
     });
 
@@ -73,7 +106,7 @@ export class SettingsPanel extends SlidingPanel {
    * Create gameplay settings section
    */
   private createGameplaySection(): void {
-    const sectionContainer = this.scene.add.container(16, 140);
+    const sectionContainer = this.scene.add.container(16, 130);
 
     // Section header
     const headerText = this.scene.add.text(0, 0, 'GAMEPLAY', {
@@ -91,14 +124,14 @@ export class SettingsPanel extends SlidingPanel {
     sectionContainer.add(divider);
 
     // Toggle options
-    const toggles = [
-      { label: 'Auto-Collect Loot', value: true },
-      { label: 'Confirm Rare+ Sells', value: true },
-      { label: 'Show Tooltips', value: true },
+    const toggles: { label: string; key: keyof GameSettings }[] = [
+      { label: 'Auto-Collect Loot', key: 'autoCollectLoot' },
+      { label: 'Confirm Rare+ Sells', key: 'confirmRareSells' },
+      { label: 'Show Tooltips', key: 'showTooltips' },
     ];
 
     toggles.forEach((toggle, index) => {
-      const toggleRow = this.createToggleRow(toggle.label, toggle.value, 32 + index * 32);
+      const toggleRow = this.createToggleRow(toggle.label, toggle.key, 32 + index * 32);
       sectionContainer.add(toggleRow);
     });
 
@@ -106,10 +139,52 @@ export class SettingsPanel extends SlidingPanel {
   }
 
   /**
-   * Create a toggle row
+   * Create audio settings section
    */
-  private createToggleRow(label: string, value: boolean, y: number): Phaser.GameObjects.Container {
+  private createAudioSection(): void {
+    const sectionContainer = this.scene.add.container(16, 260);
+
+    // Section header
+    const headerText = this.scene.add.text(0, 0, 'AUDIO', {
+      fontFamily: 'Arial',
+      fontSize: '14px',
+      color: UI_CONFIG.COLORS.TEXT_SECONDARY,
+      fontStyle: 'bold',
+    });
+    sectionContainer.add(headerText);
+
+    // Divider
+    const divider = this.scene.add.graphics();
+    divider.lineStyle(1, UI_CONFIG.COLORS.PANEL_BORDER, 0.5);
+    divider.lineBetween(0, 20, this.getContentWidth(), 20);
+    sectionContainer.add(divider);
+
+    // Slider options
+    const sliders: { label: string; key: keyof GameSettings }[] = [
+      { label: 'Master Volume', key: 'masterVolume' },
+      { label: 'Music Volume', key: 'musicVolume' },
+      { label: 'SFX Volume', key: 'sfxVolume' },
+    ];
+
+    sliders.forEach((slider, index) => {
+      const sliderRow = this.createSliderRow(slider.label, slider.key, 32 + index * 40);
+      sectionContainer.add(sliderRow);
+    });
+
+    this.addToContent(sectionContainer);
+  }
+
+  /**
+   * Create a toggle row with interactive checkbox
+   */
+  private createToggleRow(
+    label: string,
+    key: keyof GameSettings,
+    y: number
+  ): Phaser.GameObjects.Container {
     const container = this.scene.add.container(0, y);
+    const settingsManager = getSettingsManager();
+    const value = settingsManager.getSetting(key) as boolean;
 
     // Label
     const labelText = this.scene.add.text(0, 0, label, {
@@ -122,31 +197,248 @@ export class SettingsPanel extends SlidingPanel {
     const checkboxSize = 20;
     const checkboxX = this.getContentWidth() - checkboxSize - 16;
 
+    // Checkbox background
     const checkbox = this.scene.add.graphics();
-    checkbox.fillStyle(value ? UI_CONFIG.COLORS.HEALTH_GREEN : 0x3d3d3d, 1);
-    checkbox.fillRoundedRect(checkboxX, -2, checkboxSize, checkboxSize, 3);
-    checkbox.lineStyle(1, UI_CONFIG.COLORS.PANEL_BORDER, 0.5);
-    checkbox.strokeRoundedRect(checkboxX, -2, checkboxSize, checkboxSize, 3);
+    this.drawCheckbox(checkbox, checkboxX, -2, checkboxSize, value);
     container.add(checkbox);
 
-    if (value) {
-      const checkmark = this.scene.add.text(checkboxX + checkboxSize / 2, checkboxSize / 2 - 2, 'X', {
-        fontSize: '14px',
-        color: '#ffffff',
-        fontStyle: 'bold',
-      });
-      checkmark.setOrigin(0.5);
-      container.add(checkmark);
-    }
+    // Checkmark text
+    const checkmark = this.scene.add.text(checkboxX + checkboxSize / 2, checkboxSize / 2 - 2, 'X', {
+      fontSize: '14px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+    });
+    checkmark.setOrigin(0.5);
+    checkmark.setVisible(value);
+    container.add(checkmark);
+
+    // Hit area for clicking (covers both label and checkbox)
+    const hitArea = this.scene.add.rectangle(
+      this.getContentWidth() / 2,
+      checkboxSize / 2 - 2,
+      this.getContentWidth(),
+      checkboxSize + 8,
+      0x000000,
+      0
+    );
+    hitArea.setInteractive({ useHandCursor: true });
+    container.add(hitArea);
+
+    // Store reference for updating
+    const rowData: ToggleRowData = { key, checkbox, checkmark, hitArea };
+    this.toggleRows.push(rowData);
+
+    // Click handler
+    hitArea.on('pointerdown', () => {
+      const newValue = settingsManager.toggleSetting(key);
+      this.updateToggleVisual(rowData, newValue);
+    });
+
+    // Hover effects
+    hitArea.on('pointerover', () => {
+      labelText.setStyle({ color: '#ffffff' });
+    });
+
+    hitArea.on('pointerout', () => {
+      labelText.setStyle({ color: UI_CONFIG.COLORS.TEXT_PRIMARY });
+    });
 
     return container;
+  }
+
+  /**
+   * Draw checkbox graphics
+   */
+  private drawCheckbox(
+    graphics: Phaser.GameObjects.Graphics,
+    x: number,
+    y: number,
+    size: number,
+    checked: boolean
+  ): void {
+    graphics.clear();
+    graphics.fillStyle(checked ? UI_CONFIG.COLORS.HEALTH_GREEN : 0x3d3d3d, 1);
+    graphics.fillRoundedRect(x, y, size, size, 3);
+    graphics.lineStyle(1, UI_CONFIG.COLORS.PANEL_BORDER, 0.5);
+    graphics.strokeRoundedRect(x, y, size, size, 3);
+  }
+
+  /**
+   * Update toggle visual state
+   */
+  private updateToggleVisual(rowData: ToggleRowData, checked: boolean): void {
+    const checkboxSize = 20;
+    const checkboxX = this.getContentWidth() - checkboxSize - 16;
+    this.drawCheckbox(rowData.checkbox, checkboxX, -2, checkboxSize, checked);
+    rowData.checkmark.setVisible(checked);
+  }
+
+  /**
+   * Create a slider row for volume control
+   */
+  private createSliderRow(
+    label: string,
+    key: keyof GameSettings,
+    y: number
+  ): Phaser.GameObjects.Container {
+    const container = this.scene.add.container(0, y);
+    const settingsManager = getSettingsManager();
+    const value = settingsManager.getSetting(key) as number;
+
+    // Label
+    const labelText = this.scene.add.text(0, 0, label, {
+      fontSize: '13px',
+      color: UI_CONFIG.COLORS.TEXT_PRIMARY,
+    });
+    container.add(labelText);
+
+    // Slider track
+    const trackWidth = 150;
+    const trackHeight = 6;
+    const trackX = this.getContentWidth() - trackWidth - 50;
+    const trackY = 4;
+
+    const track = this.scene.add.graphics();
+    this.drawSliderTrack(track, trackX, trackY, trackWidth, trackHeight, value);
+    container.add(track);
+
+    // Slider handle
+    const handleWidth = 12;
+    const handleHeight = 16;
+    const handleX = trackX + (value / 100) * trackWidth;
+    const handle = this.scene.add.rectangle(
+      handleX,
+      trackY + trackHeight / 2,
+      handleWidth,
+      handleHeight,
+      UI_CONFIG.COLORS.BUTTON_ACTIVE
+    );
+    handle.setInteractive({ useHandCursor: true, draggable: false });
+    container.add(handle);
+
+    // Value text
+    const valueText = this.scene.add.text(
+      this.getContentWidth() - 35,
+      0,
+      `${value}%`,
+      {
+        fontSize: '12px',
+        color: UI_CONFIG.COLORS.TEXT_SECONDARY,
+      }
+    );
+    container.add(valueText);
+
+    // Store reference for updating
+    const rowData: SliderRowData = {
+      key,
+      track,
+      handle,
+      valueText,
+      trackX,
+      trackWidth,
+    };
+    this.sliderRows.push(rowData);
+
+    // Handle drag start
+    handle.on('pointerdown', () => {
+      this.isDraggingSlider = true;
+      this.activeSlider = rowData;
+    });
+
+    // Track click to jump
+    const trackHitArea = this.scene.add.rectangle(
+      trackX + trackWidth / 2,
+      trackY + trackHeight / 2,
+      trackWidth + 20,
+      handleHeight + 10,
+      0x000000,
+      0
+    );
+    trackHitArea.setInteractive({ useHandCursor: true });
+    container.add(trackHitArea);
+
+    trackHitArea.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      // Calculate value from click position
+      const localX = pointer.x - this.x - 16 - trackX;
+      const newValue = Math.round(Math.max(0, Math.min(100, (localX / trackWidth) * 100)));
+      settingsManager.setSetting(key, newValue as GameSettings[typeof key]);
+      this.updateSliderVisual(rowData, newValue);
+    });
+
+    return container;
+  }
+
+  /**
+   * Draw slider track with filled portion
+   */
+  private drawSliderTrack(
+    graphics: Phaser.GameObjects.Graphics,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    value: number
+  ): void {
+    graphics.clear();
+
+    // Background track
+    graphics.fillStyle(0x3d3d3d, 1);
+    graphics.fillRoundedRect(x, y, width, height, 3);
+
+    // Filled portion
+    const filledWidth = (value / 100) * width;
+    if (filledWidth > 0) {
+      graphics.fillStyle(UI_CONFIG.COLORS.HEALTH_GREEN, 1);
+      graphics.fillRoundedRect(x, y, filledWidth, height, 3);
+    }
+  }
+
+  /**
+   * Update slider visual state
+   */
+  private updateSliderVisual(rowData: SliderRowData, value: number): void {
+    const { track, handle, valueText, trackX, trackWidth } = rowData;
+    const trackHeight = 6;
+    const trackY = 4;
+
+    // Update track
+    this.drawSliderTrack(track, trackX, trackY, trackWidth, trackHeight, value);
+
+    // Update handle position
+    handle.x = trackX + (value / 100) * trackWidth;
+
+    // Update value text
+    valueText.setText(`${value}%`);
+  }
+
+  /**
+   * Handle pointer move for slider dragging
+   */
+  private onPointerMove(pointer: Phaser.Input.Pointer): void {
+    if (!this.isDraggingSlider || !this.activeSlider) return;
+
+    const { key, trackX, trackWidth } = this.activeSlider;
+    const localX = pointer.x - this.x - 16 - trackX;
+    const newValue = Math.round(Math.max(0, Math.min(100, (localX / trackWidth) * 100)));
+
+    const settingsManager = getSettingsManager();
+    settingsManager.setSetting(key, newValue as GameSettings[typeof key]);
+    this.updateSliderVisual(this.activeSlider, newValue);
+  }
+
+  /**
+   * Handle pointer up for slider dragging
+   */
+  private onPointerUp(): void {
+    this.isDraggingSlider = false;
+    this.activeSlider = null;
   }
 
   /**
    * Create controls reference section
    */
   private createControlsSection(): void {
-    const sectionContainer = this.scene.add.container(16, 280);
+    const sectionContainer = this.scene.add.container(16, 390);
 
     // Section header
     const headerText = this.scene.add.text(0, 0, 'CONTROLS', {
@@ -167,15 +459,15 @@ export class SettingsPanel extends SlidingPanel {
     const controls = [
       'Skill Keys: 1-10',
       'Auto-Mode: Shift + Key',
-      'Tank Stats: TAB',
+      'Tank Stats: TAB / T',
       'Inventory: I',
       'Shop: P',
       'Settings: ESC',
     ];
 
     controls.forEach((control, index) => {
-      const controlText = this.scene.add.text(0, 32 + index * 22, control, {
-        fontSize: '12px',
+      const controlText = this.scene.add.text(0, 32 + index * 20, control, {
+        fontSize: '11px',
         color: UI_CONFIG.COLORS.TEXT_SECONDARY,
       });
       sectionContainer.add(controlText);
@@ -188,7 +480,7 @@ export class SettingsPanel extends SlidingPanel {
    * Create save/quit section
    */
   private createSaveSection(): void {
-    const sectionContainer = this.scene.add.container(16, 450);
+    const sectionContainer = this.scene.add.container(16, 540);
 
     // Divider
     const divider = this.scene.add.graphics();
@@ -197,13 +489,13 @@ export class SettingsPanel extends SlidingPanel {
     sectionContainer.add(divider);
 
     // Save Game button
-    const saveButton = this.createButton('SAVE GAME', 24, () => {
+    const saveButton = this.createButton('SAVE GAME', 16, () => {
       this.onSaveGame();
     });
     sectionContainer.add(saveButton);
 
     // Save & Quit button
-    const quitButton = this.createButton('SAVE & QUIT TO MENU', 72, () => {
+    const quitButton = this.createButton('SAVE & QUIT TO MENU', 60, () => {
       this.onSaveAndQuit();
     });
     sectionContainer.add(quitButton);
@@ -293,9 +585,33 @@ export class SettingsPanel extends SlidingPanel {
    * Refresh panel content when opened
    */
   public refresh(): void {
-    // TODO: Update toggle states from settings storage
-    if (import.meta.env.DEV) {
-      console.log('[SettingsPanel] Refreshing content');
+    const settingsManager = getSettingsManager();
+
+    // Update all toggle visuals
+    for (const row of this.toggleRows) {
+      const value = settingsManager.getSetting(row.key) as boolean;
+      this.updateToggleVisual(row, value);
     }
+
+    // Update all slider visuals
+    for (const row of this.sliderRows) {
+      const value = settingsManager.getSetting(row.key) as number;
+      this.updateSliderVisual(row, value);
+    }
+
+    if (import.meta.env.DEV) {
+      console.log('[SettingsPanel] Refreshed with current settings');
+    }
+  }
+
+  /**
+   * Cleanup when panel is destroyed
+   */
+  public destroy(): void {
+    this.scene.input.off('pointermove', this.onPointerMove, this);
+    this.scene.input.off('pointerup', this.onPointerUp, this);
+    this.toggleRows = [];
+    this.sliderRows = [];
+    super.destroy();
   }
 }

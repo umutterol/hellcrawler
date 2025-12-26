@@ -3,6 +3,7 @@ import { Tank } from '../entities/Tank';
 import { Enemy } from '../entities/Enemy';
 import { Projectile, ProjectileType, ProjectileConfig } from '../entities/Projectile';
 import { getGameState } from '../state/GameState';
+import { getSettingsManager } from '../managers/SettingsManager';
 
 /**
  * CombatSystem - Handles all combat interactions
@@ -225,6 +226,10 @@ export class CombatSystem {
     isCrit: boolean,
     isTankDamage: boolean = false
   ): void {
+    // Check if damage numbers are enabled in settings
+    const settings = getSettingsManager();
+    if (!settings.showDamageNumbers) return;
+
     if (import.meta.env.DEV) {
       console.log(`[CombatSystem] Spawning damage number: ${damage} at (${x}, ${y}), crit=${isCrit}`);
     }

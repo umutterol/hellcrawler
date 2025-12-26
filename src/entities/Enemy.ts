@@ -3,6 +3,7 @@ import { IPoolable } from '../managers/PoolManager';
 import { EnemyConfig, EnemyType, EnemyCategory } from '../types/EnemyTypes';
 import { EventManager, getEventManager } from '../managers/EventManager';
 import { GameEvents } from '../types/GameEvents';
+import { getSettingsManager } from '../managers/SettingsManager';
 
 /**
  * Enemy - Base class for all enemy types
@@ -145,6 +146,10 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
   }
 
   private createHealthBar(): void {
+    // Check if health bars are enabled in settings
+    const settings = getSettingsManager();
+    if (!settings.showHealthBars) return;
+
     if (this.healthBar) {
       this.healthBar.destroy();
     }
@@ -154,6 +159,16 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
   }
 
   private updateHealthBar(): void {
+    // Check if health bars are enabled in settings
+    const settings = getSettingsManager();
+    if (!settings.showHealthBars) {
+      // Hide health bar if it exists but setting is disabled
+      if (this.healthBar) {
+        this.healthBar.clear();
+      }
+      return;
+    }
+
     if (!this.healthBar || !this.active) return;
 
     const healthPercent = this.currentHP / this.maxHP;

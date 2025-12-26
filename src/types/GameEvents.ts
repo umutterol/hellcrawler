@@ -56,6 +56,9 @@ export enum GameEvents {
   // Panel Events
   PANEL_OPENED = 'panel:opened',
   PANEL_CLOSED = 'panel:closed',
+
+  // Settings Events
+  SETTINGS_CHANGED = 'settings:changed',
 }
 
 /**
@@ -292,6 +295,13 @@ export interface PanelClosedPayload {
   panelType: string;
 }
 
+// Settings Event Payloads
+export interface SettingsChangedPayload {
+  key: string;
+  oldValue: unknown;
+  newValue: unknown;
+}
+
 /**
  * Type mapping for event payloads
  * Maps each event to its corresponding payload type
@@ -327,4 +337,5 @@ export type EventPayloadMap = {
   [GameEvents.GAME_LOADED]: GameLoadedPayload;
   [GameEvents.PANEL_OPENED]: PanelOpenedPayload;
   [GameEvents.PANEL_CLOSED]: PanelClosedPayload;
+  [GameEvents.SETTINGS_CHANGED]: SettingsChangedPayload;
 };
