@@ -191,7 +191,12 @@ export class CombatSystem {
       return;
     }
 
-    if (!enemy.active || !enemy.isAlive()) return;
+    if (!enemy.active || !enemy.isAlive()) {
+      if (import.meta.env.DEV) {
+        console.log(`[CombatSystem] Enemy not active/alive: active=${enemy.active}, alive=${enemy.isAlive()}`);
+      }
+      return;
+    }
 
     const currentTime = this.scene.time.now;
     const tankPos = this.tank.getPosition();
@@ -200,6 +205,9 @@ export class CombatSystem {
     // No need for additional distance check - physics overlap handles proximity
     if (enemy.canAttack(currentTime)) {
       const damage = enemy.attack(currentTime);
+      if (import.meta.env.DEV) {
+        console.log(`[CombatSystem] Enemy ${enemy.getId()} attacking, damage=${damage}`);
+      }
       if (damage > 0) {
         const config = enemy.getConfig();
         this.gameState.takeDamage(damage, enemy.getId(), config?.category === 'boss' ? 'boss' : 'enemy');
@@ -207,6 +215,8 @@ export class CombatSystem {
         // Spawn damage number on tank
         this.spawnDamageNumber(tankPos.x, tankPos.y - 30, damage, false, true);
       }
+    } else if (import.meta.env.DEV) {
+      console.log(`[CombatSystem] Enemy ${enemy.getId()} cannot attack yet (cooldown)`);
     }
   }
 
