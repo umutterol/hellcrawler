@@ -66,13 +66,14 @@ export class Tank extends Phaser.GameObjects.Container {
   }
 
   private createSprites(): void {
-    // Tank body
-    this.bodySprite = this.scene.add.sprite(0, 0, 'tank-placeholder');
+    // Tank body - using new tank sprite
+    this.bodySprite = this.scene.add.sprite(0, 0, 'tank-1');
     this.bodySprite.setOrigin(0.5, 1);
+    this.bodySprite.setScale(2); // Scale up the 16-bit sprite
     this.add(this.bodySprite);
 
     // Cannon (part of the tank texture for now)
-    this.cannonSprite = this.scene.add.sprite(40, -32, 'bullet-placeholder');
+    this.cannonSprite = this.scene.add.sprite(40, -32, 'bullet-1');
     this.cannonSprite.setScale(2);
     this.cannonSprite.setVisible(false); // Hidden, part of main sprite
     this.add(this.cannonSprite);
@@ -294,7 +295,7 @@ export class Tank extends Phaser.GameObjects.Container {
     // Tank is at ground level (Y = HEIGHT - 100 = 980)
     // Enemy placeholder is 32px with origin (0.5, 1), so center is at Y - 16 = 964
     const muzzleX = this.x + 70;
-    const muzzleY = this.y - 16; // Fire at enemy center height (964)
+    const muzzleY = this.y - 65; // Fire at enemy center height (964)
 
     // Visual feedback
     this.animateCannonFire();

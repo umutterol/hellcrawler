@@ -58,6 +58,18 @@ export const GAME_CONFIG = {
     DAMAGE_NUMBERS: 100,
     LOOT_DROPS: 30,
   },
+
+  // Module slot firing positions (offset from tank position)
+  // Each slot has a specific mount point on the tank
+  // Format: { x: horizontal offset, y: vertical offset from tank.y }
+  // Positive X = forward (right), Negative Y = up
+  MODULE_SLOT_POSITIONS: [
+    { x: 60, y: -70 },   // Slot 0: Top front turret
+    { x: 45, y: -45 },   // Slot 1: Upper mid turret
+    { x: 30, y: -25 },   // Slot 2: Lower mid turret
+    { x: 50, y: -60 },   // Slot 3: Top rear turret
+    { x: 35, y: -35 },   // Slot 4: Lower rear turret
+  ] as const,
 } as const;
 
 /**

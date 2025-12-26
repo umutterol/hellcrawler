@@ -240,6 +240,39 @@ interface SaveData {
 
 ---
 
+## 🔫 FIRING POSITIONS
+
+### Tank Cannon
+```typescript
+// File: src/entities/Tank.ts (lines 297-298)
+const muzzleX = this.x + 70;
+const muzzleY = this.y - 65;
+```
+
+### Module Slot Positions
+```typescript
+// File: src/config/GameConfig.ts
+// Format: { x: offset from tank.x, y: offset from tank.y }
+MODULE_SLOT_POSITIONS: [
+  { x: 60, y: -70 },   // Slot 0: Top front turret
+  { x: 45, y: -45 },   // Slot 1: Upper mid turret
+  { x: 30, y: -25 },   // Slot 2: Lower mid turret
+  { x: 50, y: -60 },   // Slot 3: Top rear turret
+  { x: 35, y: -35 },   // Slot 4: Lower rear turret
+]
+```
+
+### Enemy Hitboxes
+```typescript
+// File: src/entities/Enemy.ts (in activate())
+// All enemies have tall hitboxes for consistent projectile hits
+const hitboxHeight = spriteHeight * 2;  // 2x sprite height
+const hitboxWidth = displayWidth * 0.6; // 60% of sprite width
+// Hitbox extends from ground level upward
+```
+
+---
+
 ## 🎨 ASSET LOCATIONS
 
 Tank: `/public/assets/sprites/tank/tank.png`

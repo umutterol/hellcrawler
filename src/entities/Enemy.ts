@@ -33,6 +33,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
 
   // Visual
   protected healthBar: Phaser.GameObjects.Graphics | null = null;
+  protected lastHealthPercent: number = 1; // Track for redraw optimization
 
   // Constants
   private static readonly HEALTH_BAR_WIDTH = 30;
@@ -42,7 +43,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
   private static idCounter: number = 0;
 
   constructor(scene: Phaser.Scene, x: number = 0, y: number = 0) {
-    super(scene, x, y, 'enemy-placeholder');
+    super(scene, x, y, 'imp-run-1'); // Default texture, will be changed on activate
 
     this.eventManager = getEventManager();
 
@@ -76,6 +77,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
     // Reset health
     this.maxHP = config.hp;
     this.currentHP = config.hp;
+    this.lastHealthPercent = -1; // Force initial health bar draw
 
     // Reset attack timing
     this.lastAttackTime = 0;
@@ -84,20 +86,35 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
     this.setActive(true);
     this.setVisible(true);
 
-    // Enable physics body and explicitly reset position
+    // Apply visual FIRST so we have correct texture dimensions
+    this.applyVisualsByCategory(config.category);
+
+    // Enable physics body and set hitbox AFTER texture is set
     const body = this.body as Phaser.Physics.Arcade.Body;
     if (body) {
       body.setEnable(true);
       // Reset body position explicitly to match sprite
       body.reset(x, y);
+
+      // Set tall hitbox from ground level to 2x sprite height
+      // This ensures projectiles can hit enemies regardless of visual height
+      const spriteHeight = this.displayHeight || 32;
+      const spriteWidth = this.displayWidth || 32;
+      const hitboxHeight = spriteHeight * 2;
+      const hitboxWidth = Math.max(24, spriteWidth * 0.6);
+
+      body.setSize(hitboxWidth, hitboxHeight);
+      // Offset so bottom of hitbox aligns with sprite feet (origin is 0.5, 1)
+      // Use displayWidth/displayHeight to match the scaled sprite
+      body.setOffset(
+        (spriteWidth - hitboxWidth) / 2,
+        spriteHeight - hitboxHeight
+      );
     }
 
     // Set velocity to move left toward tank (after body reset)
     this.setVelocityX(-config.speed);
     this.setVelocityY(0);
-
-    // Apply visual based on category
-    this.applyVisualsByCategory(config.category);
 
     // Create health bar
     this.createHealthBar();
@@ -124,24 +141,128 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
   }
 
   private applyVisualsByCategory(category: EnemyCategory): void {
-    // Scale and tint based on category
+    if (!this.config) return;
+
+    // Set texture and animation based on enemy type
+    this.applyTextureByType(this.config.type);
+
+    // Apply scale based on category (on top of base scale)
+    let categoryScale = 1;
     switch (category) {
       case EnemyCategory.Fodder:
-        this.setScale(1);
-        this.setTint(0xff4444); // Red
+        categoryScale = 1;
         break;
       case EnemyCategory.Elite:
-        this.setScale(1.3);
-        this.setTint(0xff8800); // Orange
+        categoryScale = 1.3;
         break;
       case EnemyCategory.SuperElite:
-        this.setScale(1.6);
-        this.setTint(0xaa00ff); // Purple
+        categoryScale = 1.6;
         break;
       case EnemyCategory.Boss:
-        this.setScale(2.5);
-        this.setTint(0xffff00); // Yellow
+        categoryScale = 2.5;
         break;
+    }
+
+    // Apply final scale (base scale * category multiplier)
+    const baseScale = this.getBaseScaleForType(this.config.type);
+    this.setScale(baseScale * categoryScale);
+
+    // Clear any previous tint - let the actual sprites show their colors
+    this.clearTint();
+  }
+
+  private applyTextureByType(type: EnemyType): void {
+    // Set texture and play animation based on enemy type
+    switch (type) {
+      case EnemyType.Imp:
+        this.setTexture('imp-run-1');
+        if (this.scene.anims.exists('imp-run')) {
+          this.play('imp-run');
+        }
+        break;
+
+      case EnemyType.Hellhound:
+        this.setTexture('hellhound-run-1');
+        if (this.scene.anims.exists('hellhound-run')) {
+          this.play('hellhound-run');
+        }
+        break;
+
+      case EnemyType.PossessedSoldier:
+        this.setTexture('soldier-1');
+        if (this.scene.anims.exists('soldier-walk')) {
+          this.play('soldier-walk');
+        }
+        break;
+
+      case EnemyType.FireSkull:
+        this.setTexture('fire-skull');
+        // Fire skull is static, no animation
+        this.stop();
+        break;
+
+      case EnemyType.CorruptedSentinel:
+        this.setTexture('sentinel-idle');
+        // Boss uses idle texture
+        this.stop();
+        break;
+
+      // Elite enemies - use soldier sprite with tint until we have specific sprites
+      case EnemyType.Demon:
+      case EnemyType.Necromancer:
+      case EnemyType.ShadowFiend:
+      case EnemyType.InfernalWarrior:
+        this.setTexture('soldier-1');
+        if (this.scene.anims.exists('soldier-walk')) {
+          this.play('soldier-walk');
+        }
+        // Apply tint for elites to differentiate
+        this.setTint(0xff8800); // Orange tint for elites
+        break;
+
+      // Super Elite enemies
+      case EnemyType.ArchDemon:
+      case EnemyType.VoidReaver:
+        this.setTexture('soldier-1');
+        if (this.scene.anims.exists('soldier-walk')) {
+          this.play('soldier-walk');
+        }
+        this.setTint(0xaa00ff); // Purple tint for super elites
+        break;
+
+      // Other bosses
+      case EnemyType.InfernalWarlord:
+      case EnemyType.LordOfFlames:
+        this.setTexture('sentinel-idle');
+        this.setTint(0xff4400); // Red-orange tint for flame bosses
+        this.stop();
+        break;
+
+      default:
+        // Fallback to imp
+        this.setTexture('imp-run-1');
+        if (this.scene.anims.exists('imp-run')) {
+          this.play('imp-run');
+        }
+        break;
+    }
+  }
+
+  private getBaseScaleForType(type: EnemyType): number {
+    // Base scale for each enemy type to make them visually appropriate
+    switch (type) {
+      case EnemyType.Imp:
+        return 2; // Small creature, scale up from 16x16
+      case EnemyType.Hellhound:
+        return 1.5; // Medium size, 48x32 sprite
+      case EnemyType.PossessedSoldier:
+        return 1.5; // Human-sized, 32x32 sprite
+      case EnemyType.FireSkull:
+        return 2; // Small floating skull
+      case EnemyType.CorruptedSentinel:
+        return 1; // Boss is already large
+      default:
+        return 1.5;
     }
   }
 
@@ -158,32 +279,39 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
     this.updateHealthBar();
   }
 
-  private updateHealthBar(): void {
-    // Check if health bars are enabled in settings
-    const settings = getSettingsManager();
-    if (!settings.showHealthBars) {
-      // Hide health bar if it exists but setting is disabled
-      if (this.healthBar) {
-        this.healthBar.clear();
-      }
-      return;
-    }
+  /**
+   * Update health bar position only (called every frame - cheap operation)
+   */
+  private updateHealthBarPosition(): void {
+    if (!this.healthBar || !this.active) return;
 
+    // Just update the graphics object position - no redraw needed
+    const barWidth = Enemy.HEALTH_BAR_WIDTH;
+    this.healthBar.x = this.x - barWidth / 2;
+    this.healthBar.y = this.y + Enemy.HEALTH_BAR_OFFSET_Y;
+  }
+
+  /**
+   * Redraw health bar (only called when health changes)
+   */
+  private redrawHealthBar(): void {
     if (!this.healthBar || !this.active) return;
 
     const healthPercent = this.currentHP / this.maxHP;
+
+    // Skip redraw if health hasn't changed significantly
+    if (Math.abs(healthPercent - this.lastHealthPercent) < 0.01) return;
+    this.lastHealthPercent = healthPercent;
+
     const barWidth = Enemy.HEALTH_BAR_WIDTH;
     const barHeight = Enemy.HEALTH_BAR_HEIGHT;
 
     this.healthBar.clear();
 
-    // Position above enemy
-    const barX = this.x - barWidth / 2;
-    const barY = this.y + Enemy.HEALTH_BAR_OFFSET_Y;
-
+    // Draw at local origin (0,0) - position is set by graphics object x,y
     // Background
     this.healthBar.fillStyle(0x333333, 1);
-    this.healthBar.fillRect(barX, barY, barWidth, barHeight);
+    this.healthBar.fillRect(0, 0, barWidth, barHeight);
 
     // Health bar color
     let color = 0x00ff00;
@@ -195,7 +323,25 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
 
     // Health fill
     this.healthBar.fillStyle(color, 1);
-    this.healthBar.fillRect(barX + 1, barY + 1, (barWidth - 2) * healthPercent, barHeight - 2);
+    this.healthBar.fillRect(1, 1, (barWidth - 2) * healthPercent, barHeight - 2);
+  }
+
+  /**
+   * Legacy method for compatibility - redirects to appropriate method
+   */
+  private updateHealthBar(): void {
+    // Check if health bars are enabled in settings
+    const settings = getSettingsManager();
+    if (!settings.showHealthBars) {
+      if (this.healthBar) {
+        this.healthBar.clear();
+      }
+      return;
+    }
+
+    // Initial draw
+    this.redrawHealthBar();
+    this.updateHealthBarPosition();
   }
 
   /**
@@ -205,7 +351,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
     if (!this.active || !this.config) return;
 
     this.currentHP -= amount;
-    this.updateHealthBar();
+    this.redrawHealthBar(); // Only redraw when health changes
 
     // Emit damage event
     this.eventManager.emit(GameEvents.DAMAGE_DEALT, {
@@ -232,9 +378,41 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
     this.setTint(0xffffff);
     this.scene.time.delayedCall(50, () => {
       if (this.active && this.config) {
-        this.applyVisualsByCategory(this.config.category);
+        // Restore the appropriate tint based on enemy type
+        this.restoreTint();
       }
     });
+  }
+
+  /**
+   * Restore the correct tint for this enemy type (for elite/super elite visual distinction)
+   */
+  private restoreTint(): void {
+    if (!this.config) return;
+
+    switch (this.config.type) {
+      // Elite enemies - orange tint
+      case EnemyType.Demon:
+      case EnemyType.Necromancer:
+      case EnemyType.ShadowFiend:
+      case EnemyType.InfernalWarrior:
+        this.setTint(0xff8800);
+        break;
+      // Super Elite enemies - purple tint
+      case EnemyType.ArchDemon:
+      case EnemyType.VoidReaver:
+        this.setTint(0xaa00ff);
+        break;
+      // Flame bosses - red-orange tint
+      case EnemyType.InfernalWarlord:
+      case EnemyType.LordOfFlames:
+        this.setTint(0xff4400);
+        break;
+      // All other enemies - no tint
+      default:
+        this.clearTint();
+        break;
+    }
   }
 
   /**
@@ -348,8 +526,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
       this.x = Enemy.STOP_X_POSITION;
     }
 
-    // Update health bar position
-    this.updateHealthBar();
+    // Only update health bar position (cheap), not redraw
+    this.updateHealthBarPosition();
 
     // Deactivate if somehow off screen
     if (this.x < -50) {

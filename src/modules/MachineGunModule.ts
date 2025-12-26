@@ -69,20 +69,19 @@ export class MachineGunModule extends BaseModule {
     // Calculate damage
     const { damage, isCrit } = this.calculateDamage();
 
+    // Get firing position from slot configuration
+    const firePos = this.getFirePosition();
+
     // Calculate direction to target
-    const angle = Phaser.Math.Angle.Between(this.x, this.y, target.x, target.y);
+    const angle = Phaser.Math.Angle.Between(firePos.x, firePos.y, target.x, target.y);
 
-    // Add small random spread for machine gun feel
-    const spread = Phaser.Math.FloatBetween(-0.05, 0.05);
+    // Add tiny random spread for machine gun feel (±1.5 degrees)
+    const spread = Phaser.Math.FloatBetween(-0.025, 0.025);
     const finalAngle = angle + spread;
-
-    // Spawn position (offset from tank)
-    const spawnX = this.x + 40;
-    const spawnY = this.y;
 
     // Configure and activate projectile
     const speed = 600;
-    projectile.activate(spawnX, spawnY, {
+    projectile.activate(firePos.x, firePos.y, {
       type: ProjectileType.Bullet,
       damage,
       speed,
@@ -90,11 +89,14 @@ export class MachineGunModule extends BaseModule {
       lifetime: 2000,
     });
 
-    // Set velocity based on angle
-    projectile.setVelocity(
-      Math.cos(finalAngle) * speed,
-      Math.sin(finalAngle) * speed
-    );
+    // Set velocity based on angle - this MUST come after activate()
+    const velX = Math.cos(finalAngle) * speed;
+    const velY = Math.sin(finalAngle) * speed;
+    projectile.setVelocity(velX, velY);
+
+    if (import.meta.env.DEV) {
+      console.log(`[MachineGun] Fire: pos=(${firePos.x.toFixed(0)}, ${firePos.y.toFixed(0)}), target=(${target.x.toFixed(0)}, ${target.y.toFixed(0)}), vel=(${velX.toFixed(0)}, ${velY.toFixed(0)})`);
+    }
 
     this.lastFireTime = currentTime;
   }
@@ -153,6 +155,9 @@ export class MachineGunModule extends BaseModule {
   private activateSuppressingFire(enemies: Enemy[]): void {
     this.suppressingFireActive = true;
 
+    // Get firing position from slot configuration
+    const firePos = this.getFirePosition();
+
     // Find enemies in a cone in front of the tank
     const coneAngle = Math.PI / 4; // 45 degrees
     const coneRange = 600;
@@ -160,11 +165,11 @@ export class MachineGunModule extends BaseModule {
     for (const enemy of enemies) {
       if (!enemy.isAlive()) continue;
 
-      const dist = Phaser.Math.Distance.Between(this.x, this.y, enemy.x, enemy.y);
+      const dist = Phaser.Math.Distance.Between(firePos.x, firePos.y, enemy.x, enemy.y);
       if (dist > coneRange) continue;
 
       // Check if enemy is in the cone (to the right of tank)
-      const angle = Phaser.Math.Angle.Between(this.x, this.y, enemy.x, enemy.y);
+      const angle = Phaser.Math.Angle.Between(firePos.x, firePos.y, enemy.x, enemy.y);
       if (Math.abs(angle) <= coneAngle) {
         // Apply slow effect
         this.applySlowToEnemy(enemy);
@@ -214,6 +219,9 @@ export class MachineGunModule extends BaseModule {
   }
 
   private createSuppressingFireEffect(): void {
+    // Get firing position from slot configuration
+    const firePos = this.getFirePosition();
+
     // Create cone effect visual
     const graphics = this.scene.add.graphics();
     graphics.fillStyle(0xffff00, 0.3);
@@ -223,9 +231,9 @@ export class MachineGunModule extends BaseModule {
     const coneWidth = 200;
 
     graphics.beginPath();
-    graphics.moveTo(this.x + 40, this.y);
-    graphics.lineTo(this.x + coneLength, this.y - coneWidth / 2);
-    graphics.lineTo(this.x + coneLength, this.y + coneWidth / 2);
+    graphics.moveTo(firePos.x, firePos.y);
+    graphics.lineTo(firePos.x + coneLength, firePos.y - coneWidth / 2);
+    graphics.lineTo(firePos.x + coneLength, firePos.y + coneWidth / 2);
     graphics.closePath();
     graphics.fill();
 

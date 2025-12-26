@@ -81,13 +81,12 @@ export class MissilePodModule extends BaseModule {
     // Calculate damage
     const { damage, isCrit } = this.calculateDamage();
 
-    // Spawn position
-    const spawnX = this.x + 30;
-    const spawnY = this.y - 20; // Missiles come from top of tank
+    // Get firing position from slot configuration
+    const firePos = this.getFirePosition();
 
     // Configure missile
     const speed = 350;
-    projectile.activate(spawnX, spawnY, {
+    projectile.activate(firePos.x, firePos.y, {
       type: ProjectileType.Missile,
       damage,
       speed,
@@ -98,7 +97,7 @@ export class MissilePodModule extends BaseModule {
     });
 
     // Initial velocity toward target
-    const angle = Phaser.Math.Angle.Between(spawnX, spawnY, target.x, target.y);
+    const angle = Phaser.Math.Angle.Between(firePos.x, firePos.y, target.x, target.y);
     projectile.setVelocity(
       Math.cos(angle) * speed,
       Math.sin(angle) * speed
@@ -120,10 +119,11 @@ export class MissilePodModule extends BaseModule {
 
     const { damage, isCrit } = this.calculateDamage();
 
-    // Spawn with slight offset for visual variety
+    // Get firing position from slot configuration with slight offset for visual variety
+    const firePos = this.getFirePosition();
     const offsetY = Phaser.Math.Between(-30, 30);
-    const spawnX = this.x + 30;
-    const spawnY = this.y + offsetY;
+    const spawnX = firePos.x;
+    const spawnY = firePos.y + offsetY;
 
     const speed = 400;
     projectile.activate(spawnX, spawnY, {
@@ -220,8 +220,9 @@ export class MissilePodModule extends BaseModule {
   }
 
   private createHomingSwarmEffect(): void {
-    // Create pulsing effect around tank
-    const ring = this.scene.add.circle(this.x, this.y, 50, 0xff4444, 0);
+    // Create pulsing effect around firing position
+    const firePos = this.getFirePosition();
+    const ring = this.scene.add.circle(firePos.x, firePos.y, 50, 0xff4444, 0);
     ring.setStrokeStyle(2, 0xff4444, 0.8);
 
     this.scene.tweens.add({

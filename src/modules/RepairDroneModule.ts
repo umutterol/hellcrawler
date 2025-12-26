@@ -51,26 +51,12 @@ export class RepairDroneModule extends BaseModule {
    * Create visual representation of the repair drone
    */
   private createDroneVisual(): void {
-    // Small orbiting drone around tank
-    this.droneSprite = this.scene.add.circle(this.x + 30, this.y - 40, 8, 0x00ff88, 1);
+    // Small orbiting drone around tank (uses slot position for orbit center)
+    const firePos = this.getFirePosition();
+    this.droneSprite = this.scene.add.circle(firePos.x, firePos.y - 20, 8, 0x00ff88, 1);
     this.droneSprite.setStrokeStyle(2, 0x00ffaa);
 
-    // Orbit animation
-    this.scene.tweens.add({
-      targets: this.droneSprite,
-      props: {
-        x: {
-          value: () => this.x + Math.cos(this.scene.time.now * 0.002) * 40,
-          duration: 100,
-        },
-        y: {
-          value: () => this.y - 40 + Math.sin(this.scene.time.now * 0.003) * 10,
-          duration: 100,
-        },
-      },
-      repeat: -1,
-      yoyo: false,
-    });
+    // Orbit animation is handled in update() for position sync
   }
 
   /**
@@ -116,10 +102,11 @@ export class RepairDroneModule extends BaseModule {
       }
     }
 
-    // Update drone position
+    // Update drone position (orbits around slot fire position)
     if (this.droneSprite) {
-      this.droneSprite.x = this.x + Math.cos(time * 0.002) * 40;
-      this.droneSprite.y = this.y - 40 + Math.sin(time * 0.003) * 10;
+      const firePos = this.getFirePosition();
+      this.droneSprite.x = firePos.x + Math.cos(time * 0.002) * 30;
+      this.droneSprite.y = firePos.y - 20 + Math.sin(time * 0.003) * 10;
     }
   }
 
@@ -192,8 +179,9 @@ export class RepairDroneModule extends BaseModule {
    * Small heal particle effect
    */
   private showHealEffect(): void {
-    const x = this.x + Phaser.Math.Between(-20, 20);
-    const y = this.y + Phaser.Math.Between(-30, 10);
+    const firePos = this.getFirePosition();
+    const x = firePos.x + Phaser.Math.Between(-20, 20);
+    const y = firePos.y + Phaser.Math.Between(-30, 10);
 
     const particle = this.scene.add.text(x, y, '+', {
       fontSize: '12px',
@@ -213,8 +201,10 @@ export class RepairDroneModule extends BaseModule {
    * Emergency repair effect - big healing burst
    */
   private showEmergencyRepairEffect(): void {
+    const firePos = this.getFirePosition();
+
     // Green burst
-    const burst = this.scene.add.circle(this.x, this.y, 10, 0x00ff88, 0.8);
+    const burst = this.scene.add.circle(firePos.x, firePos.y, 10, 0x00ff88, 0.8);
 
     this.scene.tweens.add({
       targets: burst,
@@ -228,7 +218,7 @@ export class RepairDroneModule extends BaseModule {
     // Plus signs flying outward
     for (let i = 0; i < 8; i++) {
       const angle = (i / 8) * Math.PI * 2;
-      const particle = this.scene.add.text(this.x, this.y, '+', {
+      const particle = this.scene.add.text(firePos.x, firePos.y, '+', {
         fontSize: '16px',
         color: '#00ff88',
         fontStyle: 'bold',
@@ -236,8 +226,8 @@ export class RepairDroneModule extends BaseModule {
 
       this.scene.tweens.add({
         targets: particle,
-        x: this.x + Math.cos(angle) * 60,
-        y: this.y + Math.sin(angle) * 60,
+        x: firePos.x + Math.cos(angle) * 60,
+        y: firePos.y + Math.sin(angle) * 60,
         alpha: 0,
         duration: 600,
         onComplete: () => particle.destroy(),
@@ -249,8 +239,10 @@ export class RepairDroneModule extends BaseModule {
    * Regeneration field effect - pulsing aura
    */
   private showRegenerationFieldEffect(): void {
+    const firePos = this.getFirePosition();
+
     // Create pulsing green ring
-    const ring = this.scene.add.circle(this.x, this.y, 30, 0x00ff88, 0);
+    const ring = this.scene.add.circle(firePos.x, firePos.y, 30, 0x00ff88, 0);
     ring.setStrokeStyle(3, 0x00ff88, 0.8);
 
     this.scene.tweens.add({

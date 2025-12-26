@@ -57,7 +57,7 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite implements IPoolabl
   private static idCounter: number = 0;
 
   constructor(scene: Phaser.Scene, x: number = 0, y: number = 0) {
-    super(scene, x, y, 'bullet-placeholder');
+    super(scene, x, y, 'bullet-1');
 
     // Add to scene and physics
     scene.add.existing(this);
@@ -137,32 +137,35 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite implements IPoolabl
   }
 
   private configureByType(config: ProjectileConfig): void {
+    // Clear any previous tint
+    this.clearTint();
+
     switch (config.type) {
       case ProjectileType.Bullet:
-        this.setScale(1);
-        this.setTint(0xffff00); // Yellow
+        this.setTexture('bullet-1');
+        this.setScale(1.5);
         break;
 
       case ProjectileType.CannonShell:
+        this.setTexture('cannon-1');
         this.setScale(1.5);
-        this.setTint(0xff8800); // Orange
         break;
 
       case ProjectileType.Missile:
-        this.setScale(1.2);
-        this.setTint(0xff4444); // Red
+        this.setTexture('missile-1');
+        this.setScale(1.5);
         break;
 
       case ProjectileType.Beam:
+        this.setTexture('bullet-1');
         this.setScale(2, 0.5);
-        this.setTint(0x00ffff); // Cyan
-        // Beams are instant hit, handled differently
+        this.setTint(0x00ffff); // Cyan for beam
         break;
     }
 
-    // Crit visual
+    // Crit visual - slight scale boost
     if (config.isCrit) {
-      this.setScale(this.scaleX * 1.3, this.scaleY * 1.3);
+      this.setScale(this.scaleX * 1.2, this.scaleY * 1.2);
     }
   }
 

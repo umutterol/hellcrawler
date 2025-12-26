@@ -5,6 +5,7 @@ import { EventManager, getEventManager } from '../managers/EventManager';
 import { GameEvents } from '../types/GameEvents';
 import { Projectile } from '../entities/Projectile';
 import { Enemy } from '../entities/Enemy';
+import { GAME_CONFIG } from '../config/GameConfig';
 
 /**
  * Skill runtime state
@@ -35,9 +36,13 @@ export abstract class BaseModule {
   protected slotIndex: number;
   protected slotStats: SlotStats;
 
-  // Position (relative to tank)
-  protected x: number;
-  protected y: number;
+  // Tank base position
+  protected tankX: number;
+  protected tankY: number;
+
+  // Slot firing position offset (from GAME_CONFIG.MODULE_SLOT_POSITIONS)
+  protected slotOffsetX: number;
+  protected slotOffsetY: number;
 
   // Firing state
   protected lastFireTime: number = 0;
@@ -71,9 +76,14 @@ export abstract class BaseModule {
     this.slotIndex = slotIndex;
     this.slotStats = slotStats;
 
-    // Default position (will be set by tank)
-    this.x = 200;
-    this.y = 540;
+    // Default tank position (will be set by ModuleManager)
+    this.tankX = 200;
+    this.tankY = 540;
+
+    // Get slot firing position offset from config
+    const slotPosition = GAME_CONFIG.MODULE_SLOT_POSITIONS[slotIndex];
+    this.slotOffsetX = slotPosition?.x ?? 40;
+    this.slotOffsetY = slotPosition?.y ?? -50;
 
     // Initialize skills from module data
     this.initializeSkills();
@@ -165,11 +175,22 @@ export abstract class BaseModule {
   }
 
   /**
-   * Set module position
+   * Set tank base position (modules calculate their fire position from this)
    */
   public setPosition(x: number, y: number): void {
-    this.x = x;
-    this.y = y;
+    this.tankX = x;
+    this.tankY = y;
+  }
+
+  /**
+   * Get the firing position for this module's slot
+   * Combines tank position with slot-specific offset
+   */
+  protected getFirePosition(): { x: number; y: number } {
+    return {
+      x: this.tankX + this.slotOffsetX,
+      y: this.tankY + this.slotOffsetY,
+    };
   }
 
   /**
@@ -429,11 +450,12 @@ export abstract class BaseModule {
   protected findClosestEnemy(enemies: Enemy[]): Enemy | null {
     let closest: Enemy | null = null;
     let closestDist = Infinity;
+    const firePos = this.getFirePosition();
 
     for (const enemy of enemies) {
       if (!enemy.isAlive()) continue;
 
-      const dist = Phaser.Math.Distance.Between(this.x, this.y, enemy.x, enemy.y);
+      const dist = Phaser.Math.Distance.Between(firePos.x, firePos.y, enemy.x, enemy.y);
       if (dist < closestDist) {
         closestDist = dist;
         closest = enemy;
@@ -447,9 +469,10 @@ export abstract class BaseModule {
    * Helper: Find enemies in range
    */
   protected findEnemiesInRange(enemies: Enemy[], range: number): Enemy[] {
+    const firePos = this.getFirePosition();
     return enemies.filter((enemy) => {
       if (!enemy.isAlive()) return false;
-      const dist = Phaser.Math.Distance.Between(this.x, this.y, enemy.x, enemy.y);
+      const dist = Phaser.Math.Distance.Between(firePos.x, firePos.y, enemy.x, enemy.y);
       return dist <= range;
     });
   }

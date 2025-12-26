@@ -158,6 +158,22 @@ class ModuleItem {
 
 **Same module type CAN be equipped multiple times** (e.g., 5 Machine Guns is valid).
 
+### Module Slot Firing Positions
+
+Each module slot has a fixed firing position on the tank. Configure in `src/config/GameConfig.ts`:
+
+```typescript
+MODULE_SLOT_POSITIONS: [
+  { x: 60, y: -70 },   // Slot 0: Top front turret
+  { x: 45, y: -45 },   // Slot 1: Upper mid turret
+  { x: 30, y: -25 },   // Slot 2: Lower mid turret
+  { x: 50, y: -60 },   // Slot 3: Top rear turret
+  { x: 35, y: -35 },   // Slot 4: Lower rear turret
+]
+```
+
+Modules use `getFirePosition()` from `BaseModule` to get their slot's firing coordinates.
+
 ### 4. STATIONARY TANK
 
 The tank does NOT move. "Movement Speed" stat affects enemy approach speed.

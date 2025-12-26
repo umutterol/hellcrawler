@@ -77,10 +77,7 @@ export class CombatSystem {
     const projectile = projectileObj as Projectile;
     const enemy = enemyObj as Enemy;
 
-    if (import.meta.env.DEV) {
-      console.log(`[CombatSystem] Overlap detected: proj=${projectile.getId()}, enemy=${enemy.getId()}`);
-    }
-
+    // Don't log every overlap - too spammy and causes FPS drops
     if (!projectile.active || !enemy.active) return;
     if (!enemy.isAlive()) return;
 
@@ -279,18 +276,23 @@ export class CombatSystem {
   }
 
   /**
-   * Fire the tank's built-in cannon
+   * Fire the tank's built-in cannon at the closest enemy
    */
   public fireCannonAt(time: number): void {
     const fireData = this.tank.fireCannon(time);
     if (!fireData) return;
 
-    // Get an inactive projectile from the group
-    const totalProjectiles = this.projectiles.getChildren().length;
-    const inactiveProjectiles = this.projectiles.getChildren().filter(p => !p.active).length;
+    // Find closest alive enemy to target
+    const enemyCount = this.enemies.getChildren().filter(e => (e as Enemy).active && (e as Enemy).isAlive()).length;
+    const target = this.findClosestEnemy(fireData.x, fireData.y);
 
     if (import.meta.env.DEV) {
-      console.log(`[CombatSystem] Trying to fire. Pool: ${inactiveProjectiles}/${totalProjectiles} inactive`);
+      console.log(`[CombatSystem] fireCannonAt: ${enemyCount} enemies, target=${target ? 'found at ' + target.x.toFixed(0) : 'none'}`);
+    }
+
+    if (!target) {
+      // No enemies to target, don't waste ammo
+      return;
     }
 
     const projectile = this.projectiles.getFirstDead(false) as Projectile | null;
@@ -301,19 +303,47 @@ export class CombatSystem {
       return;
     }
 
+    const speed = 600;
     const config: ProjectileConfig = {
       type: ProjectileType.CannonShell,
       damage: fireData.damage,
-      speed: 600,
+      speed,
       isCrit: false, // Cannon handles crit in damage calc
       aoeRadius: 30,
     };
 
     projectile.activate(fireData.x, fireData.y, config);
 
+    // Calculate angle to target and set velocity toward it
+    const angle = Phaser.Math.Angle.Between(fireData.x, fireData.y, target.x, target.y);
+    const velX = Math.cos(angle) * speed;
+    const velY = Math.sin(angle) * speed;
+    projectile.setVelocity(velX, velY);
+
     if (import.meta.env.DEV) {
-      console.log(`[CombatSystem] Fired cannon: damage=${fireData.damage}, pos=(${fireData.x}, ${fireData.y})`);
+      console.log(`[CombatSystem] Cannon fired: vel=(${velX.toFixed(0)}, ${velY.toFixed(0)}), angle=${(angle * 180 / Math.PI).toFixed(1)}°`);
     }
+  }
+
+  /**
+   * Find the closest alive enemy to a position
+   */
+  private findClosestEnemy(fromX: number, fromY: number): Enemy | null {
+    let closest: Enemy | null = null;
+    let closestDist = Infinity;
+
+    const enemies = this.enemies.getChildren() as Enemy[];
+    for (const enemy of enemies) {
+      if (!enemy.active || !enemy.isAlive()) continue;
+
+      const dist = Phaser.Math.Distance.Between(fromX, fromY, enemy.x, enemy.y);
+      if (dist < closestDist) {
+        closestDist = dist;
+        closest = enemy;
+      }
+    }
+
+    return closest;
   }
 
   /**
