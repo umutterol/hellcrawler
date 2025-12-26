@@ -836,97 +836,127 @@ Uber versions of all 8 bosses with:
 
 # 11. UI/UX DESIGN
 
-## 11.1 Screen Layout (Reference: Desktop Heroes)
+> **Reference:** Desktop Heroes sliding panel system
+> **Full Specification:** See `docs/UISpec.md` for complete implementation details
 
+## 11.1 Design Philosophy
+
+| Principle | Description |
+|-----------|-------------|
+| **Idle-First** | Game NEVER pauses - continues during all menu interactions |
+| **No Scene Transitions** | All UI is overlay-based, no black screen transitions |
+| **Sliding Panels** | Menus slide in from left, pushing game area right |
+| **Always Accessible** | Core actions (skills, flee) always visible |
+
+## 11.2 Screen Layout
+
+### Base Layout (No Panels Open)
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│ [Zone: Desert 88]                              [Flee] [Settings]│
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│                         GAME AREA                               │
-│                                                                 │
-│    [TANK]            ←←← ENEMIES APPROACH ←←←        [ENEMIES]  │
-│      ↓                                                          │
-│   Damage Numbers: 235K, 2.39M, etc (floating, color-coded)     │
-│                                                                 │
-├─────────────────────────────────────────────────────────────────┤
-│ [HP BAR ████████████░░░░] 235.04K/300K        [Gold: 1.2M] [⚙] │
-├─────────────────────────────────────────────────────────────────┤
-│ [Slot1] [Slot2] [Slot3] [Slot4] [Slot5]    [Zone Progress 5/7] │
-│  MG:17   MSL:5  HEAL:17 SHLD:0  EMP:26                         │
+│ TOP BAR                                                         │
+│ [Gold: 1.2M] [+5.2K/s]  [LVL 45 ████░░ XP]    [Zone 1-2] [Flee]│
+├──┬──────────────────────────────────────────────────────────────┤
+│  │                                                              │
+│S │                         GAME AREA                            │
+│I │     [TANK] ←←← enemies approach ←←←              [ENEMIES]  │
+│D │                                                              │
+│E │                    Damage numbers float up                   │
+│B │                                                              │
+│A │                                                              │
+│R │                                                              │
+├──┴──────────────────────────────────────────────────────────────┤
+│ BOTTOM BAR                                                      │
+│ [HP ████████████░░░░] 235K/300K                                │
+│ [Slot1][Slot2][Slot3][Slot4][Slot5]              [Wave 5/7 ▶]  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## 11.2 UI Elements
+### Layout With Panel Open
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              [Gold: 1.2M]  [LVL 45]              [Zone] [Flee] │
+├──────────────────┬──┬────────────────────────────────────────────┤
+│                  │  │                                            │
+│  SLIDING PANEL   │S │           GAME AREA                        │
+│  (~400px wide)   │I │        (compressed but visible)            │
+│                  │D │                                            │
+│  [<<] to close   │E │     [TANK] ←← enemies ←←                   │
+│                  │B │                                            │
+│  Panel content   │A │         (game keeps running!)              │
+│                  │R │                                            │
+├──────────────────┴──┴────────────────────────────────────────────┤
+│              [HP Bar]        [Slot1][Slot2][Slot3]    [Wave 5/7]│
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## 11.3 Sidebar Icons
+
+| Icon | Panel | Keyboard | Description |
+|------|-------|----------|-------------|
+| Tank silhouette | Tank Stats | TAB | View/upgrade tank stats and slot levels |
+| Backpack | Inventory | I | Browse, equip, sell modules |
+| Shopping cart | Shop | P | Purchase module slots |
+| Cogwheel | Settings | ESC | Options, audio, save & quit |
+
+## 11.4 Sliding Panels
+
+### Tank Stats Panel
+- Tank portrait, level, XP bar
+- **Tank Stats:** Max HP, Defense, HP Regen, Enemy Slow
+- Each stat shows: Current → Next value, upgrade cost button
+- **Module Slots:** Level display, upgrade buttons
+- Locked slots show unlock requirements
+
+### Module Inventory Panel
+- **Equipped Modules:** 5 slots at top
+- **Inventory Grid:** 6-column scrollable grid
+- **Selection Detail:** Stats, rarity, skill descriptions
+- **Actions:** Equip, Unequip, Sell, Compare
+- Auto-sell toggle for low rarities
+
+### Shop Panel
+- List of all 5 module slots
+- Owned slots show "✓ Unlocked"
+- Available slots show purchase button with cost
+- Locked slots show requirement (e.g., "Beat Diaboros")
+
+### Settings Panel
+- Quick toggles: SFX, Music, Help, Save
+- Display options: Health bars, damage numbers, VFX
+- Audio sliders: Master, Music, SFX volume
+- Controls reference
+- Save Game / Save & Quit buttons
+
+## 11.5 HUD Elements
 
 ### Top Bar
-- Zone name and number
-- Flee button (retreat to previous zone)
-- Settings button
+- Gold amount + income rate
+- Tank level + XP progress bar
+- Current zone indicator
+- Flee button
 
-### Game Area
-- Tank on left (facing right)
-- Enemies spawn from right
-- Floating damage numbers (color-coded)
-  - White: Normal damage
-  - Yellow: Critical hit
-  - Red: Enemy damage to player
+### Sidebar
+- 4 icon buttons (56px wide strip)
+- Active panel indicated by highlight
+- Always visible, even with panel open
 
 ### Bottom Bar
-- HP Bar with current/max values
-- Gold counter
-- Settings quick access
+- HP bar (full width) with current/max values
+- Near Death: Red pulsing + REVIVE button
+- Module slots with cooldown indicators
+- Wave progress + play/pause controls
 
-### Module Bar
-- 5 module slots displayed
-- Shows module type icon
-- Shows slot level
-- Click to open module management
-- Skill buttons appear on hover/click
-
-## 11.3 Menus
-
-### Main Menu
-- Continue (if save exists)
-- New Game
-- Settings
-- Quit
-
-### In-Game Menu (Pause)
-- Resume
-- Modules
-- Tank Upgrades
-- Shop (Slots)
-- Settings
-- Main Menu
-
-### Module Screen
-- Equipped modules (5 slots)
-- Module inventory (scrollable)
-- Module details (stats, skills)
-- Equip/Unequip/Sell buttons
-
-### Tank Upgrade Screen
-- Tank Level display
-- XP bar
-- Stat upgrade buttons (HP, Defense, Regen, Speed)
-- Slot upgrade buttons
-
-### Shop Screen
-- Module Slot purchases
-- Paragon upgrades (if unlocked)
-
-## 11.4 Damage Number Format
+## 11.6 Damage Number Format
 
 - No decimals: `235K` not `235.04K`
 - Abbreviations: K (thousand), M (million), B (billion), T (trillion)
 - Color coding:
-  - White: Normal
-  - Yellow: Critical
+  - White: Normal damage
+  - Yellow: Critical hit
   - Green: Healing
   - Red: Damage taken
 
-## 11.5 Resolution & Scaling
+## 11.7 Resolution & Scaling
 
 | Attribute | Value |
 |-----------|-------|
@@ -934,6 +964,7 @@ Uber versions of all 8 bosses with:
 | Aspect Ratio | 16:9 (fixed) |
 | Scaling | Letterbox for non-16:9 displays |
 | Minimum | 1280×720 |
+| Panel Width | 400px (scales down at lower res) |
 
 ---
 

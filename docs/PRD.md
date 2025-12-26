@@ -110,13 +110,8 @@ hellcrawler/
 │   │   └── ActData.ts          # Act/Zone definitions
 │   ├── scenes/
 │   │   ├── BootScene.ts        # Asset loading
-│   │   ├── MainMenuScene.ts    # Main menu
-│   │   ├── GameScene.ts        # Main gameplay
-│   │   ├── UIScene.ts          # HUD overlay
-│   │   ├── PauseScene.ts       # Pause menu
-│   │   ├── ModuleScene.ts      # Module management
-│   │   ├── UpgradeScene.ts     # Tank upgrades
-│   │   └── ShopScene.ts        # Slot purchases
+│   │   ├── MainMenuScene.ts    # Main menu (launch only)
+│   │   └── GameScene.ts        # Main gameplay (contains all UI)
 │   ├── entities/
 │   │   ├── Tank.ts             # Player tank
 │   │   ├── BuiltInCannon.ts    # Tank's main cannon
@@ -160,17 +155,25 @@ hellcrawler/
 │   │   ├── InputManager.ts     # Controls
 │   │   └── EventManager.ts     # Event bus
 │   ├── ui/
-│   │   ├── components/
-│   │   │   ├── HealthBar.ts
-│   │   │   ├── ModuleSlotUI.ts
-│   │   │   ├── SkillButton.ts
-│   │   │   ├── GoldDisplay.ts
-│   │   │   ├── WaveIndicator.ts
-│   │   │   └── DamageNumber.ts
-│   │   └── screens/
-│   │       ├── ModuleInventory.ts
-│   │       ├── TankUpgrades.ts
-│   │       └── Shop.ts
+│   │   ├── hud/
+│   │   │   ├── TopBar.ts           # Gold, XP, zone info
+│   │   │   ├── BottomBar.ts        # HP bar, module slots
+│   │   │   ├── Sidebar.ts          # Panel toggle buttons
+│   │   │   ├── ModuleSlotUI.ts     # Individual slot display
+│   │   │   └── DamageNumber.ts     # Floating damage text
+│   │   ├── panels/
+│   │   │   ├── SlidingPanel.ts     # Base panel class
+│   │   │   ├── PanelManager.ts     # Panel state management
+│   │   │   ├── TankStatsPanel.ts   # Stats + slot upgrades
+│   │   │   ├── InventoryPanel.ts   # Module inventory
+│   │   │   ├── ShopPanel.ts        # Slot purchases
+│   │   │   └── SettingsPanel.ts    # Options + save/quit
+│   │   └── components/
+│   │       ├── Button.ts           # Reusable button
+│   │       ├── ProgressBar.ts      # HP/XP bars
+│   │       ├── Toggle.ts           # Checkbox toggle
+│   │       ├── Slider.ts           # Volume sliders
+│   │       └── ItemGrid.ts         # Inventory grid
 │   ├── utils/
 │   │   ├── MathUtils.ts        # Math helpers
 │   │   ├── FormatUtils.ts      # Number formatting (235K)
@@ -412,107 +415,97 @@ interface GameState {
 
 # 3. DEVELOPMENT PHASES
 
-## 3.1 Phase 1: MVP (Priority 1)
+> **Current Status:** See `docs/MasterPlan.md` for live progress tracking
+> **UI Architecture:** Sliding panels, no separate scenes (see `docs/UISpec.md`)
 
-**Duration:** 2-3 weeks
-**Goal:** Playable Act 1 prototype
+## 3.1 Phase 1: MVP (Priority 1) - IN PROGRESS
 
-### Sprint 1.1: Foundation (Days 1-3)
-- [ ] Project setup (Phaser 3 + TypeScript + Vite)
-- [ ] Basic scene structure (Boot, Game, UI)
-- [ ] Asset loading pipeline
-- [ ] Tank sprite on screen
-- [ ] Basic input handling
+**Goal:** Playable Act 1 with all systems accessible
 
-### Sprint 1.2: Combat Core (Days 4-7)
-- [ ] Enemy spawning from right
-- [ ] Enemy movement toward tank
-- [ ] Built-in cannon firing
-- [ ] Projectile system
-- [ ] Damage calculation
-- [ ] Enemy death and cleanup
-- [ ] Object pooling for enemies/projectiles
+### Sprint 1.1-1.4: Core Systems ✅ COMPLETE
+- [x] Project setup (Phaser 3 + TypeScript + Vite)
+- [x] Tank with built-in cannon
+- [x] Enemy spawning, movement, combat
+- [x] Object pooling for enemies/projectiles
+- [x] 3 module types with skills + auto-mode
+- [x] XP system and tank leveling
+- [x] Gold economy
+- [x] Module drops with rarities
+- [x] Wave system (7 waves per zone)
+- [x] Boss: Corrupted Sentinel
+- [x] Near Death system
+- [x] Save/Load on zone complete
+- [x] Basic HUD (HP, Gold, Module slots)
+- [x] Input system for skills
 
-### Sprint 1.3: Modules (Days 8-11)
-- [ ] Module slot system
-- [ ] 3 module types (Machine Gun, Missile Pod, Repair Drone)
-- [ ] Module firing logic
-- [ ] Module skills (2 per module)
-- [ ] Auto-mode toggle
-- [ ] Skill cooldowns
+### Sprint 1.5: UI Systems - CURRENT
+**Architecture:** Sliding Panel System (Desktop Heroes style)
 
-### Sprint 1.4: Progression (Days 12-15)
-- [ ] XP system and tank leveling
-- [ ] Gold drops and collection
-- [ ] Module item drops with rarities
-- [ ] Module stat rolling
-- [ ] Module equipping/swapping
-- [ ] Tank stat upgrades
-
-### Sprint 1.5: Content & Polish (Days 16-21)
-- [ ] Act 1 enemies (4 types)
-- [ ] Wave system (7 waves per zone)
-- [ ] Super Elite at Zone 1 end
-- [ ] Boss 1: Corrupted Sentinel
-- [ ] Basic UI (HP, Gold, Slots)
-- [ ] Save/Load system
-- [ ] Near Death mechanic
+- [ ] **Sidebar** - 4 icon buttons for panel access
+- [ ] **SlidingPanel base class** - Animation, state management
+- [ ] **PanelManager** - Single panel open at a time
+- [ ] **TankStatsPanel** - Stat upgrades + slot level upgrades
+- [ ] **InventoryPanel** - Module inventory, equip/sell
+- [ ] **ShopPanel** - Purchase module slots
+- [ ] **SettingsPanel** - Options + Save & Quit
+- [ ] **TopBar** - Gold, XP, zone info
+- [ ] **BottomBar refactor** - HP bar, module slots, wave progress
 
 ### MVP Deliverables
 - Playable Act 1 (2 zones, 14 waves, 1 boss)
 - 3 functional modules with skills
-- Working progression (XP, Gold, Stats)
+- **All progression systems accessible via sliding panels**
 - Save/Load
 
-## 3.2 Phase 2: Core Content (Priority 2)
+## 3.2 Phase 2: Vertical Slice (Priority 2)
 
-**Duration:** 3-4 weeks
-**Goal:** Full 8 Acts, Boss summoning
+**Goal:** Zone 1 polished to demo quality
 
 ### Features
-- [ ] Acts 2-8 (enemies, backgrounds, bosses)
+- [ ] Audio pass (SFX + music)
+- [ ] VFX pass (death effects, impacts, muzzle flash)
+- [ ] Boss polish (intro, phases, death sequence)
+- [ ] Onboarding (tooltip hints)
+- [ ] Performance verification (60 FPS)
+
+## 3.3 Phase 3: Content Expansion (Priority 3)
+
+**Goal:** Acts 1-2 complete
+
+### Features
+- [ ] Act 2 enemies (4 types)
+- [ ] Act 2 zones + Gargoyle boss
+- [ ] Zone selection UI
+- [ ] Auto-sell system
+- [ ] Loot drop visuals
+
+## 3.4 Phase 4: Full Content (Priority 4)
+
+**Goal:** All 8 Acts
+
+### Features
+- [ ] Acts 3-8 (enemies, backgrounds, bosses)
 - [ ] Remaining 7 modules
 - [ ] Boss summoning system (essences)
-- [ ] Module inventory screen
-- [ ] Full upgrade screens
-- [ ] Zone selection/replay
 
-## 3.3 Phase 3: Endgame (Priority 3)
+## 3.5 Phase 5: Endgame (Priority 5)
 
-**Duration:** 2-3 weeks
-**Goal:** Paragon, Ubers, all modules
+**Goal:** Paragon, Ubers
 
 ### Features
 - [ ] Paragon/Prestige system
 - [ ] 8 Uber boss variants
 - [ ] Infernal Cores currency
-- [ ] All 10 modules complete
-- [ ] Module skill balancing
 
-## 3.4 Phase 4: Polish (Priority 4)
+## 3.6 Phase 6: Steam Release (Priority 6)
 
-**Duration:** 2 weeks
-**Goal:** Steam ready
+**Goal:** Launch ready
 
 ### Features
 - [ ] Steam SDK integration
-- [ ] Achievements (15-20)
+- [ ] Achievements
 - [ ] Cloud save
-- [ ] Audio implementation
-- [ ] Crew chat bubbles
-- [ ] Performance optimization
-- [ ] Bug fixes
-
-## 3.5 Phase 5: Release
-
-**Duration:** 1 week
-**Goal:** Launch
-
-### Tasks
-- [ ] Steam store page
-- [ ] Marketing assets
-- [ ] Final QA pass
-- [ ] Launch
+- [ ] Store page + marketing
 
 ---
 

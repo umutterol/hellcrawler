@@ -40,72 +40,90 @@
 
 ### What's Missing (UI/UX) ⚠️
 
-| System | Priority | Blocks |
-|--------|----------|--------|
-| Main Menu Scene | P1 | Game flow |
-| Pause Menu Scene | P1 | Game flow |
-| Module Inventory Screen | P1 | Equip/swap/sell |
-| Module Slot Upgrade UI | P1 | Slot progression |
-| Shop Screen | P1 | Unlock slots 2-3 |
-| Loot Drop Visuals | P1 | Feedback loop |
-| Zone Completion Screen | P1 | Progression feel |
-| Near Death Revive Button | P2 | Manual revive |
-| Settings Screen | P2 | Player options |
+> **Architecture Change:** Using Sliding Panel System (Desktop Heroes style)
+> **Reference:** See `docs/UISpec.md` for full specification
+
+| System | Priority | Implementation |
+|--------|----------|----------------|
+| Sidebar | P1 | 4 icon buttons for panel access |
+| SlidingPanel base | P1 | Animation, state, collapse button |
+| PanelManager | P1 | Single panel open at a time |
+| TankStatsPanel | P1 | Stats + slot upgrades (replaces TAB menu) |
+| InventoryPanel | P1 | Module inventory, equip/sell |
+| ShopPanel | P1 | Purchase module slots |
+| SettingsPanel | P1 | Options + Save & Quit |
+| TopBar | P1 | Gold, XP, zone info |
+| BottomBar refactor | P1 | HP bar, slots, wave progress |
+| Near Death UI | P2 | Revive button overlay |
 
 ---
 
 ## Phase 1: Complete the MVP (2 Weeks)
 
-### Week 1: Core UI Systems
+> **UI Philosophy:** Game NEVER pauses. Panels slide in from left, game continues running.
+
+### Week 1: Panel Foundation + Core Panels
 
 | Day | Task | Status | Notes |
 |-----|------|--------|-------|
-| 1-2 | Main Menu + Pause Scene | ⏳ | MainMenuScene, PauseScene, ESC binding |
-| 3-4 | Module Inventory Screen | ⏳ | Browse, equip, unequip, sell |
-| 5 | Module Slot Upgrade UI | ⏳ | Add to TankStatsUI or new panel |
+| 1 | Sidebar + SlidingPanel base | ⏳ | 4 icons, animation system |
+| 2 | PanelManager + keyboard shortcuts | ⏳ | TAB, I, P, ESC bindings |
+| 3-4 | TankStatsPanel | ⏳ | Stats upgrades + slot level upgrades |
+| 5 | InventoryPanel | ⏳ | Grid, equip/unequip/sell |
 
 **Week 1 Deliverables:**
-- [ ] MainMenuScene with New Game, Continue, Settings, Quit
-- [ ] PauseScene with Resume, Modules, Upgrades, Shop, Main Menu
-- [ ] ESC key pauses game
-- [ ] Full module inventory browser
-- [ ] Equip/unequip modules by clicking
-- [ ] Sell modules for gold
-- [ ] Slot level upgrade buttons
+- [ ] Sidebar with 4 clickable icons
+- [ ] SlidingPanel base class with open/close animations
+- [ ] PanelManager ensures only one panel open
+- [ ] Keyboard shortcuts: TAB, I, P, ESC
+- [ ] TankStatsPanel: View stats, upgrade with gold
+- [ ] TankStatsPanel: View slot levels, upgrade with gold
+- [ ] InventoryPanel: 6-column grid with modules
+- [ ] InventoryPanel: Click to select, see details
+- [ ] InventoryPanel: Equip/Unequip/Sell buttons
+- [ ] Game continues running while panels open
 
-### Week 2: Progression UI
+### Week 2: Remaining Panels + HUD
 
 | Day | Task | Status | Notes |
 |-----|------|--------|-------|
-| 1-2 | Shop Screen | ⏳ | Purchase slots 2-3, show requirements |
-| 3 | Loot Drop Visuals | ⏳ | Sprites on field, click to collect |
-| 4 | Zone Completion Screen | ⏳ | Summary of XP, gold, drops |
-| 5 | Near Death Revive Button | ⏳ | HUD button when tank damaged |
+| 1 | ShopPanel | ⏳ | Purchase slots 2-3, show requirements |
+| 2 | SettingsPanel | ⏳ | Options toggles + Save & Quit |
+| 3 | TopBar | ⏳ | Gold, XP bar, zone, flee button |
+| 4 | BottomBar refactor | ⏳ | HP bar, slots, wave progress |
+| 5 | Near Death overlay | ⏳ | Revive button, timer display |
 
 **Week 2 Deliverables:**
-- [ ] ShopScene with slot purchase UI
-- [ ] Slot unlock conditions displayed
-- [ ] Loot drops appear as sprites on battlefield
-- [ ] Click drops to collect (or auto-collect)
-- [ ] Zone complete triggers summary modal
-- [ ] Summary shows: XP gained, Gold earned, Modules dropped
-- [ ] Revive button appears in Near Death state
+- [ ] ShopPanel: All 5 slots listed
+- [ ] ShopPanel: Purchase buttons with cost
+- [ ] ShopPanel: Locked slots show requirements
+- [ ] SettingsPanel: Display/audio toggles
+- [ ] SettingsPanel: Save Game button
+- [ ] SettingsPanel: Save & Quit button
+- [ ] TopBar: Gold amount + income rate
+- [ ] TopBar: Level + XP progress bar
+- [ ] TopBar: Zone indicator + Flee button
+- [ ] BottomBar: Full-width HP bar
+- [ ] BottomBar: Module slots with cooldowns
+- [ ] BottomBar: Wave progress indicator
+- [ ] Near Death: Overlay with revive button + timer
 
 ### MVP Exit Criteria
 
 All must be true before moving to Vertical Slice:
 
-- [ ] Player can navigate: Menu → Game → Pause → Menu
-- [ ] Player can open inventory and see all modules
-- [ ] Player can equip/unequip/swap modules between slots
-- [ ] Player can sell unwanted modules
-- [ ] Player can upgrade tank stats (existing)
-- [ ] Player can upgrade module slot levels
-- [ ] Player can purchase slots 2 and 3
-- [ ] Loot drops are visible and collectible
-- [ ] Zone completion shows summary
-- [ ] Game saves on zone complete
-- [ ] Game loads correctly on Continue
+- [ ] Sidebar visible with 4 working icons
+- [ ] All 4 panels open/close correctly with animations
+- [ ] Game continues running while panels are open
+- [ ] Player can upgrade tank stats via TankStatsPanel
+- [ ] Player can upgrade slot levels via TankStatsPanel
+- [ ] Player can view all modules in InventoryPanel
+- [ ] Player can equip/unequip/sell modules
+- [ ] Player can purchase slots 2-3 via ShopPanel
+- [ ] Player can change settings and save game
+- [ ] HUD shows gold, XP, HP, wave progress
+- [ ] Near Death shows revive button
+- [ ] ESC closes open panel (or opens Settings if none open)
 
 ---
 
@@ -207,6 +225,9 @@ All must be true before moving to Vertical Slice:
 | Dec 2024 | Tank is stationary | Core design pillar |
 | Dec 2024 | Near Death not Death | Core design pillar |
 | Dec 2024 | Auto-mode has 10% penalty | Balance manual vs idle play |
+| Dec 2024 | Sliding Panel UI (not scenes) | Desktop Heroes reference - game never pauses, idle-first |
+| Dec 2024 | 4 panels: Tank, Inventory, Shop, Settings | Covers all player needs without clutter |
+| Dec 2024 | Game runs during menu access | Core idle game philosophy |
 
 ---
 
@@ -228,6 +249,10 @@ All must be true before moving to Vertical Slice:
 - Prototype phase completed
 - MVP gap analysis performed
 - Phase 1-3 roadmap defined
+- **UI Architecture overhaul:** Adopted Desktop Heroes sliding panel system
+- Created `docs/UISpec.md` with full panel specifications
+- Updated GDD, PRD, MasterPlan to reflect new UI approach
+- Removed scene-based menu approach in favor of overlay panels
 
 ---
 
