@@ -68,7 +68,7 @@
 |-----|------|--------|-------|
 | 1 | Sidebar + SlidingPanel base | ✅ | 4 icons, animation system implemented |
 | 2 | PanelManager + keyboard shortcuts | ✅ | TAB, I, P, ESC bindings working |
-| 3-4 | TankStatsPanel | ✅ | Stats upgrades + slot level upgrades (basic) |
+| 3-4 | TankStatsPanel | ✅ | Stats upgrades + slot level upgrades (complete) |
 | 5 | InventoryPanel | ✅ | Full implementation with equip/unequip/sell |
 
 **Week 1 Deliverables:**
@@ -77,7 +77,7 @@
 - [x] PanelManager ensures only one panel open
 - [x] Keyboard shortcuts: TAB, I, P, ESC
 - [x] TankStatsPanel: View stats, upgrade with gold
-- [ ] TankStatsPanel: View slot levels, upgrade with gold (partial)
+- [x] TankStatsPanel: View slot levels, upgrade with gold
 - [x] InventoryPanel: 6-column grid with modules
 - [x] InventoryPanel: Click to select, see details
 - [x] InventoryPanel: Equip/Unequip/Sell buttons
@@ -117,7 +117,7 @@ All must be true before moving to Vertical Slice:
 - [x] All 4 panels open/close correctly with animations
 - [x] Game continues running while panels are open
 - [x] Player can upgrade tank stats via TankStatsPanel
-- [ ] Player can upgrade slot levels via TankStatsPanel
+- [x] Player can upgrade slot levels via TankStatsPanel
 - [x] Player can view all modules in InventoryPanel
 - [x] Player can equip/unequip/sell modules
 - [x] Player can purchase slots 2-3 via ShopPanel
@@ -229,6 +229,7 @@ All must be true before moving to Vertical Slice:
 | Dec 2024 | Sliding Panel UI (not scenes) | Desktop Heroes reference - game never pauses, idle-first |
 | Dec 2024 | 4 panels: Tank, Inventory, Shop, Settings | Covers all player needs without clutter |
 | Dec 2024 | Game runs during menu access | Core idle game philosophy |
+| Dec 2024 | Per-slot stats (Damage/AtkSpd/CDR) | Each slot has 3 individual stats that only affect modules in that slot |
 
 ---
 
@@ -312,6 +313,32 @@ All must be true before moving to Vertical Slice:
   - Near Death revive button with pulsing animation
   - Consolidated functionality from GameUI and ModuleSlotUI
   - GameUI refactored to minimal shell for future floating UI
+- **TankStatsPanel Slot Level Upgrades (Original):**
+  - Added `upgradeSlotLevel()`, `getSlotUpgradeCost()`, `canUpgradeSlot()` to GameState
+  - Rewrote MODULE SLOTS section in TankStatsPanel with full functionality
+  - Each slot shows: colored icon, level badge, damage multiplier (1 + level * 0.01)
+  - Level preview (current > next) with cost display
+  - Working upgrade buttons with gold cost (level * 100)
+  - Level capped by tank level, shows MAX when at cap
+  - Locked slots display LOCKED text, can be unlocked via ShopPanel
+  - Event-driven refresh on SLOT_UPGRADED, SLOT_UNLOCKED, GOLD_CHANGED, LEVEL_UP
+- **TankStatsPanel Major Redesign (Per-Slot Stats):**
+  - Complete architectural change from single slot level to 3-stat-per-slot system
+  - TankStatsPanel now has 6 tabs: Tank, Slot 1, Slot 2, Slot 3, Slot 4, Slot 5
+  - Tank tab: Vitality, Barrier, Regeneration, Suppression (as before)
+  - Slot tabs: Each has 3 upgradeable stats:
+    - Damage (+1% per level to module damage)
+    - Attack Speed (+1% per level to module fire rate)
+    - Cooldown Reduction (+1% per level to skill cooldowns, capped at 90%)
+  - Added `SlotStatType` enum and `SlotStats` interface to ModuleTypes
+  - Added `SLOT_STAT_UPGRADED` event to GameEvents
+  - Updated GameState with per-stat methods: `upgradeSlotStat()`, `getSlotStatLevel()`, etc.
+  - Updated ModuleSlot to track damageLevel, attackSpeedLevel, cdrLevel
+  - Updated all module types (BaseModule, MachineGun, MissilePod, RepairDrone) to use SlotStats
+  - Cost formula: (level + 1) × 50 gold
+  - Level cap: Each stat capped by tank level
+  - Locked slots show lock icon in tab and "Unlock in Shop" message
+  - BottomBar and ModuleSlotUI show total stat levels (sum of all 3)
 
 ---
 

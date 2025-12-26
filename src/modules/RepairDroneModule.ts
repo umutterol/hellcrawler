@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { BaseModule } from './BaseModule';
-import { ModuleItemData, ModuleSkill } from '../types/ModuleTypes';
+import { ModuleItemData, ModuleSkill, SlotStats } from '../types/ModuleTypes';
 import { Enemy } from '../entities/Enemy';
 import { GameState } from '../state/GameState';
 
@@ -33,10 +33,10 @@ export class RepairDroneModule extends BaseModule {
     scene: Phaser.Scene,
     moduleData: ModuleItemData,
     slotIndex: number,
-    slotLevel: number,
+    slotStats: SlotStats,
     gameState: GameState
   ) {
-    super(scene, moduleData, slotIndex, slotLevel);
+    super(scene, moduleData, slotIndex, slotStats);
     this.gameState = gameState;
 
     // Repair drone settings - no firing
@@ -91,8 +91,8 @@ export class RepairDroneModule extends BaseModule {
     // Calculate healing per frame
     let healRate = this.baseHealPerSecond;
 
-    // Apply slot level bonus
-    const slotMultiplier = 1 + this.slotLevel * 0.01;
+    // Apply slot damage bonus (increases healing effectiveness)
+    const slotMultiplier = 1 + this.slotStats.damageLevel * 0.01;
     healRate *= slotMultiplier;
 
     // Apply regeneration field if active
@@ -275,7 +275,7 @@ export class RepairDroneModule extends BaseModule {
    */
   public getHealRate(): number {
     let rate = this.baseHealPerSecond;
-    rate *= 1 + this.slotLevel * 0.01;
+    rate *= 1 + this.slotStats.damageLevel * 0.01;
     if (this.regenFieldActive) {
       rate *= this.regenFieldMultiplier;
     }

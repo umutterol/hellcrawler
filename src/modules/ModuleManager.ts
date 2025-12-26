@@ -119,7 +119,7 @@ export class ModuleManager {
       this.scene,
       moduleData,
       slotIndex,
-      slot.level,
+      slot.stats,
       this.gameState
     );
 
@@ -227,24 +227,16 @@ export class ModuleManager {
   }
 
   /**
-   * Upgrade a slot level
+   * Update active module's slot stats (called when slot stats are upgraded)
    */
-  public upgradeSlot(index: number): boolean {
-    const slot = this.slots[index];
-    if (!slot) return false;
+  public updateModuleSlotStats(slotIndex: number): void {
+    const slot = this.slots[slotIndex];
+    if (!slot) return;
 
-    const tankLevel = this.gameState.getTankLevel();
-    const success = slot.upgrade(tankLevel);
-
-    if (success) {
-      // Update the active module's slot level
-      const activeModule = this.activeModules.get(index);
-      if (activeModule) {
-        activeModule.setSlotLevel(slot.getLevel());
-      }
+    const activeModule = this.activeModules.get(slotIndex);
+    if (activeModule) {
+      activeModule.setSlotStats(slot.getStats());
     }
-
-    return success;
   }
 
   /**
@@ -276,7 +268,7 @@ export class ModuleManager {
       this.scene,
       moduleItem.getData(),
       slotIndex,
-      slot.getLevel(),
+      slot.getStats(),
       this.gameState
     );
 
@@ -487,7 +479,7 @@ export class ModuleManager {
           this.scene,
           data,
           i,
-          slot.getLevel(),
+          slot.getStats(),
           this.gameState
         );
 

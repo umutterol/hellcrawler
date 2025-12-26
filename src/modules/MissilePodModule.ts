@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { BaseModule } from './BaseModule';
-import { ModuleItemData, ModuleSkill } from '../types/ModuleTypes';
+import { ModuleItemData, ModuleSkill, SlotStats } from '../types/ModuleTypes';
 import { ProjectileType } from '../entities/Projectile';
 import { Enemy } from '../entities/Enemy';
 
@@ -27,9 +27,9 @@ export class MissilePodModule extends BaseModule {
     scene: Phaser.Scene,
     moduleData: ModuleItemData,
     slotIndex: number,
-    slotLevel: number
+    slotStats: SlotStats
   ) {
-    super(scene, moduleData, slotIndex, slotLevel);
+    super(scene, moduleData, slotIndex, slotStats);
 
     // Missile pod specific settings
     this.baseFireRate = 1500; // Slower fire rate

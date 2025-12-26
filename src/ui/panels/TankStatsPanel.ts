@@ -5,502 +5,519 @@ import { GameState, getGameState } from '../../state/GameState';
 import { EventManager, getEventManager } from '../../managers/EventManager';
 import { GameEvents } from '../../types/GameEvents';
 import { TankStatType } from '../../types/GameTypes';
+import { SlotStatType } from '../../types/ModuleTypes';
+
+/**
+ * Tab types for the panel
+ */
+enum TabType {
+  Tank = 'tank',
+  Slot1 = 'slot1',
+  Slot2 = 'slot2',
+  Slot3 = 'slot3',
+  Slot4 = 'slot4',
+  Slot5 = 'slot5',
+}
 
 /**
  * Stat row UI element
  */
 interface StatRowElement {
   container: Phaser.GameObjects.Container;
-  icon: Phaser.GameObjects.Graphics;
-  levelBadge: Phaser.GameObjects.Container;
   levelText: Phaser.GameObjects.Text;
-  nameText: Phaser.GameObjects.Text;
-  descText: Phaser.GameObjects.Text;
   valueText: Phaser.GameObjects.Text;
-  upgradeButton: Phaser.GameObjects.Container;
   buttonBg: Phaser.GameObjects.Rectangle;
   costText: Phaser.GameObjects.Text;
 }
 
 /**
- * Stat configuration for display
+ * Tab button element
  */
-interface StatConfig {
-  type: TankStatType;
-  name: string;
-  description: string;
-  color: number;
-  perLevel: number;
-  suffix: string;
-  getValue: (level: number) => number;
-  formatValue: (value: number) => string;
+interface TabElement {
+  container: Phaser.GameObjects.Container;
+  background: Phaser.GameObjects.Rectangle;
+  text: Phaser.GameObjects.Text;
+  lockIcon?: Phaser.GameObjects.Text;
 }
 
 /**
- * TankStatsPanel - Sliding panel for upgrading tank stats
+ * TankStatsPanel - Sliding panel for upgrading tank and slot stats
  *
- * Based on UISpec.md Tank Stats Panel:
- * - View tank info, upgrade stats, upgrade module slots
- * - Shows 4 tank stats with upgrade buttons
- * - Shows 5 module slots with upgrade buttons
+ * Features 6 tabs:
+ * - Tank: Vitality, Barrier, Regeneration, Suppression
+ * - Slot 1-5: Damage%, Attack Speed%, CDR% (per slot)
  */
 export class TankStatsPanel extends SlidingPanel {
-  // Initialize before super() is called since createContent() needs these
   private gameState: GameState = getGameState();
   private eventManager: EventManager = getEventManager();
 
-  // Stat rows
-  private statRows: Map<TankStatType, StatRowElement> = new Map();
+  // Current active tab
+  private activeTab: TabType = TabType.Tank;
+
+  // Tab elements
+  private tabs: Map<TabType, TabElement> = new Map();
+
+  // Content container (changes based on tab)
+  private contentContainer: Phaser.GameObjects.Container | null = null;
+
+  // Current stat rows (for active tab)
+  private statRows: Map<string, StatRowElement> = new Map();
 
   // Layout constants
-  private static readonly ROW_HEIGHT = 64;
+  private static readonly TAB_HEIGHT = 40;
+  private static readonly TAB_WIDTH = 50;
+  private static readonly ROW_HEIGHT = 58;
 
-  // Stat configurations
-  private static readonly STAT_CONFIGS: StatConfig[] = [
-    {
-      type: TankStatType.MaxHP,
-      name: 'Vitality',
-      description: 'Max HP',
-      color: 0xff4444,
-      perLevel: 10,
-      suffix: '',
-      getValue: (level) => 100 + level * 10,
-      formatValue: (v) => v.toFixed(0),
-    },
-    {
-      type: TankStatType.Defense,
-      name: 'Barrier',
-      description: 'Defense',
-      color: 0x4488ff,
-      perLevel: 0.5,
-      suffix: '%',
-      getValue: (level) => level * 0.5,
-      formatValue: (v) => v.toFixed(1),
-    },
-    {
-      type: TankStatType.HPRegen,
-      name: 'Regeneration',
-      description: 'HP Regen',
-      color: 0x44ff88,
-      perLevel: 0.5,
-      suffix: '/s',
-      getValue: (level) => level * 0.5,
-      formatValue: (v) => v.toFixed(1),
-    },
-    {
-      type: TankStatType.MoveSpeed,
-      name: 'Suppression',
-      description: 'Enemy Slow',
-      color: 0xffaa44,
-      perLevel: 1,
-      suffix: '%',
-      getValue: (level) => level,
-      formatValue: (v) => v.toFixed(0),
-    },
+  // Tank stat configs
+  private static readonly TANK_STATS = [
+    { type: TankStatType.MaxHP, name: 'Vitality', desc: 'Max HP', color: 0xff4444, getValue: (l: number) => 100 + l * 10, suffix: '' },
+    { type: TankStatType.Defense, name: 'Barrier', desc: 'Defense', color: 0x4488ff, getValue: (l: number) => l * 0.5, suffix: '%' },
+    { type: TankStatType.HPRegen, name: 'Regeneration', desc: 'HP Regen', color: 0x44ff88, getValue: (l: number) => l * 0.5, suffix: '/s' },
+    { type: TankStatType.MoveSpeed, name: 'Suppression', desc: 'Enemy Slow', color: 0xffaa44, getValue: (l: number) => l, suffix: '%' },
+  ];
+
+  // Slot stat configs
+  private static readonly SLOT_STATS = [
+    { type: SlotStatType.Damage, name: 'Damage', desc: '+1% per level', color: 0xff6b6b },
+    { type: SlotStatType.AttackSpeed, name: 'Attack Speed', desc: '+1% per level', color: 0x4ecdc4 },
+    { type: SlotStatType.CDR, name: 'Cooldown Reduction', desc: '+1% per level', color: 0x9b59b6 },
   ];
 
   constructor(scene: Phaser.Scene) {
     super(scene, PanelType.TANK_STATS);
-
-    this.setTitle('TANK STATS');
-    this.initContent(); // Must be called after super() so gameState is initialized
+    this.setTitle('UPGRADES');
+    this.initContent();
     this.subscribeToEvents();
   }
 
-  /**
-   * Create the panel content
-   */
   protected createContent(): void {
-    this.createTankHeader();
-    this.createStatsSection();
-    this.createSlotsSection();
+    this.createTabBar();
+    this.createContentArea();
+    this.switchToTab(TabType.Tank);
   }
 
   /**
-   * Create tank info header
+   * Create the tab bar with 6 tabs
    */
-  private createTankHeader(): void {
-    const headerContainer = this.scene.add.container(16, 0);
+  private createTabBar(): void {
+    const tabBarY = 0;
+    const tabTypes = [TabType.Tank, TabType.Slot1, TabType.Slot2, TabType.Slot3, TabType.Slot4, TabType.Slot5];
+    const tabLabels = ['Tank', '1', '2', '3', '4', '5'];
 
-    // Tank portrait placeholder (64x64)
-    const portrait = this.scene.add.graphics();
-    portrait.fillStyle(0x3d3d5c, 1);
-    portrait.fillRoundedRect(0, 0, 64, 64, 8);
-    portrait.lineStyle(2, UI_CONFIG.COLORS.PANEL_BORDER, 1);
-    portrait.strokeRoundedRect(0, 0, 64, 64, 8);
-    headerContainer.add(portrait);
-
-    // Tank icon (placeholder "T")
-    const tankIcon = this.scene.add.text(32, 32, 'T', {
-      fontFamily: 'Arial',
-      fontSize: '32px',
-      color: UI_CONFIG.COLORS.TEXT_PRIMARY,
-      fontStyle: 'bold',
-    });
-    tankIcon.setOrigin(0.5);
-    headerContainer.add(tankIcon);
-
-    // Tank name and level
-    const tankLevel = this.gameState.getTankLevel();
-    const tankName = this.scene.add.text(80, 16, 'HELLCRAWLER', {
-      fontFamily: 'Arial',
-      fontSize: '16px',
-      color: UI_CONFIG.COLORS.TEXT_PRIMARY,
-      fontStyle: 'bold',
-    });
-    headerContainer.add(tankName);
-
-    const levelText = this.scene.add.text(80, 36, `Level ${tankLevel}`, {
-      fontFamily: 'Arial',
-      fontSize: '14px',
-      color: UI_CONFIG.COLORS.TEXT_SECONDARY,
-    });
-    levelText.setName('tankLevelText');
-    headerContainer.add(levelText);
-
-    // XP bar placeholder
-    const xpBarBg = this.scene.add.graphics();
-    xpBarBg.fillStyle(0x1a1a2e, 1);
-    xpBarBg.fillRoundedRect(80, 54, this.getContentWidth() - 80, 8, 4);
-    headerContainer.add(xpBarBg);
-
-    this.addToContent(headerContainer);
+    for (let i = 0; i < tabTypes.length; i++) {
+      const tabType = tabTypes[i]!;
+      const x = 8 + i * (TankStatsPanel.TAB_WIDTH + 4);
+      const tab = this.createTab(x, tabBarY, tabLabels[i]!, tabType, i);
+      this.tabs.set(tabType, tab);
+    }
   }
 
   /**
-   * Create stats upgrade section
+   * Create a single tab
    */
-  private createStatsSection(): void {
-    const sectionY = 80;
+  private createTab(x: number, y: number, label: string, tabType: TabType, index: number): TabElement {
+    const container = this.scene.add.container(x, y);
+    this.addToContent(container);
 
-    // Section header
-    const sectionHeader = this.scene.add.container(16, sectionY);
-    const headerText = this.scene.add.text(0, 0, 'TANK STATS', {
-      fontFamily: 'Arial',
+    // Background
+    const background = this.scene.add.rectangle(
+      TankStatsPanel.TAB_WIDTH / 2,
+      TankStatsPanel.TAB_HEIGHT / 2,
+      TankStatsPanel.TAB_WIDTH,
+      TankStatsPanel.TAB_HEIGHT,
+      0x2d2d4a
+    );
+    background.setStrokeStyle(1, UI_CONFIG.COLORS.PANEL_BORDER);
+    background.setInteractive({ useHandCursor: true });
+    container.add(background);
+
+    // Label
+    const text = this.scene.add.text(TankStatsPanel.TAB_WIDTH / 2, TankStatsPanel.TAB_HEIGHT / 2, label, {
+      fontSize: index === 0 ? '11px' : '14px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+    });
+    text.setOrigin(0.5);
+    container.add(text);
+
+    // Lock icon for slot tabs (if locked)
+    let lockIcon: Phaser.GameObjects.Text | undefined;
+    if (index > 0) {
+      const slotIndex = index - 1;
+      const slot = this.gameState.getModuleSlots()[slotIndex];
+      if (!slot?.unlocked) {
+        lockIcon = this.scene.add.text(TankStatsPanel.TAB_WIDTH / 2, TankStatsPanel.TAB_HEIGHT / 2, '🔒', {
+          fontSize: '14px',
+        });
+        lockIcon.setOrigin(0.5);
+        container.add(lockIcon);
+        text.setVisible(false);
+      }
+    }
+
+    // Tab click handler
+    background.on('pointerdown', () => {
+      this.switchToTab(tabType);
+    });
+
+    background.on('pointerover', () => {
+      if (tabType !== this.activeTab) {
+        background.setFillStyle(0x3d3d5c);
+      }
+    });
+
+    background.on('pointerout', () => {
+      if (tabType !== this.activeTab) {
+        background.setFillStyle(0x2d2d4a);
+      }
+    });
+
+    return { container, background, text, lockIcon };
+  }
+
+  /**
+   * Create the content area container
+   */
+  private createContentArea(): void {
+    this.contentContainer = this.scene.add.container(0, TankStatsPanel.TAB_HEIGHT + 8);
+    this.addToContent(this.contentContainer);
+  }
+
+  /**
+   * Switch to a specific tab
+   */
+  private switchToTab(tabType: TabType): void {
+    // Update tab visuals
+    for (const [type, tab] of this.tabs) {
+      if (type === tabType) {
+        tab.background.setFillStyle(0x4a4a6a);
+        tab.background.setStrokeStyle(2, 0x6a6a8a);
+      } else {
+        tab.background.setFillStyle(0x2d2d4a);
+        tab.background.setStrokeStyle(1, UI_CONFIG.COLORS.PANEL_BORDER);
+      }
+    }
+
+    this.activeTab = tabType;
+
+    // Clear current content
+    if (this.contentContainer) {
+      this.contentContainer.removeAll(true);
+    }
+    this.statRows.clear();
+
+    // Create new content
+    if (tabType === TabType.Tank) {
+      this.createTankContent();
+    } else {
+      const slotIndex = this.getSlotIndexFromTab(tabType);
+      this.createSlotContent(slotIndex);
+    }
+  }
+
+  /**
+   * Get slot index from tab type
+   */
+  private getSlotIndexFromTab(tabType: TabType): number {
+    switch (tabType) {
+      case TabType.Slot1: return 0;
+      case TabType.Slot2: return 1;
+      case TabType.Slot3: return 2;
+      case TabType.Slot4: return 3;
+      case TabType.Slot5: return 4;
+      default: return 0;
+    }
+  }
+
+  /**
+   * Create tank stats content
+   */
+  private createTankContent(): void {
+    if (!this.contentContainer) return;
+
+    // Header
+    const header = this.scene.add.text(16, 0, 'TANK STATS', {
       fontSize: '14px',
       color: UI_CONFIG.COLORS.TEXT_SECONDARY,
       fontStyle: 'bold',
     });
-    sectionHeader.add(headerText);
+    this.contentContainer.add(header);
 
-    // Divider line
+    // Divider
     const divider = this.scene.add.graphics();
     divider.lineStyle(1, UI_CONFIG.COLORS.PANEL_BORDER, 0.5);
-    divider.lineBetween(0, 20, this.getContentWidth(), 20);
-    sectionHeader.add(divider);
-
-    this.addToContent(sectionHeader);
+    divider.lineBetween(16, 20, this.getContentWidth() - 16, 20);
+    this.contentContainer.add(divider);
 
     // Stat rows
-    TankStatsPanel.STAT_CONFIGS.forEach((config, index) => {
-      const rowY = sectionY + 32 + index * TankStatsPanel.ROW_HEIGHT;
-      const row = this.createStatRow(config, rowY);
-      this.statRows.set(config.type, row);
+    TankStatsPanel.TANK_STATS.forEach((stat, index) => {
+      const rowY = 32 + index * TankStatsPanel.ROW_HEIGHT;
+      const row = this.createTankStatRow(stat, rowY);
+      this.statRows.set(stat.type, row);
     });
   }
 
   /**
-   * Create a single stat row
+   * Create a tank stat row
    */
-  private createStatRow(config: StatConfig, y: number): StatRowElement {
-    const rowContainer = this.scene.add.container(16, y);
-    this.addToContent(rowContainer);
+  private createTankStatRow(
+    stat: typeof TankStatsPanel.TANK_STATS[0],
+    y: number
+  ): StatRowElement {
+    const container = this.scene.add.container(16, y);
+    this.contentContainer!.add(container);
 
-    const rowWidth = this.getContentWidth();
+    const level = this.gameState.getTankStatLevel(stat.type);
+    const atCap = !this.gameState.canUpgradeTankStat(stat.type);
 
-    // Stat icon (colored square)
+    // Icon
     const icon = this.scene.add.graphics();
-    icon.fillStyle(config.color, 1);
-    icon.fillRoundedRect(0, 0, 40, 40, 6);
-    icon.lineStyle(1, 0xffffff, 0.2);
-    icon.strokeRoundedRect(0, 0, 40, 40, 6);
-    rowContainer.add(icon);
+    icon.fillStyle(stat.color, 1);
+    icon.fillRoundedRect(0, 0, 36, 36, 6);
+    container.add(icon);
 
-    // Level badge on icon
-    const level = this.gameState.getTankStatLevel(config.type);
-    const levelBadge = this.scene.add.container(32, 0);
-    const badgeBg = this.scene.add.circle(0, 0, 10, 0x1a1a2e);
-    badgeBg.setStrokeStyle(1, config.color);
-    const levelText = this.scene.add.text(0, 0, `${level}`, {
+    // Level badge
+    const levelBadge = this.scene.add.circle(28, 0, 10, 0x1a1a2e);
+    levelBadge.setStrokeStyle(1, stat.color);
+    container.add(levelBadge);
+
+    const levelText = this.scene.add.text(28, 0, `${level}`, {
       fontSize: '10px',
       color: '#ffffff',
       fontStyle: 'bold',
     });
     levelText.setOrigin(0.5);
-    levelBadge.add([badgeBg, levelText]);
-    rowContainer.add(levelBadge);
+    container.add(levelText);
 
-    // Stat name
-    const nameText = this.scene.add.text(52, 6, config.name, {
-      fontSize: '14px',
+    // Name
+    const nameText = this.scene.add.text(48, 4, stat.name, {
+      fontSize: '13px',
       color: UI_CONFIG.COLORS.TEXT_PRIMARY,
       fontStyle: 'bold',
     });
-    rowContainer.add(nameText);
+    container.add(nameText);
 
-    // Description
-    const descText = this.scene.add.text(52, 24, config.description, {
-      fontSize: '11px',
-      color: UI_CONFIG.COLORS.TEXT_SECONDARY,
-    });
-    rowContainer.add(descText);
-
-    // Current value -> Next value
-    const currentValue = config.getValue(level);
-    const nextValue = config.getValue(level + 1);
+    // Value preview
+    const currentValue = stat.getValue(level);
+    const nextValue = stat.getValue(level + 1);
     const valueText = this.scene.add.text(
-      160,
-      15,
-      `${config.formatValue(currentValue)}${config.suffix} > ${config.formatValue(nextValue)}${config.suffix}`,
-      {
-        fontSize: '12px',
-        color: '#aaaaaa',
-      }
+      48, 20,
+      atCap ? `${currentValue.toFixed(1)}${stat.suffix} (MAX)` : `${currentValue.toFixed(1)}${stat.suffix} > ${nextValue.toFixed(1)}${stat.suffix}`,
+      { fontSize: '11px', color: atCap ? '#ffaa00' : '#888888' }
     );
-    rowContainer.add(valueText);
+    container.add(valueText);
 
     // Upgrade button
-    const buttonWidth = 80;
-    const buttonHeight = 32;
-    const upgradeButton = this.scene.add.container(rowWidth - buttonWidth, 4);
-    rowContainer.add(upgradeButton);
+    const buttonWidth = 75;
+    const buttonBg = this.scene.add.rectangle(this.getContentWidth() - 32 - buttonWidth / 2, 18, buttonWidth, 28, UI_CONFIG.COLORS.HEALTH_GREEN);
+    container.add(buttonBg);
 
-    // Button background
-    const buttonBg = this.scene.add.rectangle(
-      buttonWidth / 2,
-      buttonHeight / 2,
-      buttonWidth,
-      buttonHeight,
-      UI_CONFIG.COLORS.HEALTH_GREEN
-    );
-    buttonBg.setInteractive({ useHandCursor: true });
-    upgradeButton.add(buttonBg);
-
-    // Gold icon
-    const goldIcon = this.scene.add.circle(16, buttonHeight / 2, 6, 0xffd700);
-    upgradeButton.add(goldIcon);
-
-    // Cost text
-    const cost = this.gameState.getTankStatUpgradeCost(config.type);
-    const costText = this.scene.add.text(28, buttonHeight / 2, this.formatCost(cost), {
-      fontSize: '13px',
+    const cost = this.gameState.getTankStatUpgradeCost(stat.type);
+    const costText = this.scene.add.text(this.getContentWidth() - 32 - buttonWidth / 2, 18, atCap ? 'MAX' : this.formatCost(cost), {
+      fontSize: '12px',
       color: '#ffffff',
       fontStyle: 'bold',
     });
-    costText.setOrigin(0, 0.5);
-    upgradeButton.add(costText);
+    costText.setOrigin(0.5);
+    container.add(costText);
 
     // Button interactions
-    buttonBg.on('pointerover', () => {
-      if (this.canUpgrade(config.type)) {
-        buttonBg.setFillStyle(0x5dbe80);
-      }
-    });
+    if (!atCap) {
+      buttonBg.setInteractive({ useHandCursor: true });
+      buttonBg.on('pointerdown', () => this.onTankStatUpgrade(stat.type));
+      buttonBg.on('pointerover', () => {
+        if (this.canUpgradeTankStat(stat.type)) buttonBg.setFillStyle(0x5dbe80);
+      });
+      buttonBg.on('pointerout', () => this.updateTankStatButton(stat.type));
+    } else {
+      buttonBg.setFillStyle(UI_CONFIG.COLORS.BUTTON_DISABLED);
+    }
 
-    buttonBg.on('pointerout', () => {
-      this.updateButtonState(config.type);
-    });
+    this.updateTankStatButton(stat.type);
 
-    buttonBg.on('pointerdown', () => {
-      this.onUpgradeClick(config.type);
-    });
-
-    return {
-      container: rowContainer,
-      icon,
-      levelBadge,
-      levelText,
-      nameText,
-      descText,
-      valueText,
-      upgradeButton,
-      buttonBg,
-      costText,
-    };
+    return { container, levelText, valueText, buttonBg, costText };
   }
 
   /**
-   * Create module slots section (placeholder for now)
+   * Create slot stats content
    */
-  private createSlotsSection(): void {
-    const sectionY = 80 + 32 + TankStatsPanel.STAT_CONFIGS.length * TankStatsPanel.ROW_HEIGHT + 16;
+  private createSlotContent(slotIndex: number): void {
+    if (!this.contentContainer) return;
 
-    // Section header
-    const sectionHeader = this.scene.add.container(16, sectionY);
-    const headerText = this.scene.add.text(0, 0, 'MODULE SLOTS', {
-      fontFamily: 'Arial',
+    const slot = this.gameState.getModuleSlots()[slotIndex];
+    const isUnlocked = slot?.unlocked ?? false;
+
+    // Header
+    const header = this.scene.add.text(16, 0, `SLOT ${slotIndex + 1} UPGRADES`, {
       fontSize: '14px',
       color: UI_CONFIG.COLORS.TEXT_SECONDARY,
       fontStyle: 'bold',
     });
-    sectionHeader.add(headerText);
+    this.contentContainer.add(header);
 
-    // Divider line
+    // Divider
     const divider = this.scene.add.graphics();
     divider.lineStyle(1, UI_CONFIG.COLORS.PANEL_BORDER, 0.5);
-    divider.lineBetween(0, 20, this.getContentWidth(), 20);
-    sectionHeader.add(divider);
+    divider.lineBetween(16, 20, this.getContentWidth() - 16, 20);
+    this.contentContainer.add(divider);
 
-    this.addToContent(sectionHeader);
-
-    // Slot rows (placeholder - will be implemented fully later)
-    for (let i = 0; i < 5; i++) {
-      const slotY = sectionY + 32 + i * 40;
-      const slotRow = this.createSlotRow(i, slotY);
-      this.addToContent(slotRow);
+    if (!isUnlocked) {
+      // Show locked message
+      const lockMessage = this.scene.add.text(
+        this.getContentWidth() / 2, 100,
+        '🔒 SLOT LOCKED\n\nUnlock this slot in\nthe Shop panel',
+        {
+          fontSize: '14px',
+          color: '#ff6666',
+          align: 'center',
+        }
+      );
+      lockMessage.setOrigin(0.5);
+      this.contentContainer.add(lockMessage);
+      return;
     }
+
+    // Slot stat rows
+    TankStatsPanel.SLOT_STATS.forEach((stat, index) => {
+      const rowY = 32 + index * TankStatsPanel.ROW_HEIGHT;
+      const row = this.createSlotStatRow(slotIndex, stat, rowY);
+      this.statRows.set(`${slotIndex}_${stat.type}`, row);
+    });
   }
 
   /**
-   * Create a slot row (simplified for now)
+   * Create a slot stat row
    */
-  private createSlotRow(slotIndex: number, y: number): Phaser.GameObjects.Container {
-    const rowContainer = this.scene.add.container(16, y);
-    const rowWidth = this.getContentWidth();
+  private createSlotStatRow(
+    slotIndex: number,
+    stat: typeof TankStatsPanel.SLOT_STATS[0],
+    y: number
+  ): StatRowElement {
+    const container = this.scene.add.container(16, y);
+    this.contentContainer!.add(container);
 
-    // Slot label
-    const slotText = this.scene.add.text(0, 8, `Slot ${slotIndex + 1}`, {
-      fontSize: '14px',
+    const level = this.gameState.getSlotStatLevel(slotIndex, stat.type);
+    const atCap = !this.gameState.canUpgradeSlotStat(slotIndex, stat.type);
+
+    // Icon
+    const icon = this.scene.add.graphics();
+    icon.fillStyle(stat.color, 1);
+    icon.fillRoundedRect(0, 0, 36, 36, 6);
+    container.add(icon);
+
+    // Level badge
+    const levelBadge = this.scene.add.circle(28, 0, 10, 0x1a1a2e);
+    levelBadge.setStrokeStyle(1, stat.color);
+    container.add(levelBadge);
+
+    const levelText = this.scene.add.text(28, 0, `${level}`, {
+      fontSize: '10px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+    });
+    levelText.setOrigin(0.5);
+    container.add(levelText);
+
+    // Name
+    const nameText = this.scene.add.text(48, 4, stat.name, {
+      fontSize: '13px',
       color: UI_CONFIG.COLORS.TEXT_PRIMARY,
+      fontStyle: 'bold',
     });
-    rowContainer.add(slotText);
+    container.add(nameText);
 
-    // Level indicator
-    const moduleSlots = this.gameState.getModuleSlots();
-    const slotLevel = moduleSlots[slotIndex]?.level ?? 1;
-    const levelText = this.scene.add.text(80, 8, `Lv.${slotLevel}`, {
+    // Value preview
+    const currentBonus = level;
+    const nextBonus = level + 1;
+    const valueText = this.scene.add.text(
+      48, 20,
+      atCap ? `+${currentBonus}% (MAX)` : `+${currentBonus}% > +${nextBonus}%`,
+      { fontSize: '11px', color: atCap ? '#ffaa00' : '#888888' }
+    );
+    container.add(valueText);
+
+    // Upgrade button
+    const buttonWidth = 75;
+    const buttonBg = this.scene.add.rectangle(this.getContentWidth() - 32 - buttonWidth / 2, 18, buttonWidth, 28, UI_CONFIG.COLORS.HEALTH_GREEN);
+    container.add(buttonBg);
+
+    const cost = this.gameState.getSlotStatUpgradeCost(slotIndex, stat.type);
+    const costText = this.scene.add.text(this.getContentWidth() - 32 - buttonWidth / 2, 18, atCap ? 'MAX' : this.formatCost(cost), {
       fontSize: '12px',
-      color: UI_CONFIG.COLORS.TEXT_SECONDARY,
+      color: '#ffffff',
+      fontStyle: 'bold',
     });
-    rowContainer.add(levelText);
+    costText.setOrigin(0.5);
+    container.add(costText);
 
-    // Locked status for slots 4 and 5
-    if (slotIndex >= 3) {
-      const lockedText = this.scene.add.text(140, 8, 'LOCKED', {
-        fontSize: '12px',
-        color: '#ff6666',
-      });
-      rowContainer.add(lockedText);
-    } else {
-      // Upgrade button placeholder
-      const buttonBg = this.scene.add.rectangle(rowWidth - 40, 12, 70, 24, 0x3d6a37);
+    // Button interactions
+    if (!atCap) {
       buttonBg.setInteractive({ useHandCursor: true });
-      rowContainer.add(buttonBg);
-
-      const cost = (slotLevel + 1) * 100;
-      const costText = this.scene.add.text(rowWidth - 40, 12, `${cost}G`, {
-        fontSize: '11px',
-        color: '#ffd700',
+      buttonBg.on('pointerdown', () => this.onSlotStatUpgrade(slotIndex, stat.type));
+      buttonBg.on('pointerover', () => {
+        if (this.canUpgradeSlotStat(slotIndex, stat.type)) buttonBg.setFillStyle(0x5dbe80);
       });
-      costText.setOrigin(0.5);
-      rowContainer.add(costText);
+      buttonBg.on('pointerout', () => this.updateSlotStatButton(slotIndex, stat.type));
+    } else {
+      buttonBg.setFillStyle(UI_CONFIG.COLORS.BUTTON_DISABLED);
     }
 
-    return rowContainer;
+    this.updateSlotStatButton(slotIndex, stat.type);
+
+    return { container, levelText, valueText, buttonBg, costText };
   }
 
-  /**
-   * Format cost with K/M suffix
-   */
-  private formatCost(cost: number): string {
-    if (cost >= 1_000_000) {
-      return (cost / 1_000_000).toFixed(1) + 'M';
-    } else if (cost >= 1_000) {
-      return (cost / 1_000).toFixed(1) + 'K';
-    }
-    return cost.toString();
-  }
+  // ============================================================================
+  // UPGRADE LOGIC
+  // ============================================================================
 
-  /**
-   * Check if stat can be upgraded
-   */
-  private canUpgrade(stat: TankStatType): boolean {
+  private canUpgradeTankStat(stat: TankStatType): boolean {
     const cost = this.gameState.getTankStatUpgradeCost(stat);
     return this.gameState.canUpgradeTankStat(stat) && this.gameState.canAfford(cost);
   }
 
-  /**
-   * Handle upgrade button click
-   */
-  private onUpgradeClick(stat: TankStatType): void {
-    if (!this.canUpgrade(stat)) {
-      // Visual feedback for can't upgrade
+  private canUpgradeSlotStat(slotIndex: number, stat: SlotStatType): boolean {
+    const cost = this.gameState.getSlotStatUpgradeCost(slotIndex, stat);
+    return this.gameState.canUpgradeSlotStat(slotIndex, stat) && this.gameState.canAfford(cost);
+  }
+
+  private onTankStatUpgrade(stat: TankStatType): void {
+    if (!this.canUpgradeTankStat(stat)) {
       const row = this.statRows.get(stat);
       if (row) {
         row.buttonBg.setFillStyle(0x7a3737);
-        this.scene.time.delayedCall(100, () => {
-          this.updateButtonState(stat);
-        });
+        this.scene.time.delayedCall(100, () => this.updateTankStatButton(stat));
       }
       return;
     }
 
     const success = this.gameState.upgradeTankStat(stat);
     if (success) {
-      this.updateStatRow(stat);
-      this.updateAllButtonStates();
+      this.switchToTab(this.activeTab); // Refresh content
+    }
+  }
 
-      // Visual feedback for success
-      const row = this.statRows.get(stat);
+  private onSlotStatUpgrade(slotIndex: number, stat: SlotStatType): void {
+    if (!this.canUpgradeSlotStat(slotIndex, stat)) {
+      const row = this.statRows.get(`${slotIndex}_${stat}`);
       if (row) {
-        row.buttonBg.setFillStyle(0x5dba57);
-        this.scene.time.delayedCall(100, () => {
-          this.updateButtonState(stat);
-        });
+        row.buttonBg.setFillStyle(0x7a3737);
+        this.scene.time.delayedCall(100, () => this.updateSlotStatButton(slotIndex, stat));
       }
+      return;
+    }
+
+    const success = this.gameState.upgradeSlotStat(slotIndex, stat);
+    if (success) {
+      this.switchToTab(this.activeTab); // Refresh content
     }
   }
 
-  /**
-   * Update a stat row's display
-   */
-  private updateStatRow(stat: TankStatType): void {
+  private updateTankStatButton(stat: TankStatType): void {
     const row = this.statRows.get(stat);
     if (!row) return;
 
-    const config = TankStatsPanel.STAT_CONFIGS.find((c) => c.type === stat);
-    if (!config) return;
-
-    const level = this.gameState.getTankStatLevel(stat);
-    const cost = this.gameState.getTankStatUpgradeCost(stat);
-    const atCap = !this.gameState.canUpgradeTankStat(stat);
-
-    // Update level text
-    row.levelText.setText(`${level}`);
-
-    // Update value preview
-    const currentValue = config.getValue(level);
-    if (atCap) {
-      row.valueText.setText(`${config.formatValue(currentValue)}${config.suffix} (MAX)`);
-      row.valueText.setColor('#ffaa00');
-    } else {
-      const nextValue = config.getValue(level + 1);
-      row.valueText.setText(
-        `${config.formatValue(currentValue)}${config.suffix} > ${config.formatValue(nextValue)}${config.suffix}`
-      );
-      row.valueText.setColor('#aaaaaa');
-    }
-
-    // Update cost
-    if (atCap) {
-      row.costText.setText('MAX');
-      row.costText.setColor('#888888');
-    } else {
-      row.costText.setText(this.formatCost(cost));
-      row.costText.setColor('#ffffff');
-    }
-
-    this.updateButtonState(stat);
-  }
-
-  /**
-   * Update button visual state
-   */
-  private updateButtonState(stat: TankStatType): void {
-    const row = this.statRows.get(stat);
-    if (!row) return;
-
-    const canUpgrade = this.canUpgrade(stat);
+    const canUpgrade = this.canUpgradeTankStat(stat);
     const atCap = !this.gameState.canUpgradeTankStat(stat);
 
     if (atCap) {
@@ -508,56 +525,92 @@ export class TankStatsPanel extends SlidingPanel {
     } else if (canUpgrade) {
       row.buttonBg.setFillStyle(UI_CONFIG.COLORS.HEALTH_GREEN);
     } else {
-      row.buttonBg.setFillStyle(0x5a4a37); // Can't afford
+      row.buttonBg.setFillStyle(0x5a4a37);
     }
   }
 
-  /**
-   * Update all button states
-   */
-  private updateAllButtonStates(): void {
-    for (const stat of this.statRows.keys()) {
-      this.updateButtonState(stat);
+  private updateSlotStatButton(slotIndex: number, stat: SlotStatType): void {
+    const row = this.statRows.get(`${slotIndex}_${stat}`);
+    if (!row) return;
+
+    const canUpgrade = this.canUpgradeSlotStat(slotIndex, stat);
+    const atCap = !this.gameState.canUpgradeSlotStat(slotIndex, stat);
+
+    if (atCap) {
+      row.buttonBg.setFillStyle(UI_CONFIG.COLORS.BUTTON_DISABLED);
+    } else if (canUpgrade) {
+      row.buttonBg.setFillStyle(UI_CONFIG.COLORS.HEALTH_GREEN);
+    } else {
+      row.buttonBg.setFillStyle(0x5a4a37);
     }
   }
 
-  /**
-   * Subscribe to game events
-   */
+  // ============================================================================
+  // UTILITY
+  // ============================================================================
+
+  private formatCost(cost: number): string {
+    if (cost >= 1_000_000) return (cost / 1_000_000).toFixed(1) + 'M';
+    if (cost >= 1_000) return (cost / 1_000).toFixed(1) + 'K';
+    return cost.toString();
+  }
+
+  // ============================================================================
+  // EVENTS
+  // ============================================================================
+
   private subscribeToEvents(): void {
     this.eventManager.on(GameEvents.GOLD_CHANGED, this.onGoldChanged, this);
     this.eventManager.on(GameEvents.LEVEL_UP, this.onLevelUp, this);
+    this.eventManager.on(GameEvents.SLOT_UNLOCKED, this.onSlotUnlocked, this);
+    this.eventManager.on(GameEvents.SLOT_STAT_UPGRADED, this.onSlotStatUpgraded, this);
   }
 
   private onGoldChanged(): void {
     if (this.isOpen) {
-      this.updateAllButtonStates();
+      this.switchToTab(this.activeTab); // Refresh to update button states
     }
   }
 
   private onLevelUp(): void {
     if (this.isOpen) {
-      for (const stat of this.statRows.keys()) {
-        this.updateStatRow(stat);
+      this.switchToTab(this.activeTab);
+    }
+  }
+
+  private onSlotUnlocked(payload: { slotIndex: number }): void {
+    // Update tab lock icon
+    const tabTypes = [TabType.Slot1, TabType.Slot2, TabType.Slot3, TabType.Slot4, TabType.Slot5];
+    const tabType = tabTypes[payload.slotIndex];
+    if (tabType) {
+      const tab = this.tabs.get(tabType);
+      if (tab && tab.lockIcon) {
+        tab.lockIcon.setVisible(false);
+        tab.text.setVisible(true);
       }
     }
-  }
 
-  /**
-   * Refresh panel content when opened
-   */
-  public refresh(): void {
-    for (const stat of this.statRows.keys()) {
-      this.updateStatRow(stat);
+    if (this.isOpen) {
+      this.switchToTab(this.activeTab);
     }
   }
 
-  /**
-   * Cleanup
-   */
+  private onSlotStatUpgraded(): void {
+    if (this.isOpen) {
+      this.switchToTab(this.activeTab);
+    }
+  }
+
+  public refresh(): void {
+    this.switchToTab(this.activeTab);
+  }
+
   public destroy(fromScene?: boolean): void {
     this.eventManager.off(GameEvents.GOLD_CHANGED, this.onGoldChanged, this);
     this.eventManager.off(GameEvents.LEVEL_UP, this.onLevelUp, this);
+    this.eventManager.off(GameEvents.SLOT_UNLOCKED, this.onSlotUnlocked, this);
+    this.eventManager.off(GameEvents.SLOT_STAT_UPGRADED, this.onSlotStatUpgraded, this);
+    this.tabs.clear();
     this.statRows.clear();
     super.destroy(fromScene);
   }

@@ -16,7 +16,7 @@
  */
 
 import { TankStats, StatType, TankStatType, Rarity } from '../types/GameTypes';
-import { ModuleSlotData, ModuleItemData } from '../types/ModuleTypes';
+import { ModuleSlotData, ModuleItemData, SlotStatType, SlotStats } from '../types/ModuleTypes';
 import { MODULE_SELL_VALUES } from '../modules/ModuleItem';
 import { SaveData } from '../types/SaveTypes';
 import { GameEvents } from '../types/GameEvents';
@@ -145,11 +145,11 @@ export class GameState {
       },
       modules: {
         slots: [
-          { index: 0, level: 1, equipped: null, unlocked: true },
-          { index: 1, level: 1, equipped: null, unlocked: false },
-          { index: 2, level: 1, equipped: null, unlocked: false },
-          { index: 3, level: 1, equipped: null, unlocked: false },
-          { index: 4, level: 1, equipped: null, unlocked: false },
+          { index: 0, stats: { damageLevel: 0, attackSpeedLevel: 0, cdrLevel: 0 }, equipped: null, unlocked: true },
+          { index: 1, stats: { damageLevel: 0, attackSpeedLevel: 0, cdrLevel: 0 }, equipped: null, unlocked: false },
+          { index: 2, stats: { damageLevel: 0, attackSpeedLevel: 0, cdrLevel: 0 }, equipped: null, unlocked: false },
+          { index: 3, stats: { damageLevel: 0, attackSpeedLevel: 0, cdrLevel: 0 }, equipped: null, unlocked: false },
+          { index: 4, stats: { damageLevel: 0, attackSpeedLevel: 0, cdrLevel: 0 }, equipped: null, unlocked: false },
         ],
         inventory: [],
         equipped: [null, null, null, null, null],
@@ -709,6 +709,139 @@ export class GameState {
     }
 
     return false;
+  }
+
+  /**
+   * Upgrade a specific stat for a module slot
+   * Cost = (currentLevel + 1) * 50 gold, capped by tank level
+   */
+  public upgradeSlotStat(slotIndex: number, statType: SlotStatType): boolean {
+    if (slotIndex < 0 || slotIndex >= this.moduleSlots.length) {
+      if (import.meta.env.DEV) {
+        console.warn(`[GameState] Invalid slot index: ${slotIndex}`);
+      }
+      return false;
+    }
+
+    const slot = this.moduleSlots[slotIndex];
+    if (!slot) {
+      if (import.meta.env.DEV) {
+        console.warn(`[GameState] Slot not found at index: ${slotIndex}`);
+      }
+      return false;
+    }
+
+    if (!slot.unlocked) {
+      if (import.meta.env.DEV) {
+        console.warn(`[GameState] Slot ${slotIndex} is not unlocked`);
+      }
+      return false;
+    }
+
+    // Get current level for this stat
+    const currentLevel = this.getSlotStatLevel(slotIndex, statType);
+
+    // Check tank level cap
+    if (currentLevel >= this.tankLevel) {
+      if (import.meta.env.DEV) {
+        console.warn(
+          `[GameState] Slot ${slotIndex} ${statType} at cap (${currentLevel}/${this.tankLevel})`
+        );
+      }
+      return false;
+    }
+
+    // Calculate cost: (currentLevel + 1) * 50
+    const cost = (currentLevel + 1) * 50;
+
+    // Check if player can afford
+    if (!this.spendGold(cost, 'upgrade')) {
+      return false;
+    }
+
+    // Upgrade the stat
+    switch (statType) {
+      case SlotStatType.Damage:
+        slot.stats.damageLevel += 1;
+        break;
+      case SlotStatType.AttackSpeed:
+        slot.stats.attackSpeedLevel += 1;
+        break;
+      case SlotStatType.CDR:
+        slot.stats.cdrLevel += 1;
+        break;
+    }
+
+    // Emit event so UI can update
+    this.eventManager.emit(GameEvents.SLOT_STAT_UPGRADED, {
+      slotIndex,
+      statType,
+      newLevel: this.getSlotStatLevel(slotIndex, statType),
+      cost,
+    });
+
+    if (import.meta.env.DEV) {
+      console.log(
+        `[GameState] Upgraded slot ${slotIndex} ${statType} to level ${this.getSlotStatLevel(slotIndex, statType)} for ${cost} gold`
+      );
+    }
+
+    return true;
+  }
+
+  /**
+   * Get the current level of a specific slot stat
+   */
+  public getSlotStatLevel(slotIndex: number, statType: SlotStatType): number {
+    const slot = this.moduleSlots[slotIndex];
+    if (!slot) return 0;
+
+    switch (statType) {
+      case SlotStatType.Damage:
+        return slot.stats.damageLevel;
+      case SlotStatType.AttackSpeed:
+        return slot.stats.attackSpeedLevel;
+      case SlotStatType.CDR:
+        return slot.stats.cdrLevel;
+      default:
+        return 0;
+    }
+  }
+
+  /**
+   * Get all slot stats for a slot
+   */
+  public getSlotStats(slotIndex: number): SlotStats | null {
+    const slot = this.moduleSlots[slotIndex];
+    if (!slot) return null;
+    return { ...slot.stats };
+  }
+
+  /**
+   * Get the upgrade cost for a specific slot stat
+   * Cost = (currentLevel + 1) * 50
+   */
+  public getSlotStatUpgradeCost(slotIndex: number, statType: SlotStatType): number {
+    const currentLevel = this.getSlotStatLevel(slotIndex, statType);
+    return (currentLevel + 1) * 50;
+  }
+
+  /**
+   * Check if a slot stat can be upgraded (unlocked and not at cap)
+   */
+  public canUpgradeSlotStat(slotIndex: number, statType: SlotStatType): boolean {
+    const slot = this.moduleSlots[slotIndex];
+    if (!slot || !slot.unlocked) return false;
+    const currentLevel = this.getSlotStatLevel(slotIndex, statType);
+    return currentLevel < this.tankLevel;
+  }
+
+  /**
+   * Get the bonus percentage for a slot stat
+   * Returns 1% per level
+   */
+  public getSlotStatBonus(slotIndex: number, statType: SlotStatType): number {
+    return this.getSlotStatLevel(slotIndex, statType);
   }
 
   /**

@@ -32,6 +32,7 @@ export enum GameEvents {
   // Slot Events
   SLOT_UNLOCKED = 'slot:unlocked',
   SLOT_UPGRADED = 'slot:upgraded',
+  SLOT_STAT_UPGRADED = 'slot:stat_upgraded',
 
   // Wave Events
   WAVE_STARTED = 'wave:started',
@@ -182,6 +183,13 @@ export interface SlotUpgradedPayload {
   cost: number;
 }
 
+export interface SlotStatUpgradedPayload {
+  slotIndex: number;
+  statType: 'damage' | 'attackSpeed' | 'cdr';
+  newLevel: number;
+  cost: number;
+}
+
 // Wave Event Payloads
 export interface WaveStartedPayload {
   waveNumber: number;
@@ -305,6 +313,7 @@ export type EventPayloadMap = {
   [GameEvents.SKILL_COOLDOWN_ENDED]: SkillCooldownPayload;
   [GameEvents.SLOT_UNLOCKED]: SlotUnlockedPayload;
   [GameEvents.SLOT_UPGRADED]: SlotUpgradedPayload;
+  [GameEvents.SLOT_STAT_UPGRADED]: SlotStatUpgradedPayload;
   [GameEvents.WAVE_STARTED]: WaveStartedPayload;
   [GameEvents.WAVE_COMPLETED]: WaveCompletedPayload;
   [GameEvents.ZONE_COMPLETED]: ZoneCompletedPayload;

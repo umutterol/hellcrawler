@@ -74,13 +74,35 @@ export interface ModuleItemData {
 }
 
 /**
+ * Per-slot stat types for upgrades
+ */
+export enum SlotStatType {
+  Damage = 'damage',
+  AttackSpeed = 'attackSpeed',
+  CDR = 'cdr',
+}
+
+/**
+ * Per-slot upgrade stats
+ * Each stat provides +1% bonus per level
+ */
+export interface SlotStats {
+  /** Damage bonus level (+1% per level) */
+  damageLevel: number;
+  /** Attack speed bonus level (+1% per level) */
+  attackSpeedLevel: number;
+  /** Cooldown reduction bonus level (+1% per level) */
+  cdrLevel: number;
+}
+
+/**
  * Data for a single module slot on the tank
  */
 export interface ModuleSlotData {
   /** Slot index (0-4) */
   index: number;
-  /** Current slot level (1-5) */
-  level: number;
+  /** Per-slot upgrade stats */
+  stats: SlotStats;
   /** Currently equipped module (null if empty) */
   equipped: ModuleItemData | null;
   /** Whether this slot is unlocked */

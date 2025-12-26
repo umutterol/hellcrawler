@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { ModuleItemData, ModuleSkill, ModuleType } from '../types/ModuleTypes';
+import { ModuleItemData, ModuleSkill, ModuleType, SlotStats } from '../types/ModuleTypes';
 import { StatType } from '../types/GameTypes';
 import { EventManager, getEventManager } from '../managers/EventManager';
 import { GameEvents } from '../types/GameEvents';
@@ -33,7 +33,7 @@ export abstract class BaseModule {
   // Module data
   protected moduleData: ModuleItemData;
   protected slotIndex: number;
-  protected slotLevel: number;
+  protected slotStats: SlotStats;
 
   // Position (relative to tank)
   protected x: number;
@@ -63,13 +63,13 @@ export abstract class BaseModule {
     scene: Phaser.Scene,
     moduleData: ModuleItemData,
     slotIndex: number,
-    slotLevel: number
+    slotStats: SlotStats
   ) {
     this.scene = scene;
     this.eventManager = getEventManager();
     this.moduleData = moduleData;
     this.slotIndex = slotIndex;
-    this.slotLevel = slotLevel;
+    this.slotStats = slotStats;
 
     // Default position (will be set by tank)
     this.x = 200;
@@ -123,30 +123,32 @@ export abstract class BaseModule {
 
   /**
    * Get the fire rate considering attack speed bonuses
+   * Includes both module stat bonus and slot attack speed bonus
    */
   protected getFireRate(): number {
-    const attackSpeedBonus = this.getStat(StatType.AttackSpeed) / 100;
-    return this.baseFireRate / (1 + attackSpeedBonus);
+    const moduleAttackSpeedBonus = this.getStat(StatType.AttackSpeed) / 100;
+    const slotAttackSpeedBonus = this.slotStats.attackSpeedLevel / 100;
+    const totalBonus = moduleAttackSpeedBonus + slotAttackSpeedBonus;
+    return this.baseFireRate / (1 + totalBonus);
   }
 
   /**
    * Get damage with all bonuses applied
+   * Includes module stat bonus and slot damage bonus
    */
   protected calculateDamage(): { damage: number; isCrit: boolean } {
-    const damageBonus = this.getStat(StatType.Damage) / 100;
+    const moduleDamageBonus = this.getStat(StatType.Damage) / 100;
+    const slotDamageBonus = this.slotStats.damageLevel / 100;
     const critChance = this.getStat(StatType.CritChance) / 100;
     const critDamageBonus = this.getStat(StatType.CritDamage) / 100;
-
-    // Slot level multiplier: 1 + (slotLevel * 0.01)
-    const slotMultiplier = 1 + this.slotLevel * 0.01;
 
     // Check for crit
     const isCrit = Math.random() < critChance;
 
     // Calculate final damage
     let damage = this.baseDamage;
-    damage *= 1 + damageBonus; // Module damage bonus
-    damage *= slotMultiplier; // Slot level bonus
+    damage *= 1 + moduleDamageBonus; // Module stat damage bonus
+    damage *= 1 + slotDamageBonus; // Slot damage bonus
     if (isCrit) {
       damage *= 2.0 + critDamageBonus; // Base 200% crit + bonus
     }
@@ -171,10 +173,18 @@ export abstract class BaseModule {
   }
 
   /**
-   * Update slot level (when slot is upgraded)
+   * Update slot stats (when slot is upgraded)
    */
-  public setSlotLevel(level: number): void {
-    this.slotLevel = level;
+  public setSlotStats(stats: SlotStats): void {
+    this.slotStats = { ...stats };
+  }
+
+  /**
+   * Get the CDR bonus from slot (for skill cooldowns)
+   * Returns percentage (e.g., 10 for 10% CDR)
+   */
+  protected getSlotCDRBonus(): number {
+    return this.slotStats.cdrLevel;
   }
 
   /**
@@ -272,9 +282,11 @@ export abstract class BaseModule {
       skillState.activeTimeRemaining = skillState.skill.duration * 1000; // Convert to ms
     }
 
-    // Start cooldown
-    const cdrBonus = this.getStat(StatType.CDR) / 100;
-    skillState.currentCooldown = skillState.skill.cooldown * 1000 * (1 - cdrBonus);
+    // Start cooldown (includes module CDR stat + slot CDR bonus)
+    const moduleCDRBonus = this.getStat(StatType.CDR) / 100;
+    const slotCDRBonus = this.getSlotCDRBonus() / 100;
+    const totalCDR = Math.min(0.9, moduleCDRBonus + slotCDRBonus); // Cap at 90% CDR
+    skillState.currentCooldown = skillState.skill.cooldown * 1000 * (1 - totalCDR);
 
     // Emit events
     this.eventManager.emit(GameEvents.SKILL_ACTIVATED, {

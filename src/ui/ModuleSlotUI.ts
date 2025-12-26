@@ -308,7 +308,10 @@ export class ModuleSlotUI {
       element.background.setFillStyle(0x333344, 0.9);
       element.background.setStrokeStyle(3, rarityColor);
       element.icon.setFillStyle(moduleColor, 1);
-      element.levelText.setText(`L${slot.getLevel()}`);
+      // Show total stat levels (damage + attackSpeed + CDR)
+      const stats = slot.getStats();
+      const totalLevel = stats.damageLevel + stats.attackSpeedLevel + stats.cdrLevel;
+      element.levelText.setText(`L${totalLevel}`);
       element.skill1Key.setVisible(true);
       element.skill2Key.setVisible(true);
     } else {
@@ -316,7 +319,10 @@ export class ModuleSlotUI {
       element.background.setFillStyle(0x333344, 0.9);
       element.background.setStrokeStyle(2, 0x555566);
       element.icon.setFillStyle(0x000000, 0);
-      element.levelText.setText(`L${slot.getLevel()}`);
+      // Show total stat levels
+      const stats = slot.getStats();
+      const totalLevel = stats.damageLevel + stats.attackSpeedLevel + stats.cdrLevel;
+      element.levelText.setText(`L${totalLevel}`);
       element.skill1Key.setVisible(false);
       element.skill2Key.setVisible(false);
     }

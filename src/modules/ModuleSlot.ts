@@ -1,4 +1,4 @@
-import { ModuleSlotData, ModuleItemData } from '../types/ModuleTypes';
+import { ModuleSlotData, ModuleItemData, SlotStats, SlotStatType } from '../types/ModuleTypes';
 import { EventManager, getEventManager } from '../managers/EventManager';
 import { GameEvents } from '../types/GameEvents';
 
@@ -6,7 +6,7 @@ import { GameEvents } from '../types/GameEvents';
  * ModuleSlot - Container for equipped modules
  *
  * Each tank has up to 5 module slots (index 0-4).
- * Slots have their own level (1-160) that provides damage multiplier.
+ * Slots have per-stat upgrades (damage, attackSpeed, CDR) that provide bonuses.
  * Slots can hold one ModuleItem at a time.
  *
  * Unlock costs:
@@ -23,15 +23,19 @@ export class ModuleSlot {
   // Unlock costs per slot index
   private static readonly UNLOCK_COSTS: number[] = [0, 10000, 50000, 200000, 1000000];
 
-  // Upgrade cost = current level * 100
-  private static readonly UPGRADE_COST_MULTIPLIER = 100;
+  // Upgrade cost = (current level + 1) * 50
+  private static readonly UPGRADE_COST_MULTIPLIER = 50;
 
   constructor(index: number, unlocked: boolean = false) {
     this.eventManager = getEventManager();
 
     this.data = {
       index,
-      level: 1,
+      stats: {
+        damageLevel: 0,
+        attackSpeedLevel: 0,
+        cdrLevel: 0,
+      },
       equipped: null,
       unlocked: index === 0 ? true : unlocked, // Slot 0 is always unlocked
     };
@@ -45,10 +49,26 @@ export class ModuleSlot {
   }
 
   /**
-   * Get current slot level
+   * Get current slot stats
    */
-  public getLevel(): number {
-    return this.data.level;
+  public getStats(): SlotStats {
+    return { ...this.data.stats };
+  }
+
+  /**
+   * Get a specific stat level
+   */
+  public getStatLevel(statType: SlotStatType): number {
+    switch (statType) {
+      case SlotStatType.Damage:
+        return this.data.stats.damageLevel;
+      case SlotStatType.AttackSpeed:
+        return this.data.stats.attackSpeedLevel;
+      case SlotStatType.CDR:
+        return this.data.stats.cdrLevel;
+      default:
+        return 0;
+    }
   }
 
   /**
@@ -82,37 +102,68 @@ export class ModuleSlot {
   }
 
   /**
-   * Get the cost to upgrade this slot to the next level
+   * Get the cost to upgrade a specific stat to the next level
    */
-  public getUpgradeCost(): number {
-    return this.data.level * ModuleSlot.UPGRADE_COST_MULTIPLIER;
+  public getStatUpgradeCost(statType: SlotStatType): number {
+    const currentLevel = this.getStatLevel(statType);
+    return (currentLevel + 1) * ModuleSlot.UPGRADE_COST_MULTIPLIER;
   }
 
   /**
-   * Upgrade slot level (capped by tank level)
+   * Upgrade a specific stat (capped by tank level)
    */
-  public upgrade(tankLevel: number): boolean {
+  public upgradeStat(statType: SlotStatType, tankLevel: number): boolean {
     if (!this.data.unlocked) return false;
-    if (this.data.level >= tankLevel) return false;
 
-    this.data.level++;
+    const currentLevel = this.getStatLevel(statType);
+    if (currentLevel >= tankLevel) return false;
 
-    this.eventManager.emit(GameEvents.SLOT_UPGRADED, {
+    // Increment the stat
+    switch (statType) {
+      case SlotStatType.Damage:
+        this.data.stats.damageLevel++;
+        break;
+      case SlotStatType.AttackSpeed:
+        this.data.stats.attackSpeedLevel++;
+        break;
+      case SlotStatType.CDR:
+        this.data.stats.cdrLevel++;
+        break;
+    }
+
+    this.eventManager.emit(GameEvents.SLOT_STAT_UPGRADED, {
       slotIndex: this.data.index,
-      newLevel: this.data.level,
-      cost: this.getUpgradeCost(),
+      statType,
+      newLevel: this.getStatLevel(statType),
+      cost: this.getStatUpgradeCost(statType),
     });
 
     return true;
   }
 
   /**
-   * Get the damage multiplier from slot level
-   * Formula: 1 + (slotLevel * 0.01)
-   * Level 1 = 1.01x, Level 100 = 2.0x, Level 160 = 2.6x
+   * Get the damage multiplier from slot damage level
+   * Formula: 1 + (damageLevel * 0.01)
+   * Level 0 = 1.0x, Level 100 = 2.0x
    */
   public getDamageMultiplier(): number {
-    return 1 + this.data.level * 0.01;
+    return 1 + this.data.stats.damageLevel * 0.01;
+  }
+
+  /**
+   * Get the attack speed multiplier from slot attackSpeed level
+   * Formula: 1 + (attackSpeedLevel * 0.01)
+   */
+  public getAttackSpeedMultiplier(): number {
+    return 1 + this.data.stats.attackSpeedLevel * 0.01;
+  }
+
+  /**
+   * Get the cooldown reduction percentage from slot CDR level
+   * Returns percentage (e.g., 10 for 10% CDR)
+   */
+  public getCDRBonus(): number {
+    return this.data.stats.cdrLevel;
   }
 
   /**

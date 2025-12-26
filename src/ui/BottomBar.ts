@@ -482,14 +482,20 @@ export class BottomBar {
       background.setFillStyle(0x333344, 0.9);
       background.setStrokeStyle(3, rarityColor);
       icon.setFillStyle(moduleColor, 1);
-      levelText.setText(`L${slot.getLevel()}`);
+      // Show total stat levels (damage + attackSpeed + CDR)
+      const stats = slot.getStats();
+      const totalLevel = stats.damageLevel + stats.attackSpeedLevel + stats.cdrLevel;
+      levelText.setText(`L${totalLevel}`);
       skill1Key.setVisible(true);
       skill2Key.setVisible(true);
     } else {
       background.setFillStyle(0x333344, 0.9);
       background.setStrokeStyle(2, 0x555566);
       icon.setFillStyle(0x000000, 0);
-      levelText.setText(`L${slot.getLevel()}`);
+      // Show total stat levels
+      const stats = slot.getStats();
+      const totalLevel = stats.damageLevel + stats.attackSpeedLevel + stats.cdrLevel;
+      levelText.setText(`L${totalLevel}`);
       skill1Key.setVisible(false);
       skill2Key.setVisible(false);
     }

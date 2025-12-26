@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { ModuleItemData, ModuleType } from '../types/ModuleTypes';
+import { ModuleItemData, ModuleType, SlotStats } from '../types/ModuleTypes';
 import { BaseModule } from './BaseModule';
 import { MachineGunModule } from './MachineGunModule';
 import { MissilePodModule } from './MissilePodModule';
@@ -14,18 +14,18 @@ export function createModule(
   scene: Phaser.Scene,
   moduleData: ModuleItemData,
   slotIndex: number,
-  slotLevel: number,
+  slotStats: SlotStats,
   gameState: GameState
 ): BaseModule | null {
   switch (moduleData.type) {
     case ModuleType.MachineGun:
-      return new MachineGunModule(scene, moduleData, slotIndex, slotLevel);
+      return new MachineGunModule(scene, moduleData, slotIndex, slotStats);
 
     case ModuleType.MissilePod:
-      return new MissilePodModule(scene, moduleData, slotIndex, slotLevel);
+      return new MissilePodModule(scene, moduleData, slotIndex, slotStats);
 
     case ModuleType.RepairDrone:
-      return new RepairDroneModule(scene, moduleData, slotIndex, slotLevel, gameState);
+      return new RepairDroneModule(scene, moduleData, slotIndex, slotStats, gameState);
 
     // Future module types - return null for now
     case ModuleType.ShieldGenerator:
