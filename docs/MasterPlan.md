@@ -49,7 +49,7 @@
 | SlidingPanel base | P1 | ✅ Complete - Animation system |
 | PanelManager | P1 | ✅ Complete - Single panel logic |
 | TankStatsPanel | P1 | ✅ Complete - Stats + slot upgrades |
-| InventoryPanel | P1 | 🔄 Placeholder - Needs full implementation |
+| InventoryPanel | P1 | ✅ Complete - Grid, select, equip/sell |
 | ShopPanel | P1 | 🔄 Placeholder - Needs purchase logic |
 | SettingsPanel | P1 | 🔄 Placeholder - Needs toggle logic |
 | TopBar | P1 | ⏳ Pending |
@@ -69,7 +69,7 @@
 | 1 | Sidebar + SlidingPanel base | ✅ | 4 icons, animation system implemented |
 | 2 | PanelManager + keyboard shortcuts | ✅ | TAB, I, P, ESC bindings working |
 | 3-4 | TankStatsPanel | ✅ | Stats upgrades + slot level upgrades (basic) |
-| 5 | InventoryPanel | ⏳ | Grid, equip/unequip/sell (placeholder done) |
+| 5 | InventoryPanel | ✅ | Full implementation with equip/unequip/sell |
 
 **Week 1 Deliverables:**
 - [x] Sidebar with 4 clickable icons
@@ -78,9 +78,9 @@
 - [x] Keyboard shortcuts: TAB, I, P, ESC
 - [x] TankStatsPanel: View stats, upgrade with gold
 - [ ] TankStatsPanel: View slot levels, upgrade with gold (partial)
-- [ ] InventoryPanel: 6-column grid with modules (placeholder)
-- [ ] InventoryPanel: Click to select, see details
-- [ ] InventoryPanel: Equip/Unequip/Sell buttons
+- [x] InventoryPanel: 6-column grid with modules
+- [x] InventoryPanel: Click to select, see details
+- [x] InventoryPanel: Equip/Unequip/Sell buttons
 - [x] Game continues running while panels open
 
 ### Week 2: Remaining Panels + HUD
@@ -112,18 +112,18 @@
 
 All must be true before moving to Vertical Slice:
 
-- [ ] Sidebar visible with 4 working icons
-- [ ] All 4 panels open/close correctly with animations
-- [ ] Game continues running while panels are open
-- [ ] Player can upgrade tank stats via TankStatsPanel
+- [x] Sidebar visible with 4 working icons
+- [x] All 4 panels open/close correctly with animations
+- [x] Game continues running while panels are open
+- [x] Player can upgrade tank stats via TankStatsPanel
 - [ ] Player can upgrade slot levels via TankStatsPanel
-- [ ] Player can view all modules in InventoryPanel
-- [ ] Player can equip/unequip/sell modules
+- [x] Player can view all modules in InventoryPanel
+- [x] Player can equip/unequip/sell modules
 - [ ] Player can purchase slots 2-3 via ShopPanel
 - [ ] Player can change settings and save game
 - [ ] HUD shows gold, XP, HP, wave progress
 - [ ] Near Death shows revive button
-- [ ] ESC closes open panel (or opens Settings if none open)
+- [x] ESC closes open panel (or opens Settings if none open)
 
 ---
 
@@ -236,7 +236,6 @@ All must be true before moving to Vertical Slice:
 | Issue | Priority | Notes |
 |-------|----------|-------|
 | Damage calc tests needed | P1 | Verify auto-mode penalty |
-| E2E tests missing | P2 | Playwright setup done |
 | No AudioManager | P2 | Needed for Phase 2 |
 | No particle pooling | P3 | May need for VFX |
 
@@ -267,6 +266,18 @@ All must be true before moving to Vertical Slice:
   - Integrated panel system into GameScene
   - All panels slide in from left with 300ms animation
   - Keyboard shortcuts working: TAB, I, P, ESC
+- **InventoryPanel Full Implementation:**
+  - Equipped modules section (5 slots) with rarity-colored icons
+  - Inventory grid (6x4) displaying unequipped modules
+  - Module selection with details panel (type, rarity, stats, sell value)
+  - Working Equip/Unequip/Sell buttons with state management
+  - Event-driven refresh on module changes
+  - Fixed sell value mismatch bug (tooltip vs actual gold)
+  - Created `MODULE_SELL_VALUES` as single source of truth
+- **Test Coverage Added:**
+  - 53 unit tests for module inventory system
+  - 22 e2e tests for inventory panel UI
+  - Total: 89 unit tests, 39 e2e tests passing
 
 ---
 
