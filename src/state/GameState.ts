@@ -15,8 +15,9 @@
  * - Progression tracking
  */
 
-import { TankStats, StatType, TankStatType } from '../types/GameTypes';
+import { TankStats, StatType, TankStatType, Rarity } from '../types/GameTypes';
 import { ModuleSlotData, ModuleItemData } from '../types/ModuleTypes';
+import { MODULE_SELL_VALUES } from '../modules/ModuleItem';
 import { SaveData } from '../types/SaveTypes';
 import { GameEvents } from '../types/GameEvents';
 import { EventManager } from '../managers/EventManager';
@@ -653,15 +654,8 @@ export class GameState {
    * Sell a module for gold
    */
   public sellModule(module: ModuleItemData): boolean {
-    // Calculate gold value based on rarity
-    const rarityValues: Record<string, number> = {
-      uncommon: 100,
-      rare: 250,
-      epic: 500,
-      legendary: 1000,
-    };
-
-    const goldEarned = rarityValues[module.rarity] || 100;
+    // Use canonical sell values from ModuleItem
+    const goldEarned = MODULE_SELL_VALUES[module.rarity as Rarity] || 50;
 
     // Remove from inventory
     const inventoryIndex = this.moduleInventory.findIndex((m) => m.id === module.id);

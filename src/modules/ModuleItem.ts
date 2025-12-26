@@ -31,8 +31,9 @@ const STAT_POOL: StatType[] = [
 
 /**
  * Sell values per rarity (in gold)
+ * This is the SINGLE SOURCE OF TRUTH for module sell values
  */
-const SELL_VALUES: Record<Rarity, number> = {
+export const MODULE_SELL_VALUES: Record<Rarity, number> = {
   [Rarity.Uncommon]: 50,
   [Rarity.Rare]: 200,
   [Rarity.Epic]: 1000,
@@ -324,7 +325,7 @@ export class ModuleItem {
    * Get sell value in gold
    */
   public getSellValue(): number {
-    return SELL_VALUES[this.data.rarity];
+    return MODULE_SELL_VALUES[this.data.rarity];
   }
 
   /**
