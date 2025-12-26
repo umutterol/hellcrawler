@@ -107,7 +107,7 @@ export class RepairDroneModule extends BaseModule {
     // Apply healing when we have at least 1 HP to heal
     if (this.healAccumulator >= 1) {
       const healAmount = Math.floor(this.healAccumulator);
-      this.gameState.heal(healAmount);
+      this.gameState.heal(healAmount, 'repair_drone');
       this.healAccumulator -= healAmount;
 
       // Visual feedback for healing (periodically)
@@ -156,7 +156,7 @@ export class RepairDroneModule extends BaseModule {
     const tankStats = this.gameState.getTankStats();
     const healAmount = Math.floor(tankStats.maxHP * 0.15);
 
-    this.gameState.heal(healAmount);
+    this.gameState.heal(healAmount, 'skill');
 
     // Big healing visual
     this.showEmergencyRepairEffect();

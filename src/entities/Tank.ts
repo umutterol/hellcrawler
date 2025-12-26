@@ -152,6 +152,7 @@ export class Tank extends Phaser.GameObjects.Container {
   private subscribeToEvents(): void {
     this.eventManager.on(GameEvents.DAMAGE_TAKEN, this.onDamageTaken, this);
     this.eventManager.on(GameEvents.TANK_REVIVED, this.onRevived, this);
+    this.eventManager.on(GameEvents.TANK_HEALED, this.onHealed, this);
   }
 
   private onDamageTaken(payload: { targetType: string; remainingHealth: number }): void {
@@ -171,6 +172,10 @@ export class Tank extends Phaser.GameObjects.Container {
 
   private onRevived(): void {
     this.exitNearDeath();
+    this.updateHealthBar();
+  }
+
+  private onHealed(): void {
     this.updateHealthBar();
   }
 
@@ -310,8 +315,8 @@ export class Tank extends Phaser.GameObjects.Container {
     // HP Regeneration
     const stats = this.gameState.getTankStats();
     if (stats.currentHP < stats.maxHP && stats.hpRegen > 0) {
-      this.gameState.heal(stats.hpRegen * deltaSeconds);
-      this.updateHealthBar();
+      this.gameState.heal(stats.hpRegen * deltaSeconds, 'regen');
+      // Health bar update is handled by TANK_HEALED event listener
     }
 
     // Near-death timer countdown
@@ -357,6 +362,7 @@ export class Tank extends Phaser.GameObjects.Container {
   public destroy(): void {
     this.eventManager.off(GameEvents.DAMAGE_TAKEN, this.onDamageTaken, this);
     this.eventManager.off(GameEvents.TANK_REVIVED, this.onRevived, this);
+    this.eventManager.off(GameEvents.TANK_HEALED, this.onHealed, this);
     if (this.hitbox) {
       this.hitbox.destroy();
     }

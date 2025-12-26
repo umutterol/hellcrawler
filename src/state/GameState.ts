@@ -429,14 +429,29 @@ export class GameState {
   /**
    * Heal the tank
    */
-  public heal(amount: number): void {
+  public heal(
+    amount: number,
+    source: 'regen' | 'repair_drone' | 'skill' | 'revive' | 'other' = 'other'
+  ): void {
     const previousHP = this.tankStats.currentHP;
     this.tankStats.currentHP = Math.min(this.tankStats.maxHP, this.tankStats.currentHP + amount);
 
-    if (import.meta.env.DEV && this.tankStats.currentHP !== previousHP) {
-      console.log(
-        `[GameState] Healed for ${amount}, HP: ${previousHP} -> ${this.tankStats.currentHP}`
-      );
+    const actualHeal = this.tankStats.currentHP - previousHP;
+
+    // Only emit if actual healing occurred
+    if (actualHeal > 0) {
+      this.eventManager.emit(GameEvents.TANK_HEALED, {
+        amount: actualHeal,
+        currentHealth: this.tankStats.currentHP,
+        maxHealth: this.tankStats.maxHP,
+        source,
+      });
+
+      if (import.meta.env.DEV) {
+        console.log(
+          `[GameState] Healed for ${actualHeal} (${source}), HP: ${previousHP} -> ${this.tankStats.currentHP}`
+        );
+      }
     }
   }
 
