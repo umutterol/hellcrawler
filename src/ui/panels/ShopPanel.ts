@@ -2,6 +2,9 @@ import Phaser from 'phaser';
 import { SlidingPanel } from './SlidingPanel';
 import { PanelType, UI_CONFIG } from '../../config/UIConfig';
 import { getGameState, GameState } from '../../state/GameState';
+import { EventManager, getEventManager } from '../../managers/EventManager';
+import { GameEvents } from '../../types/GameEvents';
+import { GAME_CONFIG } from '../../config/GameConfig';
 
 /**
  * ShopPanel - Sliding panel for purchasing module slots
@@ -10,41 +13,65 @@ import { getGameState, GameState } from '../../state/GameState';
  * - Purchase module slots 2-5
  * - Show unlock requirements for slots 4-5
  * - Show costs and affordability
- *
- * NOTE: This is a placeholder implementation. Full functionality
- * will be added when the shop system is complete.
+ * - Real-time updates when gold changes or slots are purchased
  */
 export class ShopPanel extends SlidingPanel {
-  // Initialize before super() is called since createContent() needs this
   private gameState: GameState = getGameState();
+  private eventManager: EventManager = getEventManager();
 
-  // Slot purchase costs (from GDD)
-  private static readonly SLOT_COSTS: number[] = [0, 10000, 50000, 500000, 2000000];
+  // Slot requirements (null = no requirement, string = boss requirement)
   private static readonly SLOT_REQUIREMENTS: (string | null)[] = [
-    null,
-    null,
-    null,
-    'Defeat Diaboros (Act 8)',
-    'Defeat all Uber Bosses',
+    null, // Slot 1: Always unlocked
+    null, // Slot 2: Gold only
+    null, // Slot 3: Gold only
+    'Defeat Diaboros (Act 8)', // Slot 4: Boss requirement
+    'Defeat all Uber Bosses', // Slot 5: Boss requirement
   ];
 
   constructor(scene: Phaser.Scene) {
     super(scene, PanelType.SHOP);
     this.setTitle('SHOP');
     this.initContent();
+    this.subscribeToEvents();
+  }
+
+  /**
+   * Subscribe to game events for state changes
+   */
+  private subscribeToEvents(): void {
+    this.eventManager.on(GameEvents.SLOT_UNLOCKED, this.onStateChanged, this);
+    this.eventManager.on(GameEvents.GOLD_CHANGED, this.onStateChanged, this);
+  }
+
+  /**
+   * Handle state changes (gold or slot unlocks)
+   */
+  private onStateChanged(): void {
+    if (this.isOpen) {
+      this.rebuildContent();
+    }
   }
 
   /**
    * Create the panel content
    */
   protected createContent(): void {
-    this.createSlotsSection();
+    this.createSectionHeader();
+    this.createSlotCards();
   }
 
   /**
-   * Create the module slots purchase section
+   * Rebuild content when state changes
    */
-  private createSlotsSection(): void {
+  private rebuildContent(): void {
+    this.clearContent();
+    this.createContent();
+  }
+
+  /**
+   * Create section header
+   */
+  private createSectionHeader(): void {
     const sectionContainer = this.scene.add.container(16, 0);
 
     // Section header
@@ -56,6 +83,21 @@ export class ShopPanel extends SlidingPanel {
     });
     sectionContainer.add(headerText);
 
+    // Gold display
+    const goldText = this.scene.add.text(
+      this.getContentWidth(),
+      0,
+      `Gold: ${this.formatGold(this.gameState.getGold())}`,
+      {
+        fontFamily: 'Arial',
+        fontSize: '14px',
+        color: UI_CONFIG.COLORS.TEXT_GOLD,
+        fontStyle: 'bold',
+      }
+    );
+    goldText.setOrigin(1, 0);
+    sectionContainer.add(goldText);
+
     // Divider
     const divider = this.scene.add.graphics();
     divider.lineStyle(1, UI_CONFIG.COLORS.PANEL_BORDER, 0.5);
@@ -63,11 +105,18 @@ export class ShopPanel extends SlidingPanel {
     sectionContainer.add(divider);
 
     this.addToContent(sectionContainer);
+  }
 
-    // Create slot cards
+  /**
+   * Create all slot cards
+   */
+  private createSlotCards(): void {
+    const slots = this.gameState.getModuleSlots();
+
     for (let i = 0; i < 5; i++) {
       const cardY = 40 + i * 100;
-      const card = this.createSlotCard(i, cardY);
+      const slot = slots[i];
+      const card = this.createSlotCard(i, cardY, slot?.unlocked ?? false);
       this.addToContent(card);
     }
   }
@@ -75,7 +124,11 @@ export class ShopPanel extends SlidingPanel {
   /**
    * Create a slot purchase card
    */
-  private createSlotCard(slotIndex: number, y: number): Phaser.GameObjects.Container {
+  private createSlotCard(
+    slotIndex: number,
+    y: number,
+    isUnlocked: boolean
+  ): Phaser.GameObjects.Container {
     const container = this.scene.add.container(16, y);
     const cardWidth = this.getContentWidth();
     const cardHeight = 88;
@@ -97,103 +150,215 @@ export class ShopPanel extends SlidingPanel {
     container.add(titleText);
 
     // Slot description
-    const descText = this.scene.add.text(16, 32, `Unlocks module slot ${slotIndex + 1}`, {
-      fontSize: '12px',
-      color: UI_CONFIG.COLORS.TEXT_SECONDARY,
-    });
+    const descText = this.scene.add.text(
+      16,
+      32,
+      isUnlocked ? 'Module slot unlocked' : `Unlocks module slot ${slotIndex + 1}`,
+      {
+        fontSize: '12px',
+        color: UI_CONFIG.COLORS.TEXT_SECONDARY,
+      }
+    );
     container.add(descText);
 
-    // Check slot status
-    const isUnlocked = slotIndex === 0; // Slot 1 is always unlocked
-    const cost = ShopPanel.SLOT_COSTS[slotIndex] ?? 0;
+    // Get slot info
+    const cost = GAME_CONFIG.SLOT_COSTS[slotIndex] ?? 0;
     const requirement = ShopPanel.SLOT_REQUIREMENTS[slotIndex];
-    const isLocked = requirement !== null && requirement !== undefined;
+    const hasRequirement = requirement !== null;
+    const meetsRequirement = this.checkRequirement(slotIndex);
     const canAfford = this.gameState.canAfford(cost);
 
-    // Status indicator
     if (isUnlocked) {
       // Already owned
-      const ownedBadge = this.scene.add.text(cardWidth - 16, 12, 'OWNED', {
-        fontSize: '12px',
-        color: '#4ade80', // Green
-        fontStyle: 'bold',
-      });
-      ownedBadge.setOrigin(1, 0);
-      container.add(ownedBadge);
-
-      const checkmark = this.scene.add.text(16, 56, 'Unlocked', {
-        fontSize: '14px',
-        color: '#a0a0a0', // Secondary
-      });
-      container.add(checkmark);
-    } else if (isLocked) {
-      // Locked with requirement
-      const lockedBadge = this.scene.add.text(cardWidth - 16, 12, 'LOCKED', {
-        fontSize: '12px',
-        color: '#ff6666',
-        fontStyle: 'bold',
-      });
-      lockedBadge.setOrigin(1, 0);
-      container.add(lockedBadge);
-
-      const lockIcon = this.scene.add.text(16, 56, `L ${requirement}`, {
-        fontSize: '12px',
-        color: '#ff6666',
-      });
-      container.add(lockIcon);
-
-      const futureCost = this.scene.add.text(16, 72, `Cost: ${this.formatGold(cost)}`, {
-        fontSize: '11px',
-        color: '#a0a0a0', // Secondary
-      });
-      container.add(futureCost);
+      this.createOwnedBadge(container, cardWidth);
+    } else if (hasRequirement && !meetsRequirement) {
+      // Locked with boss requirement
+      this.createLockedCard(container, cardWidth, requirement!, cost);
     } else {
       // Available for purchase
-      const buttonWidth = 120;
-      const buttonHeight = 32;
-      const buttonX = cardWidth - buttonWidth - 16;
-      const buttonY = 48;
-
-      const buttonBg = this.scene.add.rectangle(
-        buttonX + buttonWidth / 2,
-        buttonY,
-        buttonWidth,
-        buttonHeight,
-        canAfford ? UI_CONFIG.COLORS.HEALTH_GREEN : 0x5a4a37
-      );
-      buttonBg.setInteractive({ useHandCursor: canAfford });
-      container.add(buttonBg);
-
-      const goldIcon = this.scene.add.circle(buttonX + 16, buttonY, 6, 0xffd700);
-      container.add(goldIcon);
-
-      const buttonText = this.scene.add.text(
-        buttonX + buttonWidth / 2 + 8,
-        buttonY,
-        this.formatGold(cost),
-        {
-          fontSize: '14px',
-          color: canAfford ? '#ffffff' : '#888888',
-          fontStyle: 'bold',
-        }
-      );
-      buttonText.setOrigin(0.5);
-      container.add(buttonText);
-
-      if (!canAfford) {
-        const needMore = this.scene.add.text(16, 56, `Need ${this.formatGold(cost - this.gameState.getGold())} more`, {
-          fontSize: '11px',
-          color: '#ff8866',
-        });
-        container.add(needMore);
-      }
+      this.createPurchaseCard(container, cardWidth, slotIndex, cost, canAfford);
     }
 
     return container;
   }
 
   /**
-   * Format gold amount
+   * Create owned badge for unlocked slots
+   */
+  private createOwnedBadge(
+    container: Phaser.GameObjects.Container,
+    cardWidth: number
+  ): void {
+    const ownedBadge = this.scene.add.text(cardWidth - 16, 12, 'OWNED', {
+      fontSize: '12px',
+      color: '#4ade80',
+      fontStyle: 'bold',
+    });
+    ownedBadge.setOrigin(1, 0);
+    container.add(ownedBadge);
+
+    const checkmark = this.scene.add.text(16, 56, '✓ Unlocked', {
+      fontSize: '14px',
+      color: '#4ade80',
+    });
+    container.add(checkmark);
+  }
+
+  /**
+   * Create locked card for slots with boss requirements
+   */
+  private createLockedCard(
+    container: Phaser.GameObjects.Container,
+    cardWidth: number,
+    requirement: string,
+    cost: number
+  ): void {
+    const lockedBadge = this.scene.add.text(cardWidth - 16, 12, 'LOCKED', {
+      fontSize: '12px',
+      color: '#ff6666',
+      fontStyle: 'bold',
+    });
+    lockedBadge.setOrigin(1, 0);
+    container.add(lockedBadge);
+
+    const lockIcon = this.scene.add.text(16, 52, `🔒 ${requirement}`, {
+      fontSize: '12px',
+      color: '#ff6666',
+    });
+    container.add(lockIcon);
+
+    const futureCost = this.scene.add.text(16, 70, `Cost: ${this.formatGold(cost)}`, {
+      fontSize: '11px',
+      color: UI_CONFIG.COLORS.TEXT_SECONDARY,
+    });
+    container.add(futureCost);
+  }
+
+  /**
+   * Create purchase card for available slots
+   */
+  private createPurchaseCard(
+    container: Phaser.GameObjects.Container,
+    cardWidth: number,
+    slotIndex: number,
+    cost: number,
+    canAfford: boolean
+  ): void {
+    const buttonWidth = 140;
+    const buttonHeight = 36;
+    const buttonX = cardWidth - buttonWidth - 16;
+    const buttonY = 48;
+
+    // Purchase button background
+    const buttonBg = this.scene.add.rectangle(
+      buttonX + buttonWidth / 2,
+      buttonY,
+      buttonWidth,
+      buttonHeight,
+      canAfford ? UI_CONFIG.COLORS.HEALTH_GREEN : 0x5a4a37
+    );
+    container.add(buttonBg);
+
+    // Gold icon
+    const goldIcon = this.scene.add.circle(buttonX + 20, buttonY, 8, 0xffd700);
+    container.add(goldIcon);
+
+    // Button text
+    const buttonText = this.scene.add.text(
+      buttonX + buttonWidth / 2 + 10,
+      buttonY,
+      this.formatGold(cost),
+      {
+        fontSize: '14px',
+        color: canAfford ? '#ffffff' : '#888888',
+        fontStyle: 'bold',
+      }
+    );
+    buttonText.setOrigin(0.5);
+    container.add(buttonText);
+
+    if (canAfford) {
+      // Make button interactive
+      buttonBg.setInteractive({ useHandCursor: true });
+
+      buttonBg.on('pointerover', () => {
+        buttonBg.setFillStyle(0x5bef8f); // Lighter green
+      });
+
+      buttonBg.on('pointerout', () => {
+        buttonBg.setFillStyle(UI_CONFIG.COLORS.HEALTH_GREEN);
+      });
+
+      buttonBg.on('pointerdown', () => {
+        buttonBg.setFillStyle(UI_CONFIG.COLORS.BUTTON_ACTIVE);
+        this.purchaseSlot(slotIndex);
+      });
+
+      // "Click to buy" hint
+      const buyHint = this.scene.add.text(16, 56, 'Click to purchase', {
+        fontSize: '11px',
+        color: '#4ade80',
+      });
+      container.add(buyHint);
+    } else {
+      // Show how much more gold is needed
+      const goldNeeded = cost - this.gameState.getGold();
+      const needMore = this.scene.add.text(
+        16,
+        56,
+        `Need ${this.formatGold(goldNeeded)} more gold`,
+        {
+          fontSize: '11px',
+          color: '#ff8866',
+        }
+      );
+      container.add(needMore);
+    }
+  }
+
+  /**
+   * Check if boss requirement is met for a slot
+   */
+  private checkRequirement(slotIndex: number): boolean {
+    const requirement = ShopPanel.SLOT_REQUIREMENTS[slotIndex];
+    if (requirement === null) {
+      return true; // No requirement
+    }
+
+    // Check based on slot index
+    if (slotIndex === 3) {
+      // Slot 4: Defeat Diaboros (Act 8 boss)
+      return this.gameState.getBossesDefeated().includes('diaboros');
+    } else if (slotIndex === 4) {
+      // Slot 5: Defeat all Uber Bosses
+      const ubersDefeated = this.gameState.getUbersDefeated();
+      // For now, check if any uber is defeated (full list TBD)
+      return ubersDefeated.length >= 8; // All 8 uber bosses
+    }
+
+    return false;
+  }
+
+  /**
+   * Handle slot purchase
+   */
+  private purchaseSlot(slotIndex: number): void {
+    const success = this.gameState.unlockSlot(slotIndex);
+
+    if (success) {
+      if (import.meta.env.DEV) {
+        console.log(`[ShopPanel] Purchased slot ${slotIndex + 1}`);
+      }
+      // Content will be rebuilt by the event handler
+    } else {
+      if (import.meta.env.DEV) {
+        console.warn(`[ShopPanel] Failed to purchase slot ${slotIndex + 1}`);
+      }
+    }
+  }
+
+  /**
+   * Format gold amount for display
    */
   private formatGold(amount: number): string {
     if (amount >= 1_000_000) {
@@ -208,9 +373,19 @@ export class ShopPanel extends SlidingPanel {
    * Refresh panel content when opened
    */
   public refresh(): void {
-    // TODO: Update slot statuses and button states
+    this.rebuildContent();
+
     if (import.meta.env.DEV) {
       console.log('[ShopPanel] Refreshing content');
     }
+  }
+
+  /**
+   * Clean up on destroy
+   */
+  public destroy(fromScene?: boolean): void {
+    this.eventManager.off(GameEvents.SLOT_UNLOCKED, this.onStateChanged, this);
+    this.eventManager.off(GameEvents.GOLD_CHANGED, this.onStateChanged, this);
+    super.destroy(fromScene);
   }
 }

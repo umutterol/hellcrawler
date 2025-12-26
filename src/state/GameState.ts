@@ -723,6 +723,11 @@ export class GameState {
 
     slot.unlocked = true;
 
+    this.eventManager.emit(GameEvents.SLOT_UNLOCKED, {
+      slotIndex,
+      cost,
+    });
+
     if (import.meta.env.DEV) {
       console.log(`[GameState] Unlocked slot ${slotIndex} for ${cost} gold`);
     }
