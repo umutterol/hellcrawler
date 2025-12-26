@@ -8,7 +8,8 @@ import { WaveSystem } from '../systems/WaveSystem';
 import { LootSystem } from '../systems/LootSystem';
 import { GameUI } from '../ui/GameUI';
 import { ModuleSlotUI } from '../ui/ModuleSlotUI';
-import { TankStatsUI } from '../ui/TankStatsUI';
+import { Sidebar } from '../ui/Sidebar';
+import { TankStatsPanel, InventoryPanel, ShopPanel, SettingsPanel } from '../ui/panels';
 import { ModuleManager } from '../modules/ModuleManager';
 import { ModuleItem } from '../modules/ModuleItem';
 import { ModuleType } from '../types/ModuleTypes';
@@ -16,6 +17,7 @@ import { Rarity } from '../types/GameTypes';
 import { getGameState } from '../state/GameState';
 import { getSaveManager, SaveManager } from '../managers/SaveManager';
 import { InputManager } from '../managers/InputManager';
+import { getPanelManager, PanelManager } from '../managers/PanelManager';
 
 /**
  * Main Game Scene - Core gameplay loop
@@ -47,8 +49,15 @@ export class GameScene extends Phaser.Scene {
   // UI
   private gameUI!: GameUI;
   private moduleSlotUI!: ModuleSlotUI;
-  private tankStatsUI!: TankStatsUI;
+  private sidebar!: Sidebar;
   private fpsText: Phaser.GameObjects.Text | null = null;
+
+  // Panel system
+  private panelManager!: PanelManager;
+  private tankStatsPanel!: TankStatsPanel;
+  private inventoryPanel!: InventoryPanel;
+  private shopPanel!: ShopPanel;
+  private settingsPanel!: SettingsPanel;
 
   // Save system
   private saveManager!: SaveManager;
@@ -258,14 +267,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   private createUI(): void {
+    // Core HUD elements
     this.gameUI = new GameUI(this);
     this.moduleSlotUI = new ModuleSlotUI(this, this.moduleManager);
-    this.tankStatsUI = new TankStatsUI(this);
 
-    // Wire TAB key to toggle tank stats panel
-    this.inputManager.setTabCallback(() => {
-      this.tankStatsUI.toggle();
-    });
+    // Initialize panel system
+    this.initializePanelSystem();
 
     // FPS counter (dev only)
     if (import.meta.env.DEV) {
@@ -274,6 +281,37 @@ export class GameScene extends Phaser.Scene {
         color: '#00ff00',
       });
       this.fpsText.setDepth(1000);
+    }
+  }
+
+  /**
+   * Initialize the sliding panel system
+   */
+  private initializePanelSystem(): void {
+    // Get/create panel manager
+    this.panelManager = getPanelManager();
+    this.panelManager.setScene(this);
+
+    // Create sidebar (left side navigation)
+    this.sidebar = new Sidebar(this);
+
+    // Create all panels
+    this.tankStatsPanel = new TankStatsPanel(this);
+    this.inventoryPanel = new InventoryPanel(this);
+    this.shopPanel = new ShopPanel(this);
+    this.settingsPanel = new SettingsPanel(this);
+
+    // Register panels with manager
+    this.panelManager.registerPanel(this.tankStatsPanel);
+    this.panelManager.registerPanel(this.inventoryPanel);
+    this.panelManager.registerPanel(this.shopPanel);
+    this.panelManager.registerPanel(this.settingsPanel);
+
+    // Enable panel manager integration in InputManager
+    this.inputManager.enablePanelManager();
+
+    if (import.meta.env.DEV) {
+      console.log('[GameScene] Panel system initialized with 4 panels');
     }
   }
 
@@ -337,14 +375,28 @@ export class GameScene extends Phaser.Scene {
    * Scene shutdown - cleanup
    */
   shutdown(): void {
+    // Cleanup systems
     this.combatSystem.destroy();
     this.waveSystem.destroy();
     this.lootSystem.destroy();
     this.moduleManager.destroy();
     this.inputManager.destroy();
+
+    // Cleanup UI
     this.gameUI.destroy();
     this.moduleSlotUI.destroy();
-    this.tankStatsUI.destroy();
+    this.sidebar.destroy();
+
+    // Cleanup panels
+    this.tankStatsPanel.destroy();
+    this.inventoryPanel.destroy();
+    this.shopPanel.destroy();
+    this.settingsPanel.destroy();
+
+    // Cleanup panel manager
+    PanelManager.resetInstance();
+
+    // Cleanup entities
     this.tank.destroy();
   }
 }

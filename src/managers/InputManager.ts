@@ -1,9 +1,11 @@
 import Phaser from 'phaser';
 import { ModuleManager } from '../modules/ModuleManager';
 import { Enemy } from '../entities/Enemy';
+import { getPanelManager } from './PanelManager';
+import { PanelType } from '../config/UIConfig';
 
 /**
- * InputManager - Handles keyboard input for skill activation
+ * InputManager - Handles keyboard input for skill activation and panel shortcuts
  *
  * Hotkey mapping per GDD:
  * - Keys 1,2 -> Slot 0 skills (skill 1, skill 2)
@@ -11,6 +13,12 @@ import { Enemy } from '../entities/Enemy';
  * - Keys 5,6 -> Slot 2 skills
  * - Keys 7,8 -> Slot 3 skills
  * - Keys 9,0 -> Slot 4 skills
+ *
+ * Panel shortcuts per UISpec:
+ * - TAB -> Tank Stats Panel
+ * - I -> Inventory Panel
+ * - P -> Shop Panel
+ * - ESC -> Close panel or open Settings
  *
  * Formula: slotIndex = floor((keyNum - 1) / 2), skillIndex = (keyNum - 1) % 2
  */
@@ -34,14 +42,20 @@ export class InputManager {
     Phaser.Input.Keyboard.KeyCodes.ZERO,
   ];
 
-  // TAB key for stats panel toggle
+  // Panel shortcut keys
   private tabKey: Phaser.Input.Keyboard.Key | null = null;
+  private iKey: Phaser.Input.Keyboard.Key | null = null;
+  private pKey: Phaser.Input.Keyboard.Key | null = null;
+  private escKey: Phaser.Input.Keyboard.Key | null = null;
 
   // SHIFT key for auto-mode toggle
   private shiftKey: Phaser.Input.Keyboard.Key | null = null;
 
-  // Callback for TAB press
+  // Legacy callback for TAB press (for backwards compatibility)
   private onTabPress: (() => void) | null = null;
+
+  // Flag to use PanelManager instead of legacy callback
+  private usePanelManager: boolean = false;
 
   /**
    * Initialize the input manager with a scene
@@ -59,14 +73,28 @@ export class InputManager {
       scene.input.keyboard!.addKey(keyCode)
     );
 
-    // Create TAB key for stats panel
+    // Create panel shortcut keys
     this.tabKey = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TAB);
+    this.iKey = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.I);
+    this.pKey = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.P);
+    this.escKey = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
     // Create SHIFT key for auto-mode toggle
     this.shiftKey = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
 
     if (import.meta.env.DEV) {
-      console.log('[InputManager] Initialized with 10 skill keys (Shift+Key to toggle auto-mode)');
+      console.log('[InputManager] Initialized with 10 skill keys + panel shortcuts (TAB, I, P, ESC)');
+    }
+  }
+
+  /**
+   * Enable panel manager integration
+   * When enabled, TAB/I/P/ESC go through PanelManager instead of legacy callbacks
+   */
+  public enablePanelManager(): void {
+    this.usePanelManager = true;
+    if (import.meta.env.DEV) {
+      console.log('[InputManager] Panel manager integration enabled');
     }
   }
 
@@ -117,10 +145,43 @@ export class InputManager {
       }
     }
 
-    // Check TAB key for stats panel toggle
-    if (this.tabKey && Phaser.Input.Keyboard.JustDown(this.tabKey)) {
-      if (this.onTabPress) {
-        this.onTabPress();
+    // Check panel shortcut keys
+    this.handlePanelShortcuts();
+  }
+
+  /**
+   * Handle panel keyboard shortcuts
+   */
+  private handlePanelShortcuts(): void {
+    if (this.usePanelManager) {
+      // Use PanelManager for panel shortcuts
+      const panelManager = getPanelManager();
+
+      // TAB -> Tank Stats
+      if (this.tabKey && Phaser.Input.Keyboard.JustDown(this.tabKey)) {
+        panelManager.togglePanel(PanelType.TANK_STATS);
+      }
+
+      // I -> Inventory
+      if (this.iKey && Phaser.Input.Keyboard.JustDown(this.iKey)) {
+        panelManager.togglePanel(PanelType.INVENTORY);
+      }
+
+      // P -> Shop
+      if (this.pKey && Phaser.Input.Keyboard.JustDown(this.pKey)) {
+        panelManager.togglePanel(PanelType.SHOP);
+      }
+
+      // ESC -> Close panel or open Settings
+      if (this.escKey && Phaser.Input.Keyboard.JustDown(this.escKey)) {
+        panelManager.handleEscapeKey();
+      }
+    } else {
+      // Legacy behavior - only TAB with callback
+      if (this.tabKey && Phaser.Input.Keyboard.JustDown(this.tabKey)) {
+        if (this.onTabPress) {
+          this.onTabPress();
+        }
       }
     }
   }
@@ -169,6 +230,15 @@ export class InputManager {
       if (this.tabKey) {
         this.scene.input.keyboard.removeKey(this.tabKey);
       }
+      if (this.iKey) {
+        this.scene.input.keyboard.removeKey(this.iKey);
+      }
+      if (this.pKey) {
+        this.scene.input.keyboard.removeKey(this.pKey);
+      }
+      if (this.escKey) {
+        this.scene.input.keyboard.removeKey(this.escKey);
+      }
       if (this.shiftKey) {
         this.scene.input.keyboard.removeKey(this.shiftKey);
       }
@@ -176,8 +246,12 @@ export class InputManager {
 
     this.skillKeys = [];
     this.tabKey = null;
+    this.iKey = null;
+    this.pKey = null;
+    this.escKey = null;
     this.shiftKey = null;
     this.scene = null;
     this.onTabPress = null;
+    this.usePanelManager = false;
   }
 }

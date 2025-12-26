@@ -50,6 +50,10 @@ export enum GameEvents {
   // Save Events
   GAME_SAVED = 'save:saved',
   GAME_LOADED = 'save:loaded',
+
+  // Panel Events
+  PANEL_OPENED = 'panel:opened',
+  PANEL_CLOSED = 'panel:closed',
 }
 
 /**
@@ -263,6 +267,15 @@ export interface GameLoadedPayload {
   totalPlayTime: number;
 }
 
+// Panel Event Payloads
+export interface PanelOpenedPayload {
+  panelType: string;
+}
+
+export interface PanelClosedPayload {
+  panelType: string;
+}
+
 /**
  * Type mapping for event payloads
  * Maps each event to its corresponding payload type
@@ -294,4 +307,6 @@ export type EventPayloadMap = {
   [GameEvents.TANK_STAT_UPGRADED]: TankStatUpgradedPayload;
   [GameEvents.GAME_SAVED]: GameSavedPayload;
   [GameEvents.GAME_LOADED]: GameLoadedPayload;
+  [GameEvents.PANEL_OPENED]: PanelOpenedPayload;
+  [GameEvents.PANEL_CLOSED]: PanelClosedPayload;
 };
