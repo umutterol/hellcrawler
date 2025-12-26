@@ -246,21 +246,29 @@ class Tank extends Phaser.GameObjects.Container {
 
 ### ModuleSlot.ts
 ```typescript
+interface SlotStats {
+  damageLevel: number;
+  attackSpeedLevel: number;
+  cdrLevel: number;
+}
+
 interface ModuleSlotData {
   index: number;
-  level: number;
+  stats: SlotStats;
   equipped: ModuleItem | null;
   unlocked: boolean;
 }
 
 class ModuleSlot {
   data: ModuleSlotData;
-  
+
   equip(module: ModuleItem): boolean;
   unequip(): ModuleItem | null;
-  upgrade(): boolean;
-  getDamageMultiplier(): number;
-  getAttackSpeedMultiplier(): number;
+  upgradeStat(statType: SlotStatType, tankLevel: number): boolean;
+  getStatLevel(statType: SlotStatType): number;
+  getDamageMultiplier(): number;      // 1 + (damageLevel * 0.01)
+  getAttackSpeedMultiplier(): number; // 1 + (attackSpeedLevel * 0.01)
+  getCDRBonus(): number;              // cdrLevel (percentage)
 }
 ```
 
@@ -519,18 +527,29 @@ Priority: P1 (MVP)
 Description: Calculate final damage from source to target
 
 Formula:
-  BaseDamage × SlotMultiplier × StatBonuses × CritMultiplier × Variance
+  BaseDamage × SlotDamageMultiplier × StatBonuses × CritMultiplier × Variance
 
 Where:
-  SlotMultiplier = 1 + (SlotLevel × 0.01)
+  SlotDamageMultiplier = 1 + (SlotDamageLevel × 0.01)
   StatBonuses = 1 + (sum of all relevant % bonuses)
   CritMultiplier = if crit then 2.0 + CritDamageBonus else 1.0
   Variance = random(0.9, 1.1)
+
+Fire Rate:
+  BaseFireRate × SlotAttackSpeedMultiplier
+  SlotAttackSpeedMultiplier = 1 + (SlotAttackSpeedLevel × 0.01)
+
+Skill Cooldowns:
+  BaseCooldown × (1 - CDRBonus)
+  CDRBonus = min(SlotCDRLevel × 0.01, 0.90)  // Capped at 90%
 
 Acceptance Criteria:
   - Damage numbers display correctly
   - Crits show yellow color
   - Multistrike triggers correctly
+  - Slot damage stat affects module damage
+  - Slot attack speed stat affects fire rate
+  - Slot CDR stat affects skill cooldowns
 ```
 
 ### F-COMBAT-002: Near Death System
@@ -591,13 +610,17 @@ Acceptance Criteria:
 ### F-MODULE-001: Module Slots
 ```
 Priority: P1 (MVP)
-Description: Container for module items
+Description: Container for module items with per-stat upgrades
 
 Properties:
   - index: 0-4
-  - level: 1-160 (capped by tank level)
+  - stats: { damageLevel, attackSpeedLevel, cdrLevel }
   - equipped: ModuleItem | null
   - unlocked: boolean
+
+Per-Stat Properties:
+  - Each stat: level 0-160 (capped by tank level)
+  - Cost per upgrade: (currentLevel + 1) × 50 Gold
 
 Unlock Conditions:
   - Slot 0: Free
@@ -606,14 +629,18 @@ Unlock Conditions:
   - Slot 3: Beat Diaboros + 500,000 Gold
   - Slot 4: Beat all Ubers + 2,000,000 Gold
 
-Upgrade Effect:
-  - +1% damage per level
-  - +0.5% attack speed per level
+Per-Stat Upgrade Effects:
+  - Damage: +1% module damage per level
+  - Attack Speed: +1% module fire rate per level
+  - CDR: +1% cooldown reduction per level (capped at 90%)
 
 Acceptance Criteria:
-  - Slots display correctly in UI
-  - Upgrade costs scale correctly
-  - Level cap enforced
+  - Slots display correctly in UI with 3 stats each
+  - TankStatsPanel shows tabs: Tank, Slot 1-5
+  - Each stat upgrades independently
+  - Upgrade costs scale correctly: (level + 1) × 50
+  - Level cap enforced per stat (tank level)
+  - Stat bonuses apply only to module in that slot
 ```
 
 ### F-MODULE-002: Module Items

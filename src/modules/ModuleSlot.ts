@@ -167,6 +167,13 @@ export class ModuleSlot {
   }
 
   /**
+   * Set slot stats (used to sync with GameState after upgrades)
+   */
+  public setStats(stats: SlotStats): void {
+    this.data.stats = { ...stats };
+  }
+
+  /**
    * Get currently equipped module
    */
   public getEquipped(): ModuleItemData | null {

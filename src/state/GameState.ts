@@ -794,15 +794,15 @@ export class GameState {
    */
   public getSlotStatLevel(slotIndex: number, statType: SlotStatType): number {
     const slot = this.moduleSlots[slotIndex];
-    if (!slot) return 0;
+    if (!slot || !slot.stats) return 0;
 
     switch (statType) {
       case SlotStatType.Damage:
-        return slot.stats.damageLevel;
+        return slot.stats.damageLevel ?? 0;
       case SlotStatType.AttackSpeed:
-        return slot.stats.attackSpeedLevel;
+        return slot.stats.attackSpeedLevel ?? 0;
       case SlotStatType.CDR:
-        return slot.stats.cdrLevel;
+        return slot.stats.cdrLevel ?? 0;
       default:
         return 0;
     }
@@ -813,7 +813,7 @@ export class GameState {
    */
   public getSlotStats(slotIndex: number): SlotStats | null {
     const slot = this.moduleSlots[slotIndex];
-    if (!slot) return null;
+    if (!slot || !slot.stats) return null;
     return { ...slot.stats };
   }
 
@@ -1069,7 +1069,28 @@ export class GameState {
     this.essences = new Map(Object.entries(data.economy.essences));
     this.infernalCores = data.economy.infernalCores;
 
-    this.moduleSlots = data.modules.slots.map((slot) => ({ ...slot }));
+    // Migrate old slot format (level) to new format (stats)
+    this.moduleSlots = data.modules.slots.map((slot) => {
+      // Check if slot has old format (level) or new format (stats)
+      const slotData = slot as unknown as Record<string, unknown>;
+      if (slotData.stats && typeof slotData.stats === 'object') {
+        // New format - use as-is
+        return { ...slot } as ModuleSlotData;
+      } else {
+        // Old format - migrate level to stats
+        const oldLevel = (slotData.level as number) ?? 0;
+        return {
+          index: slot.index,
+          stats: {
+            damageLevel: oldLevel,
+            attackSpeedLevel: 0,
+            cdrLevel: 0,
+          },
+          equipped: slot.equipped,
+          unlocked: slot.unlocked,
+        } as ModuleSlotData;
+      }
+    });
     this.moduleInventory = data.modules.inventory.map((module) => ({ ...module }));
 
     this.currentAct = data.progression.currentAct;

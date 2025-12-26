@@ -339,6 +339,12 @@ All must be true before moving to Vertical Slice:
   - Level cap: Each stat capped by tank level
   - Locked slots show lock icon in tab and "Unlock in Shop" message
   - BottomBar and ModuleSlotUI show total stat levels (sum of all 3)
+- **Per-Slot Stats Bug Fixes:**
+  - Fixed save data migration: Old save format (`level` per slot) now migrates to new format (`stats: {damageLevel, attackSpeedLevel, cdrLevel}`)
+  - Fixed upgrade button colors: Buttons now show correct color at creation time (green if affordable, brownish if not)
+  - Fixed slot stats not applying to modules: Added `SLOT_STAT_UPGRADED` event listener to ModuleManager
+  - Added `setStats()` method to ModuleSlot for syncing with GameState after upgrades
+  - ModuleManager now properly syncs slot stats from GameState → ModuleSlot → active BaseModule
 
 ---
 

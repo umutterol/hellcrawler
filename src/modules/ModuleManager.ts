@@ -12,6 +12,7 @@ import {
   GameEvents,
   ModuleEquippedPayload,
   ModuleUnequippedPayload,
+  SlotStatUpgradedPayload,
 } from '../types/GameEvents';
 
 /**
@@ -67,6 +68,7 @@ export class ModuleManager {
   private setupEventListeners(): void {
     this.eventManager.on(GameEvents.MODULE_EQUIPPED, this.onModuleEquipped, this);
     this.eventManager.on(GameEvents.MODULE_UNEQUIPPED, this.onModuleUnequipped, this);
+    this.eventManager.on(GameEvents.SLOT_STAT_UPGRADED, this.onSlotStatUpgraded, this);
   }
 
   /**
@@ -157,6 +159,32 @@ export class ModuleManager {
         console.log(`[ModuleManager] Destroyed active module for slot ${slotIndex}`);
       }
     }
+  }
+
+  /**
+   * Handle slot stat upgraded event from GameState
+   * Syncs the ModuleSlot and active module with the new stats
+   */
+  private onSlotStatUpgraded(payload: SlotStatUpgradedPayload): void {
+    const { slotIndex, statType, newLevel } = payload;
+
+    if (import.meta.env.DEV) {
+      console.log(`[ModuleManager] onSlotStatUpgraded: slot ${slotIndex}, ${statType} -> ${newLevel}`);
+    }
+
+    // Get updated stats from GameState
+    const gameStateSlots = this.gameState.getModuleSlots();
+    const gameStateSlot = gameStateSlots[slotIndex];
+    if (!gameStateSlot || !gameStateSlot.stats) return;
+
+    // Update the ModuleSlot's stats
+    const slot = this.slots[slotIndex];
+    if (slot) {
+      slot.setStats(gameStateSlot.stats);
+    }
+
+    // Update the active module's slot stats
+    this.updateModuleSlotStats(slotIndex);
   }
 
   /**
@@ -514,6 +542,7 @@ export class ModuleManager {
     // Remove event listeners
     this.eventManager.off(GameEvents.MODULE_EQUIPPED, this.onModuleEquipped, this);
     this.eventManager.off(GameEvents.MODULE_UNEQUIPPED, this.onModuleUnequipped, this);
+    this.eventManager.off(GameEvents.SLOT_STAT_UPGRADED, this.onSlotStatUpgraded, this);
 
     this.activeModules.forEach((m) => m.destroy());
     this.activeModules.clear();

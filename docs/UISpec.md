@@ -148,7 +148,9 @@ CLOSED                    OPENING                   OPEN
 
 ### 4.1 Tank Stats Panel
 
-**Purpose:** View tank info, upgrade stats, upgrade module slots
+**Purpose:** View tank info, upgrade tank stats, upgrade per-slot stats
+
+**Architecture:** Tabbed interface with 6 tabs: Tank, Slot 1, Slot 2, Slot 3, Slot 4, Slot 5
 
 ```
 ┌─────────────────────────────────────┐
@@ -159,50 +161,110 @@ CLOSED                    OPENING                   OPEN
 │ │ IMG │  ████████████░░ 12.5K/15K   │  ← XP bar
 │ └─────┘                             │
 ├─────────────────────────────────────┤
-│ ⚙ TANK STATS           [UPGRADE]   │  ← Section header
+│ [Tank][Slot1][Slot2][Slot3][S4][S5] │  ← Tab bar (locked slots show lock icon)
+├─────────────────────────────────────┤
+│                                     │
+│  --- TANK TAB (Tank Stats) ---      │
+│                                     │
+│ ┌───┐                               │
+│ │ ❤ │ Vitality (Max HP)             │
+│ └───┘ Lv.25 → Lv.26                 │  ← Current → Next level
+│       1,250 → 1,260 HP   [2,500 G]  │  ← Value preview + cost
 ├─────────────────────────────────────┤
 │ ┌───┐                               │
-│ │ ❤ │ Max HP                        │
-│ └───┘ 1,250 → 1,260                 │  ← Current → Next
-│       [+10 HP]            [500 G]   │  ← Upgrade button with cost
+│ │ 🛡 │ Barrier (Defense)             │
+│ └───┘ Lv.15 → Lv.16                 │
+│       15.0% → 15.5%      [1,500 G]  │
 ├─────────────────────────────────────┤
 │ ┌───┐                               │
-│ │ 🛡 │ Defense                       │
-│ └───┘ 15.5% → 16.0%                 │
-│       [+0.5%]             [600 G]   │
+│ │ 💚 │ Regeneration (HP Regen)       │
+│ └───┘ Lv.10 → Lv.11                 │
+│       5.0/s → 5.5/s      [1,000 G]  │
 ├─────────────────────────────────────┤
 │ ┌───┐                               │
-│ │ 💚 │ HP Regen                      │
-│ └───┘ 5.5/s → 6.0/s                 │
-│       [+0.5/s]            [700 G]   │
-├─────────────────────────────────────┤
-│ ┌───┐                               │
-│ │ 🐢 │ Enemy Slow                    │
-│ └───┘ 12% → 13%                     │
-│       [+1%]               [800 G]   │
-├─────────────────────────────────────┤
-│ ⚙ MODULE SLOTS                      │  ← Section header
-├─────────────────────────────────────┤
-│ Slot 1  [Lv.25]  ████░░  [1,000 G]  │  ← Slot level + upgrade
-│ Slot 2  [Lv.18]  ███░░░  [900 G]    │
-│ Slot 3  [Lv.10]  ██░░░░  [550 G]    │
-│ Slot 4  [LOCKED - Beat Diaboros]    │  ← Locked slots show requirement
-│ Slot 5  [LOCKED - Beat all Ubers]   │
+│ │ 🐢 │ Suppression (Enemy Slow)      │
+│ └───┘ Lv.12 → Lv.13                 │
+│       12% → 13%          [1,200 G]  │
 └─────────────────────────────────────┘
 ```
 
+```
+┌─────────────────────────────────────┐
+│ [<<]                    [🔊][🎵][?] │
+├─────────────────────────────────────┤
+│ (Tank header - same as above)       │
+├─────────────────────────────────────┤
+│ [Tank][Slot1][Slot2][Slot3][S4][S5] │  ← Slot 1 tab selected
+├─────────────────────────────────────┤
+│                                     │
+│  --- SLOT 1 TAB (Per-Slot Stats) ---│
+│                                     │
+│ ┌───┐ Equipped: Machine Gun (Rare)  │  ← Shows equipped module
+│ │MG │ +5% Damage, +3% Attack Speed  │
+│ └───┘                               │
+├─────────────────────────────────────┤
+│ ┌───┐                               │
+│ │ ⚔ │ Damage                        │
+│ └───┘ Lv.25 → Lv.26                 │  ← Per-slot damage stat
+│       +25% → +26%          [1,300G] │  ← Cost: (level+1) × 50
+├─────────────────────────────────────┤
+│ ┌───┐                               │
+│ │ ⚡ │ Attack Speed                  │
+│ └───┘ Lv.18 → Lv.19                 │  ← Per-slot attack speed stat
+│       +18% → +19%          [950 G]  │
+├─────────────────────────────────────┤
+│ ┌───┐                               │
+│ │ ⏱ │ Cooldown Reduction            │
+│ └───┘ Lv.10 → Lv.11                 │  ← Per-slot CDR stat
+│       10% → 11%            [550 G]  │  ← CDR capped at 90%
+└─────────────────────────────────────┘
+```
+
+```
+┌─────────────────────────────────────┐
+│  --- LOCKED SLOT TAB (Slot 4) ---   │
+├─────────────────────────────────────┤
+│                                     │
+│           🔒 LOCKED                 │
+│                                     │
+│     Unlock this slot in the Shop    │
+│                                     │
+│     Requirement: Beat Diaboros      │
+│     Cost: 500,000 Gold              │
+│                                     │
+│         [Go to Shop]                │
+│                                     │
+└─────────────────────────────────────┘
+```
+
+**Tab Behavior:**
+- Tank tab: Shows 4 tank stats (Vitality, Barrier, Regeneration, Suppression)
+- Slot 1-5 tabs: Shows 3 per-slot stats (Damage, Attack Speed, CDR)
+- Locked slots: Tab shows lock icon, content shows "Unlock in Shop" message
+- Active tab has highlighted background
+
 **Interactions:**
-- Click cost button → Spend gold, upgrade stat/slot
-- Hover cost button → Show affordability (green = can afford, red = can't)
-- Click [UPGRADE] header → Toggle between stats/slots view (optional)
+- Click tab → Switch to that tab's content
+- Click upgrade button → Spend gold, upgrade that specific stat
+- Hover button → Show affordability (green = can afford, brownish = can't)
+- Locked slot tab → Click to see unlock requirements
 
 **Button States:**
 | State | Appearance |
 |-------|------------|
 | Can Afford | Green background, white text |
-| Cannot Afford | Gray background, orange text showing "Need X more" |
+| Cannot Afford | Brownish background (#5a4a37), shows cost |
 | At Max Level | Gray background, "MAX" text |
-| Locked | Dark background, lock icon, requirement text |
+| Locked Slot | Dark background, lock icon, "Unlock in Shop" |
+
+**Per-Slot Stat Formulas:**
+| Stat | Effect | Formula |
+|------|--------|---------|
+| Damage | +1% per level | 1 + (level × 0.01) multiplier |
+| Attack Speed | +1% per level | 1 + (level × 0.01) multiplier |
+| CDR | +1% per level | min(level%, 90%) reduction |
+
+**Upgrade Cost:** (Current Level + 1) × 50 Gold
 
 ---
 

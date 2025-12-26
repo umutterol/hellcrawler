@@ -209,14 +209,25 @@ Slots are permanent sockets where module items are equipped.
 | Slot 4 | Defeat Act 8 (Diaboros) | 500,000 |
 | Slot 5 | Defeat all 8 Uber Bosses | 2,000,000 |
 
-### Slot Upgrades
-Each slot can be upgraded to increase the power of any module placed in it.
+### Slot Upgrades (Per-Stat System)
+Each slot has **3 individual stats** that can be upgraded separately. Stats only affect the module equipped in that specific slot.
+
+| Stat | Effect per Level | Description |
+|------|-----------------|-------------|
+| Damage | +1% | Increases module damage output |
+| Attack Speed | +1% | Increases module fire rate |
+| Cooldown Reduction | +1% | Reduces skill cooldowns (capped at 90%) |
 
 | Attribute | Description |
 |-----------|-------------|
-| Max Level | Tank Level (cap) |
-| Effect | +1% Damage, +0.5% Attack Speed per level |
-| Cost | Level × 100 Gold |
+| Max Level per Stat | Tank Level (cap) |
+| Cost Formula | (Current Level + 1) × 50 Gold |
+| Total Stats per Slot | 3 (Damage, Attack Speed, CDR) |
+
+**Example:** Slot 1 with Damage Lv.25, Attack Speed Lv.18, CDR Lv.10:
+- Module in Slot 1 deals +25% damage
+- Module in Slot 1 fires 18% faster
+- Module skills have 10% reduced cooldowns
 
 ---
 
@@ -388,14 +399,17 @@ Enemies must be within range to be targeted. Enemies "out of range" continue app
 
 ### Base Damage Formula
 ```
-FinalDamage = BaseDamage × SlotMultiplier × ModuleStats × CritMultiplier × RandomVariance
+FinalDamage = BaseDamage × SlotDamageMultiplier × ModuleStats × CritMultiplier × RandomVariance
 
 Where:
 - BaseDamage = Module's base damage value
-- SlotMultiplier = 1 + (SlotLevel × 0.01) [damage] × (1 + SlotLevel × 0.005) [attack speed]
+- SlotDamageMultiplier = 1 + (SlotDamageLevel × 0.01)
 - ModuleStats = Combined % bonuses from module's rolled stats
 - CritMultiplier = 2.0 base (+ Crit Damage % bonuses)
 - RandomVariance = 0.9 to 1.1 (±10%)
+
+Fire Rate: BaseFireRate × (1 + SlotAttackSpeedLevel × 0.01)
+Skill Cooldown: BaseCooldown × (1 - min(SlotCDRLevel × 0.01, 0.90))
 ```
 
 ### Crit Calculation
@@ -533,7 +547,7 @@ Upgraded with **Infernal Cores** (dropped by Uber Bosses only).
 | Slot 4 | 500,000 |
 | Slot 5 | 2,000,000 |
 | Stat Upgrade | Level × 100 |
-| Slot Upgrade | Level × 100 |
+| Slot Stat Upgrade | (Level + 1) × 50 |
 
 ### Essence (8 Types - Boss Summoning)
 

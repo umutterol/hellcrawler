@@ -307,12 +307,22 @@ export class TankStatsPanel extends SlidingPanel {
     );
     container.add(valueText);
 
-    // Upgrade button
+    // Upgrade button - determine initial color based on affordability
     const buttonWidth = 75;
-    const buttonBg = this.scene.add.rectangle(this.getContentWidth() - 32 - buttonWidth / 2, 18, buttonWidth, 28, UI_CONFIG.COLORS.HEALTH_GREEN);
+    const cost = this.gameState.getTankStatUpgradeCost(stat.type);
+    const canAfford = this.gameState.canAfford(cost);
+
+    // Set initial button color: green if affordable, brownish if not, gray if at cap
+    let initialColor: number = UI_CONFIG.COLORS.HEALTH_GREEN;
+    if (atCap) {
+      initialColor = UI_CONFIG.COLORS.BUTTON_DISABLED;
+    } else if (!canAfford) {
+      initialColor = 0x5a4a37; // Brownish color for can't afford
+    }
+
+    const buttonBg = this.scene.add.rectangle(this.getContentWidth() - 32 - buttonWidth / 2, 18, buttonWidth, 28, initialColor);
     container.add(buttonBg);
 
-    const cost = this.gameState.getTankStatUpgradeCost(stat.type);
     const costText = this.scene.add.text(this.getContentWidth() - 32 - buttonWidth / 2, 18, atCap ? 'MAX' : this.formatCost(cost), {
       fontSize: '12px',
       color: '#ffffff',
@@ -329,11 +339,7 @@ export class TankStatsPanel extends SlidingPanel {
         if (this.canUpgradeTankStat(stat.type)) buttonBg.setFillStyle(0x5dbe80);
       });
       buttonBg.on('pointerout', () => this.updateTankStatButton(stat.type));
-    } else {
-      buttonBg.setFillStyle(UI_CONFIG.COLORS.BUTTON_DISABLED);
     }
-
-    this.updateTankStatButton(stat.type);
 
     return { container, levelText, valueText, buttonBg, costText };
   }
@@ -436,12 +442,22 @@ export class TankStatsPanel extends SlidingPanel {
     );
     container.add(valueText);
 
-    // Upgrade button
+    // Upgrade button - determine initial color based on affordability
     const buttonWidth = 75;
-    const buttonBg = this.scene.add.rectangle(this.getContentWidth() - 32 - buttonWidth / 2, 18, buttonWidth, 28, UI_CONFIG.COLORS.HEALTH_GREEN);
+    const cost = this.gameState.getSlotStatUpgradeCost(slotIndex, stat.type);
+    const canAfford = this.gameState.canAfford(cost);
+
+    // Set initial button color: green if affordable, brownish if not, gray if at cap
+    let initialColor: number = UI_CONFIG.COLORS.HEALTH_GREEN;
+    if (atCap) {
+      initialColor = UI_CONFIG.COLORS.BUTTON_DISABLED;
+    } else if (!canAfford) {
+      initialColor = 0x5a4a37; // Brownish color for can't afford
+    }
+
+    const buttonBg = this.scene.add.rectangle(this.getContentWidth() - 32 - buttonWidth / 2, 18, buttonWidth, 28, initialColor);
     container.add(buttonBg);
 
-    const cost = this.gameState.getSlotStatUpgradeCost(slotIndex, stat.type);
     const costText = this.scene.add.text(this.getContentWidth() - 32 - buttonWidth / 2, 18, atCap ? 'MAX' : this.formatCost(cost), {
       fontSize: '12px',
       color: '#ffffff',
@@ -458,11 +474,7 @@ export class TankStatsPanel extends SlidingPanel {
         if (this.canUpgradeSlotStat(slotIndex, stat.type)) buttonBg.setFillStyle(0x5dbe80);
       });
       buttonBg.on('pointerout', () => this.updateSlotStatButton(slotIndex, stat.type));
-    } else {
-      buttonBg.setFillStyle(UI_CONFIG.COLORS.BUTTON_DISABLED);
     }
-
-    this.updateSlotStatButton(slotIndex, stat.type);
 
     return { container, levelText, valueText, buttonBg, costText };
   }
