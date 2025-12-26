@@ -7,7 +7,8 @@ import { CombatSystem } from '../systems/CombatSystem';
 import { WaveSystem } from '../systems/WaveSystem';
 import { LootSystem } from '../systems/LootSystem';
 import { GameUI } from '../ui/GameUI';
-import { ModuleSlotUI } from '../ui/ModuleSlotUI';
+import { TopBar } from '../ui/TopBar';
+import { BottomBar } from '../ui/BottomBar';
 import { Sidebar } from '../ui/Sidebar';
 import { TankStatsPanel, InventoryPanel, ShopPanel, SettingsPanel } from '../ui/panels';
 import { ModuleManager } from '../modules/ModuleManager';
@@ -47,8 +48,9 @@ export class GameScene extends Phaser.Scene {
   private moduleManager!: ModuleManager;
 
   // UI
+  private topBar!: TopBar;
+  private bottomBar!: BottomBar;
   private gameUI!: GameUI;
-  private moduleSlotUI!: ModuleSlotUI;
   private sidebar!: Sidebar;
   private fpsText: Phaser.GameObjects.Text | null = null;
 
@@ -267,9 +269,14 @@ export class GameScene extends Phaser.Scene {
   }
 
   private createUI(): void {
-    // Core HUD elements
+    // Top bar with gold, XP, zone info
+    this.topBar = new TopBar(this);
+
+    // Bottom bar with HP, module slots, wave progress
+    this.bottomBar = new BottomBar(this, this.moduleManager);
+
+    // Core HUD elements (deprecated - most moved to TopBar/BottomBar)
     this.gameUI = new GameUI(this);
-    this.moduleSlotUI = new ModuleSlotUI(this, this.moduleManager);
 
     // Initialize panel system
     this.initializePanelSystem();
@@ -350,9 +357,8 @@ export class GameScene extends Phaser.Scene {
     this.lootSystem.update(time, delta);
 
     // Update UI
-    this.gameUI.update(time, delta);
-    this.moduleSlotUI.update(time, delta);
-    this.gameUI.updateEnemyCount(this.waveSystem.getEnemiesRemaining());
+    this.bottomBar.update(time, delta);
+    this.bottomBar.updateEnemyCount(this.waveSystem.getEnemiesRemaining());
 
     // Update FPS counter
     this.updateDebugInfo(delta);
@@ -383,8 +389,9 @@ export class GameScene extends Phaser.Scene {
     this.inputManager.destroy();
 
     // Cleanup UI
+    this.topBar.destroy();
+    this.bottomBar.destroy();
     this.gameUI.destroy();
-    this.moduleSlotUI.destroy();
     this.sidebar.destroy();
 
     // Cleanup panels

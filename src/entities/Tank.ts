@@ -78,27 +78,38 @@ export class Tank extends Phaser.GameObjects.Container {
     this.add(this.cannonSprite);
 
     // Create physics hitbox for enemy collision detection
-    // Hitbox extends from tank position (x=200) to enemy stop position (x=400) + margin
-    // Position hitbox center at x=300 (midpoint between tank and enemy stop)
-    const hitboxWidth = 250; // Covers from tank (200) to past enemy stop (400+50)
-    const hitboxHeight = 80;
-    const hitboxCenterX = this.x + 100; // Center between tank and where enemies stop
+    // Enemies stop at x=400 and spawn at y=980 with origin (0.5, 1)
+    // Enemy body is at their sprite position (after body.reset(x, y)), so around x=400, y=980
+    // Hitbox needs to cover where enemies stop AND slightly beyond to ensure overlap
+    const hitboxWidth = 120;
+    const hitboxHeight = 120;
 
-    this.hitbox = this.scene.physics.add.sprite(hitboxCenterX, this.y - 40, 'tank-placeholder');
+    // Position hitbox centered at enemy stop position
+    // After offset calculation, hitbox will cover x from hitboxX-width/2+16 to hitboxX+width/2+16
+    // We want the right edge to definitely cover x=400, so center at x=440
+    const hitboxX = 420;  // Centered to overlap with enemy stop position at x=400
+    const hitboxY = 980;  // At ground level where enemies are
+
+    this.hitbox = this.scene.physics.add.sprite(hitboxX, hitboxY, 'tank-placeholder');
     this.hitbox.setVisible(import.meta.env.DEV); // Visible in dev for debugging
     this.hitbox.setAlpha(0.3);
     this.hitbox.setImmovable(true);
+    this.hitbox.setOrigin(0.5, 0.5); // Center origin for simpler body alignment
 
-    // Set body size centered on sprite
+    // Set body size - offset to center body on sprite position
     const body = this.hitbox.body as Phaser.Physics.Arcade.Body;
     if (body) {
       body.setSize(hitboxWidth, hitboxHeight);
-      body.setOffset(-hitboxWidth / 2 + 16, -hitboxHeight / 2 + 16); // Center the body
+      // Center the body on the sprite: offset = -(size/2) + (textureSize/2)
+      // Assuming 32x32 texture placeholder
+      const textureHalf = 16;
+      body.setOffset(-hitboxWidth / 2 + textureHalf, -hitboxHeight / 2 + textureHalf);
     }
     this.hitbox.setData('tank', this); // Reference back to tank
 
     if (import.meta.env.DEV) {
-      console.log(`[Tank] Hitbox created at (${this.hitbox.x}, ${this.hitbox.y}), body size: ${hitboxWidth}x${hitboxHeight}`);
+      const b = this.hitbox.body as Phaser.Physics.Arcade.Body;
+      console.log(`[Tank] Combat hitbox covers x=${b.x}-${b.right}, y=${b.y}-${b.bottom}`);
     }
   }
 

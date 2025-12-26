@@ -1,4 +1,5 @@
 # HELLCRAWLER - UI Specification Document
+
 ## Version 1.0 | December 2024
 
 > **Reference:** Desktop Heroes UI/UX patterns

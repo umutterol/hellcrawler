@@ -52,9 +52,9 @@
 | InventoryPanel | P1 | ✅ Complete - Grid, select, equip/sell |
 | ShopPanel | P1 | ✅ Complete - Purchase functionality |
 | SettingsPanel | P1 | 🔄 Placeholder - Needs toggle logic |
-| TopBar | P1 | ⏳ Pending |
-| BottomBar refactor | P1 | ⏳ Pending |
-| Near Death UI | P2 | ⏳ Pending |
+| TopBar | P1 | ✅ Complete - Gold, XP bar, zone indicator |
+| BottomBar refactor | P1 | ✅ Complete - HP bar, slots, wave progress, revive button |
+| Near Death UI | P2 | ✅ Complete - Revive button in BottomBar |
 
 ---
 
@@ -89,9 +89,9 @@
 |-----|------|--------|-------|
 | 1 | ShopPanel | ✅ | Full purchase functionality implemented |
 | 2 | SettingsPanel | 🔄 | Placeholder complete, needs toggle logic |
-| 3 | TopBar | ⏳ | Gold, XP bar, zone, flee button |
-| 4 | BottomBar refactor | ⏳ | HP bar, slots, wave progress |
-| 5 | Near Death overlay | ⏳ | Revive button, timer display |
+| 3 | TopBar | ✅ | Gold, XP bar, zone indicator (no flee button per design) |
+| 4 | BottomBar refactor | ✅ | HP bar, module slots with cooldowns, wave progress |
+| 5 | Near Death overlay | ✅ | Revive button integrated into BottomBar |
 
 **Week 2 Deliverables:**
 - [x] ShopPanel: All 5 slots listed
@@ -101,13 +101,13 @@
 - [x] SettingsPanel: Display/audio toggles (placeholder)
 - [x] SettingsPanel: Save Game button
 - [x] SettingsPanel: Save & Quit button
-- [ ] TopBar: Gold amount + income rate
-- [ ] TopBar: Level + XP progress bar
-- [ ] TopBar: Zone indicator + Flee button
-- [ ] BottomBar: Full-width HP bar
-- [ ] BottomBar: Module slots with cooldowns
-- [ ] BottomBar: Wave progress indicator
-- [ ] Near Death: Overlay with revive button + timer
+- [x] TopBar: Gold amount display
+- [x] TopBar: Level + XP progress bar
+- [x] TopBar: Zone indicator
+- [x] BottomBar: Full-width HP bar
+- [x] BottomBar: Module slots with cooldowns
+- [x] BottomBar: Wave progress indicator
+- [x] Near Death: Revive button in BottomBar
 
 ### MVP Exit Criteria
 
@@ -122,8 +122,8 @@ All must be true before moving to Vertical Slice:
 - [x] Player can equip/unequip/sell modules
 - [x] Player can purchase slots 2-3 via ShopPanel
 - [ ] Player can change settings and save game
-- [ ] HUD shows gold, XP, HP, wave progress
-- [ ] Near Death shows revive button
+- [x] HUD shows gold, XP, HP, wave progress
+- [x] Near Death shows revive button
 - [x] ESC closes open panel (or opens Settings if none open)
 
 ---
@@ -290,6 +290,28 @@ All must be true before moving to Vertical Slice:
   - 36 unit tests for shop panel logic
   - 10 e2e tests for shop panel UI
   - Total: 125 unit tests, 50 e2e tests passing
+- **Bug Fixes:**
+  - Fixed enemy-tank damage overlap not triggering (hitbox wasn't covering enemy stop position)
+  - Fixed module equip flow - modules equipped from InventoryPanel now create active instances
+  - Fixed healing systems (HP regen, RepairDrone) not updating health bars
+  - Fixed HP display showing long decimal numbers
+- **TopBar Implementation:**
+  - Created `src/ui/TopBar.ts` - horizontal bar at top of screen
+  - Shows gold amount with animated changes
+  - Shows level with XP progress bar
+  - Shows current Act/Zone indicator
+  - Refactored GameUI to remove duplicate elements (now only HP bar, wave info)
+  - No flee button (removed from design per user request)
+- **BottomBar Implementation:**
+  - Created `src/ui/BottomBar.ts` - 120px bar at bottom of screen
+  - Full-width HP bar with color changes based on health percentage
+  - 5 module slots showing equipped modules with rarity-colored borders
+  - Skill cooldown indicators with radial progress
+  - Auto-mode indicators for each skill
+  - Wave progress indicator with enemy count
+  - Near Death revive button with pulsing animation
+  - Consolidated functionality from GameUI and ModuleSlotUI
+  - GameUI refactored to minimal shell for future floating UI
 
 ---
 

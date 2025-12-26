@@ -53,11 +53,6 @@ export class CombatSystem {
     // Enemy vs Tank hitbox (melee range)
     // Use the tank's physics hitbox, not the container
     const hitbox = this.tank.getHitbox();
-    if (import.meta.env.DEV) {
-      const body = hitbox.body as Phaser.Physics.Arcade.Body;
-      console.log(`[CombatSystem] Setting up enemy-tank overlap. Hitbox pos: (${hitbox.x}, ${hitbox.y}), body: ${body ? `size=${body.width}x${body.height}, offset=(${body.offset.x}, ${body.offset.y})` : 'null'}`);
-    }
-
     this.enemyTankOverlap = this.scene.physics.add.overlap(
       this.enemies,
       hitbox,
@@ -387,8 +382,8 @@ export class CombatSystem {
     // Fire cannon if ready
     this.fireCannonAt(time);
 
-    // Debug: Log active counts periodically
-    if (import.meta.env.DEV && Math.floor(time / 1000) !== Math.floor((time - _delta) / 1000)) {
+    // Debug: Log active counts periodically (every 5 seconds to reduce spam)
+    if (import.meta.env.DEV && Math.floor(time / 5000) !== Math.floor((time - _delta) / 5000)) {
       const activeProjectiles = this.projectiles.getChildren().filter(p => p.active).length;
       const activeEnemies = this.enemies.getChildren().filter(e => (e as Enemy).active && (e as Enemy).isAlive()).length;
       console.log(`[CombatSystem] Active: ${activeProjectiles} projectiles, ${activeEnemies} enemies`);
