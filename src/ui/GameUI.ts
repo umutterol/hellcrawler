@@ -185,6 +185,7 @@ export class GameUI {
     this.eventManager.on(GameEvents.NEAR_DEATH_ENTERED, this.onNearDeathEntered, this);
     this.eventManager.on(GameEvents.TANK_REVIVED, this.onTankRevived, this);
     this.eventManager.on(GameEvents.TANK_STAT_UPGRADED, this.onTankStatUpgraded, this);
+    this.eventManager.on(GameEvents.TANK_HEALED, this.onTankHealed, this);
   }
 
   private onGoldChanged(payload: { newGold: number; change: number }): void {
@@ -237,6 +238,10 @@ export class GameUI {
   private onTankRevived(_payload: { restoredHealth: number }): void {
     this.updateHPBar();
     this.hideNearDeathIndicator();
+  }
+
+  private onTankHealed(): void {
+    this.updateHPBar();
   }
 
   private onTankStatUpgraded(_payload: { stat: string }): void {
@@ -442,6 +447,7 @@ export class GameUI {
     this.eventManager.off(GameEvents.NEAR_DEATH_ENTERED, this.onNearDeathEntered, this);
     this.eventManager.off(GameEvents.TANK_REVIVED, this.onTankRevived, this);
     this.eventManager.off(GameEvents.TANK_STAT_UPGRADED, this.onTankStatUpgraded, this);
+    this.eventManager.off(GameEvents.TANK_HEALED, this.onTankHealed, this);
 
     if (this.goldTween) {
       this.goldTween.stop();
