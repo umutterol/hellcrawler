@@ -145,6 +145,7 @@ All must be true before moving to Vertical Slice:
 
 | Element | Implementation | Status |
 |---------|----------------|--------|
+| Parallax background | 7-layer scrolling with auto-drifting clouds | ✅ |
 | Enemy death | Flash white → explosion → fade | ⏳ |
 | Damage numbers | Pop + float up + scale down | ⏳ |
 | Crit hits | Bigger font + "CRIT!" prefix | ⏳ |
@@ -244,6 +245,16 @@ All must be true before moving to Vertical Slice:
 ---
 
 ## Changelog
+
+### December 27, 2024 - Parallax Background System
+- **Parallax Background Implementation:**
+  - Created `src/ui/ParallaxBackground.ts` - Multi-layer scrolling background system
+  - Integrated 7 layers: sky, clouds, mountains, mountains-lights, far-buildings, forest, town
+  - Implemented auto-scrolling clouds with slow drift effect
+  - Each layer scrolls at different speeds creating depth perception
+  - Replaced placeholder graphics with actual pixel art assets from Gothicvania pack
+  - TileSprite-based for seamless horizontal scrolling
+  - Updated GameScene to use ParallaxBackground instead of gradient graphics
 
 ### December 27, 2024 - Visual Assets & Performance Fixes
 - **Visual Asset Integration:**
