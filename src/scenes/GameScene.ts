@@ -20,6 +20,7 @@ import { getGameState } from '../state/GameState';
 import { getSaveManager, SaveManager } from '../managers/SaveManager';
 import { InputManager } from '../managers/InputManager';
 import { getPanelManager, PanelManager } from '../managers/PanelManager';
+import { ClickThroughManager } from '../managers/ClickThroughManager';
 
 /**
  * Main Game Scene - Core gameplay loop
@@ -71,6 +72,10 @@ export class GameScene extends Phaser.Scene {
   // Background
   private parallaxBackground!: ParallaxBackground;
 
+  // Desktop Mode (Electron)
+  // Note: Initialized for Electron window click-through behavior
+  private _clickThroughManager: ClickThroughManager | null = null;
+
   constructor() {
     super({ key: 'GameScene' });
   }
@@ -99,6 +104,9 @@ export class GameScene extends Phaser.Scene {
 
     // Start first wave
     this.startGame();
+
+    // Initialize click-through manager for Electron Desktop Mode
+    this._clickThroughManager = new ClickThroughManager(this);
 
     if (import.meta.env.DEV) {
       console.log('Hellcrawler GameScene initialized (Phase 3)');
@@ -372,6 +380,12 @@ export class GameScene extends Phaser.Scene {
     this.lootSystem.destroy();
     this.moduleManager.destroy();
     this.inputManager.destroy();
+
+    // Cleanup Desktop Mode (Electron)
+    if (this._clickThroughManager) {
+      this._clickThroughManager.destroy();
+      this._clickThroughManager = null;
+    }
 
     // Cleanup UI
     this.topBar.destroy();

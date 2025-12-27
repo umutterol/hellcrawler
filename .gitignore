@@ -52,3 +52,6 @@ release/
 
 # Vite
 .vite/
+
+# .Playwright
+.playwright-mcp/

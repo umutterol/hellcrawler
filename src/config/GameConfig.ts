@@ -73,28 +73,44 @@ export const GAME_CONFIG = {
 } as const;
 
 /**
- * Phaser game configuration
+ * Check if running in Electron environment
  */
-export const phaserConfig: Phaser.Types.Core.GameConfig = {
-  type: Phaser.AUTO,
-  width: GAME_CONFIG.WIDTH,
-  height: GAME_CONFIG.HEIGHT,
-  parent: 'game-container',
-  backgroundColor: '#1a1a2e',
-  scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH,
-  },
-  physics: {
-    default: 'arcade',
-    arcade: {
-      gravity: { x: 0, y: 0 },
-      debug: import.meta.env.DEV,
+export function isElectronEnvironment(): boolean {
+  return typeof window !== 'undefined' && window.electronAPI?.isElectron === true;
+}
+
+/**
+ * Create Phaser game configuration
+ * Adjusts settings based on Electron vs web environment
+ */
+export function createPhaserConfig(transparent: boolean = false): Phaser.Types.Core.GameConfig {
+  return {
+    type: Phaser.AUTO,
+    width: GAME_CONFIG.WIDTH,
+    height: GAME_CONFIG.HEIGHT,
+    parent: 'game-container',
+    backgroundColor: transparent ? 0x00000000 : 0x1a1a2e,
+    transparent: transparent,
+    scale: {
+      mode: Phaser.Scale.FIT,
+      autoCenter: Phaser.Scale.CENTER_BOTH,
     },
-  },
-  scene: [BootScene, GameScene],
-  render: {
-    pixelArt: true,
-    antialias: false,
-  },
-};
+    physics: {
+      default: 'arcade',
+      arcade: {
+        gravity: { x: 0, y: 0 },
+        debug: import.meta.env.DEV,
+      },
+    },
+    scene: [BootScene, GameScene],
+    render: {
+      pixelArt: true,
+      antialias: false,
+    },
+  };
+}
+
+/**
+ * Phaser game configuration (default - for non-Electron or backwards compatibility)
+ */
+export const phaserConfig: Phaser.Types.Core.GameConfig = createPhaserConfig(false);

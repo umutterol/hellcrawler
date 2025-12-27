@@ -1037,6 +1037,8 @@ npm run build:all    # Build all platforms
 
 ## 8.2 Electron Configuration
 
+### 8.2.1 Builder Configuration
+
 ```javascript
 // electron-builder.config.js
 module.exports = {
@@ -1059,6 +1061,47 @@ module.exports = {
   }
 };
 ```
+
+### 8.2.2 Desktop Mode (Transparent Window)
+
+Hellcrawler runs as a **desktop widget** with always-transparent background, similar to Desktop Heroes.
+
+**BrowserWindow Configuration:**
+```typescript
+{
+  transparent: true,      // Always transparent
+  frame: false,           // Required for transparency on Windows
+  resizable: false,       // Transparent windows can't resize
+  alwaysOnTop: true,      // Default ON, toggled via settings
+  hasShadow: false,       // No window shadow for clean look
+  webPreferences: {
+    contextIsolation: true,
+    nodeIntegration: false,
+    preload: 'preload.js'
+  }
+}
+```
+
+**Desktop Mode Settings:**
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| alwaysOnTop | boolean | true | Keep window above other applications |
+| clickThroughEnabled | boolean | true | Pass clicks through transparent areas |
+| showSkyLayer | boolean | true | Show bg-sky + bg-clouds |
+| showMountainsLayer | boolean | true | Show bg-mountains + bg-mountains-lights |
+| showFarBuildingsLayer | boolean | true | Show bg-far-buildings |
+| showForegroundLayer | boolean | true | Show bg-forest + bg-town |
+
+**Click-Through Behavior:**
+- When cursor is over transparent areas (no game elements), clicks pass through to desktop
+- Uses `setIgnoreMouseEvents(true, { forward: true })` for dynamic toggling
+- Interactive elements (UI, tank, enemies) always receive mouse events
+
+**IPC Channels:**
+| Channel | Direction | Purpose |
+|---------|-----------|---------|
+| set-always-on-top | Renderer → Main | Toggle always-on-top state |
+| set-click-through | Renderer → Main | Toggle click-through for transparent areas |
 
 ## 8.3 Steam Integration
 

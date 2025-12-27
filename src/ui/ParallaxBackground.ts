@@ -1,5 +1,32 @@
 import Phaser from 'phaser';
 import { GAME_CONFIG } from '../config/GameConfig';
+import { getSettingsManager } from '../managers/SettingsManager';
+import { getEventManager } from '../managers/EventManager';
+import { GameEvents } from '../types/GameEvents';
+
+/**
+ * Layer group identifiers for visibility toggles
+ * Maps to settings: showSkyLayer, showMountainsLayer, showFarBuildingsLayer, showForegroundLayer
+ */
+export enum LayerGroup {
+  Sky = 'sky', // bg-sky + bg-clouds
+  Mountains = 'mountains', // bg-mountains + bg-mountains-lights
+  FarBuildings = 'farBuildings', // bg-far-buildings
+  Foreground = 'foreground', // bg-forest + bg-town
+}
+
+/**
+ * Mapping from layer keys to their group
+ */
+const LAYER_GROUP_MAP: Record<string, LayerGroup> = {
+  'bg-sky': LayerGroup.Sky,
+  'bg-clouds': LayerGroup.Sky,
+  'bg-mountains': LayerGroup.Mountains,
+  'bg-mountains-lights': LayerGroup.Mountains,
+  'bg-far-buildings': LayerGroup.FarBuildings,
+  'bg-forest': LayerGroup.Foreground,
+  'bg-town': LayerGroup.Foreground,
+};
 
 /**
  * Parallax layer configuration
@@ -12,6 +39,7 @@ interface ParallaxLayer {
   autoScrollSpeed: number; // Speed of auto-scroll (pixels per second)
   tileSprites: Phaser.GameObjects.TileSprite[];
   depth: number;
+  group: LayerGroup;
 }
 
 /**
@@ -27,10 +55,55 @@ export class ParallaxBackground {
   private scene: Phaser.Scene;
   private layers: ParallaxLayer[] = [];
   private baseScrollSpeed: number = 20; // Base pixels per second
+  private settingsHandler: ((data: { key: string }) => void) | null = null;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
     this.createLayers();
+    this.applyInitialVisibility();
+    this.setupSettingsListener();
+  }
+
+  /**
+   * Apply initial visibility based on saved settings
+   */
+  private applyInitialVisibility(): void {
+    const settings = getSettingsManager();
+
+    this.setLayerGroupVisibility(LayerGroup.Sky, settings.showSkyLayer);
+    this.setLayerGroupVisibility(LayerGroup.Mountains, settings.showMountainsLayer);
+    this.setLayerGroupVisibility(LayerGroup.FarBuildings, settings.showFarBuildingsLayer);
+    this.setLayerGroupVisibility(LayerGroup.Foreground, settings.showForegroundLayer);
+  }
+
+  /**
+   * Listen for settings changes to update layer visibility
+   */
+  private setupSettingsListener(): void {
+    this.settingsHandler = (data: { key: string }) => {
+      const settings = getSettingsManager();
+
+      switch (data.key) {
+        case 'showSkyLayer':
+          this.setLayerGroupVisibility(LayerGroup.Sky, settings.showSkyLayer);
+          break;
+        case 'showMountainsLayer':
+          this.setLayerGroupVisibility(LayerGroup.Mountains, settings.showMountainsLayer);
+          break;
+        case 'showFarBuildingsLayer':
+          this.setLayerGroupVisibility(LayerGroup.FarBuildings, settings.showFarBuildingsLayer);
+          break;
+        case 'showForegroundLayer':
+          this.setLayerGroupVisibility(LayerGroup.Foreground, settings.showForegroundLayer);
+          break;
+        case 'all':
+          // Full settings reset - reapply all
+          this.applyInitialVisibility();
+          break;
+      }
+    };
+
+    getEventManager().on(GameEvents.SETTINGS_CHANGED, this.settingsHandler);
   }
 
   /**
@@ -153,9 +226,40 @@ export class ParallaxBackground {
       autoScrollSpeed: config.autoScrollSpeed,
       tileSprites: [tileSprite],
       depth: config.depth,
+      group: LAYER_GROUP_MAP[config.key] || LayerGroup.Foreground,
     };
 
     this.layers.push(layer);
+  }
+
+  /**
+   * Set visibility for an entire layer group
+   * Used for Desktop Mode layer toggles
+   */
+  setLayerGroupVisibility(group: LayerGroup, visible: boolean): void {
+    for (const layer of this.layers) {
+      if (layer.group === group) {
+        for (const sprite of layer.tileSprites) {
+          sprite.setVisible(visible);
+        }
+      }
+    }
+
+    if (import.meta.env.DEV) {
+      console.log(`[ParallaxBackground] Layer group ${group} visibility: ${visible}`);
+    }
+  }
+
+  /**
+   * Get visibility state of a layer group
+   */
+  getLayerGroupVisibility(group: LayerGroup): boolean {
+    const layer = this.layers.find((l) => l.group === group);
+    const firstSprite = layer?.tileSprites[0];
+    if (firstSprite) {
+      return firstSprite.visible;
+    }
+    return true;
   }
 
   /**
@@ -208,9 +312,16 @@ export class ParallaxBackground {
   }
 
   /**
-   * Cleanup
+   * Cleanup - remove event listeners and destroy sprites
    */
   destroy(): void {
+    // Clean up event listener
+    if (this.settingsHandler) {
+      getEventManager().off(GameEvents.SETTINGS_CHANGED, this.settingsHandler);
+      this.settingsHandler = null;
+    }
+
+    // Destroy all sprites
     for (const layer of this.layers) {
       for (const sprite of layer.tileSprites) {
         sprite.destroy();
