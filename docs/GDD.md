@@ -972,6 +972,44 @@ Uber versions of all 8 bosses with:
 
 ## 11.7 Resolution & Scaling
 
+### Desktop Mode (Electron - Primary)
+
+Hellcrawler runs as a **desktop widget** in Electron, displayed as a horizontal strip docked to the bottom of the screen (similar to Desktop Heroes).
+
+| Attribute | Value |
+|-----------|-------|
+| Window Width | Full screen width (workArea.width) |
+| Window Height | 350px |
+| Canvas Resolution | 1920×350 |
+| Position | Bottom of screen, above taskbar/dock |
+| Scaling | FIT mode, centered horizontally |
+
+**Compact UI Layout:**
+| Component | Size | Position |
+|-----------|------|----------|
+| Top Bar | 28px height | Top of window |
+| Bottom Bar | 60px height | Bottom of window |
+| Sidebar | 40px wide | Left edge |
+| Game Area | ~262px height | Between bars |
+| Ground | 60px from bottom | Where tank/enemies stand |
+
+**Background Layer System:**
+- All parallax layers positioned from bottom with proper yOffset values
+- Layers can be individually toggled via settings
+- When all layers disabled, transparent window shows desktop behind
+
+### Web Mode (Browser - Development)
+
+| Attribute | Value |
+|-----------|-------|
+| Base Resolution | 1920×350 |
+| Aspect Ratio | 5.49:1 (fixed) |
+| Scaling | FIT mode, centered |
+| Minimum | 1280×350 |
+| Panel Width | 300px (scales down at lower res) |
+
+### Legacy Full-Screen Mode (Not Used)
+
 | Attribute | Value |
 |-----------|-------|
 | Base Resolution | 1920×1080 |
@@ -979,6 +1017,32 @@ Uber versions of all 8 bosses with:
 | Scaling | Letterbox for non-16:9 displays |
 | Minimum | 1280×720 |
 | Panel Width | 400px (scales down at lower res) |
+
+## 11.8 Desktop Mode Features
+
+The Electron desktop build includes special features for desktop widget functionality:
+
+### Always-On-Top
+- Window stays above all other applications
+- Togglable via Settings panel
+- Default: ON
+
+### Click-Through
+- Transparent areas pass mouse clicks to desktop
+- Interactive elements (UI, tank, enemies) always receive input
+- Uses dynamic `setIgnoreMouseEvents` with forwarding
+
+### Background Layer Toggles
+Players can hide/show parallax background groups:
+
+| Group | Layers | Default |
+|-------|--------|---------|
+| Sky | bg-sky, bg-clouds | Visible |
+| Mountains | bg-mountains, bg-mountains-lights | Visible |
+| Far Buildings | bg-far-buildings | Visible |
+| Foreground | bg-forest, bg-town | Visible |
+
+When all layers are hidden, the game shows only the ground, tank, enemies, and UI - with full desktop transparency behind.
 
 ---
 

@@ -1064,23 +1064,57 @@ module.exports = {
 
 ### 8.2.2 Desktop Mode (Transparent Window)
 
-Hellcrawler runs as a **desktop widget** with always-transparent background, similar to Desktop Heroes.
+Hellcrawler runs as a **desktop widget** with always-transparent background, similar to Desktop Heroes. The game displays as a horizontal strip docked to the bottom of the screen.
+
+**Window Layout (Desktop Heroes Style):**
+| Attribute | Value | Description |
+|-----------|-------|-------------|
+| Width | `workArea.width` | Full screen width |
+| Height | 350px | Short horizontal strip |
+| Position X | `workArea.x` | Left edge of work area |
+| Position Y | `workArea.y + workArea.height - 350` | Bottom of work area |
+
+**Note:** Uses `screen.getPrimaryDisplay().workArea` (not `workAreaSize`) to properly account for menu bars, taskbars, and docks on all platforms.
 
 **BrowserWindow Configuration:**
 ```typescript
-{
-  transparent: true,      // Always transparent
-  frame: false,           // Required for transparency on Windows
-  resizable: false,       // Transparent windows can't resize
-  alwaysOnTop: true,      // Default ON, toggled via settings
-  hasShadow: false,       // No window shadow for clean look
-  webPreferences: {
-    contextIsolation: true,
-    nodeIntegration: false,
-    preload: 'preload.js'
-  }
+function createWindow(): void {
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const workArea = primaryDisplay.workArea;
+
+  const windowWidth = workArea.width;
+  const windowHeight = 350;
+  const windowX = workArea.x;
+  const windowY = workArea.y + workArea.height - windowHeight;
+
+  mainWindow = new BrowserWindow({
+    width: windowWidth,
+    height: windowHeight,
+    x: windowX,
+    y: windowY,
+    transparent: true,      // Always transparent
+    frame: false,           // Required for transparency on Windows
+    resizable: false,       // Transparent windows can't resize
+    alwaysOnTop: true,      // Default ON, toggled via settings
+    hasShadow: false,       // No window shadow for clean look
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      preload: 'preload.js'
+    }
+  });
 }
 ```
+
+**Compact UI Dimensions:**
+| Component | Value | Description |
+|-----------|-------|-------------|
+| Top Bar | 28px | Gold, XP, zone info |
+| Bottom Bar | 60px | HP bar, module slots, wave progress |
+| Sidebar | 40px wide | Panel toggle buttons |
+| Ground Height | 60px | Gameplay ground level |
+| Game Height | 350px | Full canvas height |
+| Game Width | 1920px | Base canvas width (scales to screen) |
 
 **Desktop Mode Settings:**
 | Setting | Type | Default | Description |
@@ -1102,6 +1136,11 @@ Hellcrawler runs as a **desktop widget** with always-transparent background, sim
 |---------|-----------|---------|
 | set-always-on-top | Renderer → Main | Toggle always-on-top state |
 | set-click-through | Renderer → Main | Toggle click-through for transparent areas |
+| get-window-state | Renderer → Main | Get current alwaysOnTop and clickThrough state |
+| set-window-position | Renderer → Main | Set window position (for dragging) |
+| get-window-position | Renderer → Main | Get current window position |
+| minimize-window | Renderer → Main | Minimize window |
+| close-window | Renderer → Main | Close window |
 
 ## 8.3 Steam Integration
 
@@ -1288,9 +1327,10 @@ See separate TypeScript documentation generated from source.
 ### GameConfig.ts
 ```typescript
 export const GAME_CONFIG = {
-  // Display
+  // Display (Desktop Heroes style - bottom strip)
   WIDTH: 1920,
-  HEIGHT: 1080,
+  HEIGHT: 350,        // Compact horizontal strip
+  GROUND_HEIGHT: 60,  // Ground level from bottom
   FPS: 60,
   
   // Combat

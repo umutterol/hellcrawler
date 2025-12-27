@@ -141,14 +141,16 @@ All must be true before moving to Vertical Slice:
 | 4 | Boss Polish | Sentinel intro sequence, phase transitions, death celebration |
 | 5 | Onboarding | 3-4 tooltip hints for new players |
 
-### Desktop Mode (Electron)
+### Desktop Mode (Electron) ✅
 
 | Feature | Description | Status |
 |---------|-------------|--------|
-| Transparent Window | Always-transparent frameless Electron build | ⏳ |
-| Layer Toggles | 4 groups: Sky+Clouds, Mountains, Far Buildings, Forest+Town | ⏳ |
-| Always On Top | Keep window above other applications | ⏳ |
-| Click-Through | Pass clicks through transparent areas to desktop | ⏳ |
+| Desktop Heroes Layout | 350px tall strip, full screen width, docked to bottom | ✅ |
+| Transparent Window | Always-transparent frameless Electron build | ✅ |
+| Layer Toggles | 4 groups: Sky+Clouds, Mountains, Far Buildings, Forest+Town | ✅ |
+| Always On Top | Keep window above other applications | ✅ |
+| Click-Through | Pass clicks through transparent areas to desktop | ✅ |
+| Compact UI | TopBar 28px, BottomBar 60px, Sidebar 40px | ✅ |
 
 ### Juice Checklist (No Screen Shake)
 
