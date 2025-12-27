@@ -108,15 +108,18 @@ export class ParallaxBackground {
 
   /**
    * Create all parallax layers from back to front
+   * Desktop Heroes style - layers positioned from bottom of screen
    */
   private createLayers(): void {
     // Layer order (back to front) with speed multipliers
     // Lower speed = slower movement = appears farther away
+    // yOffset positions layers relative to bottom of screen
+    // Negative values move the layer up (higher in the scene)
     const layerConfigs = [
       {
         key: 'bg-sky',
         speed: 0,
-        yOffset: 0,
+        yOffset: -170, // Top of scene (sky is tall, position high)
         autoScroll: false,
         autoScrollSpeed: 0,
         depth: 0,
@@ -124,7 +127,7 @@ export class ParallaxBackground {
       {
         key: 'bg-clouds',
         speed: 0.05,
-        yOffset: 0,
+        yOffset: -170, // Same as sky
         autoScroll: true,
         autoScrollSpeed: 8, // Slow cloud drift
         depth: 1,
@@ -132,7 +135,7 @@ export class ParallaxBackground {
       {
         key: 'bg-mountains',
         speed: 0.1,
-        yOffset: 0,
+        yOffset: -130, // Mountains behind city
         autoScroll: false,
         autoScrollSpeed: 0,
         depth: 2,
@@ -140,7 +143,7 @@ export class ParallaxBackground {
       {
         key: 'bg-mountains-lights',
         speed: 0.1,
-        yOffset: 0,
+        yOffset: -130, // Same as mountains
         autoScroll: false,
         autoScrollSpeed: 0,
         depth: 3,
@@ -148,7 +151,7 @@ export class ParallaxBackground {
       {
         key: 'bg-far-buildings',
         speed: 0.2,
-        yOffset: 0,
+        yOffset: -80, // Far buildings above ground
         autoScroll: false,
         autoScrollSpeed: 0,
         depth: 4,
@@ -156,7 +159,7 @@ export class ParallaxBackground {
       {
         key: 'bg-forest',
         speed: 0.4,
-        yOffset: 0,
+        yOffset: -40, // Forest near ground level
         autoScroll: false,
         autoScrollSpeed: 0,
         depth: 5,
@@ -164,7 +167,7 @@ export class ParallaxBackground {
       {
         key: 'bg-town',
         speed: 0.6,
-        yOffset: 0,
+        yOffset: -35, // Town at ground level
         autoScroll: false,
         autoScrollSpeed: 0,
         depth: 6,
@@ -179,6 +182,7 @@ export class ParallaxBackground {
   /**
    * Create a single parallax layer
    * Uses TileSprite for seamless horizontal scrolling
+   * For Desktop Heroes style, layers are scaled smaller and positioned from bottom
    */
   private createLayer(config: {
     key: string;
@@ -198,25 +202,32 @@ export class ParallaxBackground {
     const frame = texture.get();
     const textureHeight = frame.height;
 
-    // Calculate scale to fit game height while maintaining aspect ratio
-    // We want the layer to cover the full game height
-    const scaleY = GAME_CONFIG.HEIGHT / textureHeight;
+    // For Desktop Heroes style, use a consistent pixel scale
+    // Scale to make the background fit nicely in the 350px height
+    // Use 1.5x scale for pixel art (original assets are small)
+    const pixelScale = 1.5;
+
+    // Calculate the scaled height of this layer
+    const scaledHeight = textureHeight * pixelScale;
+
+    // Position layer from bottom of screen
+    // Ground-level layers (town, forest) sit at ground level
+    // Higher layers (sky, clouds) are positioned above
+    const layerY = GAME_CONFIG.HEIGHT - (scaledHeight / 2) + config.yOffset;
 
     // Create tile sprite that covers the full game width
-    // TileSprite allows seamless horizontal tiling
     const tileSprite = this.scene.add.tileSprite(
       GAME_CONFIG.WIDTH / 2,
-      GAME_CONFIG.HEIGHT / 2 + config.yOffset,
+      layerY,
       GAME_CONFIG.WIDTH,
-      GAME_CONFIG.HEIGHT,
+      scaledHeight,
       config.key
     );
 
     tileSprite.setDepth(config.depth);
 
-    // Scale the tile to fit properly
-    // We need to set the tile scale, not the sprite scale
-    tileSprite.setTileScale(scaleY, scaleY);
+    // Set tile scale for pixel art (maintains crisp pixels)
+    tileSprite.setTileScale(pixelScale, pixelScale);
 
     const layer: ParallaxLayer = {
       key: config.key,

@@ -7,9 +7,10 @@ import { GameScene } from '../scenes/GameScene';
  * Based on GDD specifications
  */
 export const GAME_CONFIG = {
-  // Display
+  // Display - Desktop Heroes style (short strip at bottom of screen)
   WIDTH: 1920,
-  HEIGHT: 1080,
+  HEIGHT: 350,
+  GROUND_HEIGHT: 60, // Height of ground area from bottom
   FPS: 60,
 
   // Combat
@@ -93,7 +94,7 @@ export function createPhaserConfig(transparent: boolean = false): Phaser.Types.C
     transparent: transparent,
     scale: {
       mode: Phaser.Scale.FIT,
-      autoCenter: Phaser.Scale.CENTER_BOTH,
+      autoCenter: Phaser.Scale.CENTER_HORIZONTALLY,
     },
     physics: {
       default: 'arcade',

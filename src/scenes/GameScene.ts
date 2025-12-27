@@ -142,21 +142,19 @@ export class GameScene extends Phaser.Scene {
 
   private createGround(): void {
     // Ground surface (on top of parallax background)
+    // Desktop Heroes style - shorter ground area
+    const groundY = GAME_CONFIG.HEIGHT - GAME_CONFIG.GROUND_HEIGHT;
+
     const ground = this.add.graphics();
     ground.setDepth(10); // Above parallax, below entities
 
     // Ground fill
     ground.fillStyle(0x2d2d44, 1);
-    ground.fillRect(0, GAME_CONFIG.HEIGHT - 100, GAME_CONFIG.WIDTH, 100);
+    ground.fillRect(0, groundY, GAME_CONFIG.WIDTH, GAME_CONFIG.GROUND_HEIGHT);
 
     // Ground line (surface highlight)
     ground.lineStyle(3, 0x444466);
-    ground.lineBetween(
-      0,
-      GAME_CONFIG.HEIGHT - 100,
-      GAME_CONFIG.WIDTH,
-      GAME_CONFIG.HEIGHT - 100
-    );
+    ground.lineBetween(0, groundY, GAME_CONFIG.WIDTH, groundY);
   }
 
   private createEntityGroups(): void {
@@ -193,8 +191,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   private createTank(): void {
+    // Position tank on the ground
     const tankX = 200;
-    const tankY = GAME_CONFIG.HEIGHT - 100;
+    const tankY = GAME_CONFIG.HEIGHT - GAME_CONFIG.GROUND_HEIGHT; // Ground level
 
     this.tank = new Tank(this, tankX, tankY);
   }

@@ -14,25 +14,24 @@ let isClickThroughEnabled = true;
 function createWindow(): void {
   // Get primary display dimensions
   const primaryDisplay = screen.getPrimaryDisplay();
-  const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+  const workArea = primaryDisplay.workArea;
 
-  // Calculate window size (maintain 16:9 aspect ratio, fit to screen)
-  const gameWidth = 1920;
-  const gameHeight = 1080;
-  const scaleFactor = Math.min(
-    (screenWidth * 0.8) / gameWidth,
-    (screenHeight * 0.9) / gameHeight,
-    1 // Don't scale up beyond native size
-  );
+  // Desktop Heroes style: full width, docked to bottom, short height
+  const windowWidth = workArea.width;
+  const windowHeight = 350; // Short strip at bottom like Desktop Heroes
+  // Position at the bottom of the work area (accounts for menu bar and dock)
+  const windowX = workArea.x;
+  const windowY = workArea.y + workArea.height - windowHeight;
 
-  const windowWidth = Math.floor(gameWidth * scaleFactor);
-  const windowHeight = Math.floor(gameHeight * scaleFactor);
+  // Log window position for debugging
+  console.log(`[Electron] WorkArea: ${workArea.x},${workArea.y} ${workArea.width}x${workArea.height}`);
+  console.log(`[Electron] Window: ${windowWidth}x${windowHeight} at (${windowX}, ${windowY})`);
 
   mainWindow = new BrowserWindow({
     width: windowWidth,
     height: windowHeight,
-    x: Math.floor((screenWidth - windowWidth) / 2),
-    y: Math.floor((screenHeight - windowHeight) / 2),
+    x: windowX,
+    y: windowY,
 
     // Transparent window configuration (always enabled for Desktop Mode)
     transparent: true,

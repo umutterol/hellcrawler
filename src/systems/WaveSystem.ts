@@ -82,7 +82,7 @@ export class WaveSystem {
     this.gameState = getGameState();
 
     // Spawn position (right side of screen, same Y as tank ground level)
-    this.spawnY = GAME_CONFIG.HEIGHT - 100;
+    this.spawnY = GAME_CONFIG.HEIGHT - GAME_CONFIG.GROUND_HEIGHT;
     this.spawnXBase = GAME_CONFIG.WIDTH + 50;
 
     // Subscribe to enemy death events
