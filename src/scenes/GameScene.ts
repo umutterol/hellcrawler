@@ -11,6 +11,7 @@ import { TopBar } from '../ui/TopBar';
 import { BottomBar } from '../ui/BottomBar';
 import { Sidebar } from '../ui/Sidebar';
 import { TankStatsPanel, InventoryPanel, ShopPanel, SettingsPanel } from '../ui/panels';
+import { ParallaxBackground } from '../ui/ParallaxBackground';
 import { ModuleManager } from '../modules/ModuleManager';
 import { ModuleItem } from '../modules/ModuleItem';
 import { ModuleType } from '../types/ModuleTypes';
@@ -67,6 +68,9 @@ export class GameScene extends Phaser.Scene {
   // Input handling
   private inputManager!: InputManager;
 
+  // Background
+  private parallaxBackground!: ParallaxBackground;
+
   constructor() {
     super({ key: 'GameScene' });
   }
@@ -118,58 +122,33 @@ export class GameScene extends Phaser.Scene {
   }
 
   private createBackground(): void {
-    // Gradient background
-    const bg = this.add.graphics();
-    bg.fillGradientStyle(0x1a1a2e, 0x1a1a2e, 0x16213e, 0x16213e, 1);
-    bg.fillRect(0, 0, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT);
+    // Create parallax background with multiple scrolling layers
+    this.parallaxBackground = new ParallaxBackground(this);
 
-    // Ground
-    bg.fillStyle(0x2d2d44, 1);
-    bg.fillRect(0, GAME_CONFIG.HEIGHT - 100, GAME_CONFIG.WIDTH, 100);
+    // Set base depth so game entities appear on top
+    this.parallaxBackground.setBaseDepth(-100);
 
-    // Ground line
-    bg.lineStyle(3, 0x444466);
-    bg.lineBetween(
+    // Add ground overlay on top of parallax layers
+    this.createGround();
+  }
+
+  private createGround(): void {
+    // Ground surface (on top of parallax background)
+    const ground = this.add.graphics();
+    ground.setDepth(10); // Above parallax, below entities
+
+    // Ground fill
+    ground.fillStyle(0x2d2d44, 1);
+    ground.fillRect(0, GAME_CONFIG.HEIGHT - 100, GAME_CONFIG.WIDTH, 100);
+
+    // Ground line (surface highlight)
+    ground.lineStyle(3, 0x444466);
+    ground.lineBetween(
       0,
       GAME_CONFIG.HEIGHT - 100,
       GAME_CONFIG.WIDTH,
       GAME_CONFIG.HEIGHT - 100
     );
-
-    // Add some atmospheric details
-    this.createBackgroundDetails();
-  }
-
-  private createBackgroundDetails(): void {
-    // Distant mountains/structures silhouette
-    const details = this.add.graphics();
-    details.fillStyle(0x0d0d1a, 0.5);
-
-    // Simple mountain shapes
-    details.beginPath();
-    details.moveTo(0, GAME_CONFIG.HEIGHT - 100);
-    details.lineTo(200, GAME_CONFIG.HEIGHT - 250);
-    details.lineTo(400, GAME_CONFIG.HEIGHT - 150);
-    details.lineTo(600, GAME_CONFIG.HEIGHT - 300);
-    details.lineTo(900, GAME_CONFIG.HEIGHT - 180);
-    details.lineTo(1100, GAME_CONFIG.HEIGHT - 350);
-    details.lineTo(1400, GAME_CONFIG.HEIGHT - 200);
-    details.lineTo(1700, GAME_CONFIG.HEIGHT - 280);
-    details.lineTo(GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT - 100);
-    details.lineTo(GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT - 100);
-    details.closePath();
-    details.fill();
-
-    // Add some stars
-    for (let i = 0; i < 50; i++) {
-      const x = Phaser.Math.Between(0, GAME_CONFIG.WIDTH);
-      const y = Phaser.Math.Between(0, GAME_CONFIG.HEIGHT - 400);
-      const size = Phaser.Math.Between(1, 3);
-      const alpha = Phaser.Math.FloatBetween(0.3, 0.8);
-
-      details.fillStyle(0xffffff, alpha);
-      details.fillCircle(x, y, size);
-    }
   }
 
   private createEntityGroups(): void {
@@ -333,6 +312,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(time: number, delta: number): void {
+    // Update parallax background
+    this.parallaxBackground.update(time, delta);
+
     // Update tank
     this.tank.update(time, delta);
 
@@ -381,6 +363,9 @@ export class GameScene extends Phaser.Scene {
    * Scene shutdown - cleanup
    */
   shutdown(): void {
+    // Cleanup background
+    this.parallaxBackground.destroy();
+
     // Cleanup systems
     this.combatSystem.destroy();
     this.waveSystem.destroy();
