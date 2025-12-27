@@ -34,7 +34,7 @@ function createWindow(): void {
     x: Math.floor((screenWidth - windowWidth) / 2),
     y: Math.floor((screenHeight - windowHeight) / 2),
 
-    // Transparent window configuration (always enabled)
+    // Transparent window configuration (always enabled for Desktop Mode)
     transparent: true,
     frame: false,
     resizable: false,
@@ -65,12 +65,13 @@ function createWindow(): void {
   // Load the app
   if (process.env.VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
-    // Open DevTools detached (transparency breaks with attached devtools)
-    if (process.env.NODE_ENV === 'development') {
-      mainWindow.webContents.openDevTools({ mode: 'detach' });
-    }
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+  }
+
+  // Open DevTools detached in development (transparency breaks with attached devtools)
+  if (process.env.VITE_DEV_SERVER_URL) {
+    mainWindow.webContents.openDevTools({ mode: 'detach' });
   }
 
   mainWindow.on('closed', () => {
