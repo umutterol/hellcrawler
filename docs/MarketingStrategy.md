@@ -757,28 +757,121 @@ First person to beat Diaboros gets a special role.
 
 # 12. AI-ASSISTED TASK BREAKDOWN
 
-## 12.1 Claude/Gemini Tasks
+## 12.1 Text Generation (Claude / Gemini)
 
 | Task | AI Tool | Output |
 |------|---------|--------|
 | Steam descriptions | Claude | Short, About, Features |
 | Devlog writing | Claude/Gemini | Weekly posts |
 | Press release | Claude | Professional copy |
-| Social post generation | Claude | Batch content |
+| Social post generation | Claude/Gemini | Batch content |
 | Email templates | Claude | Outreach copy |
 | FAQ creation | Claude | Community resource |
 | Patch notes | Claude | Clear, formatted |
+| Localization drafts | Gemini | Multi-language text |
 
-## 12.2 Image/Video AI Tasks
+## 12.2 Google AI Creative Suite
 
-| Task | AI Tool | Output |
-|------|---------|--------|
-| Logo variations | DALL-E/Midjourney | Marketing assets |
-| Social media graphics | Canva AI | Sized posts |
-| Trailer assembly | Runway/Pika | Edited video |
-| GIF creation | ScreenToGif + AI | Gameplay clips |
+### Nano Banana (Gemini 2.5 Flash Image) - Fast Graphics
+*Access: Gemini app → Tools → 🍌Create images → Fast*
 
-## 12.3 Automation Tools
+| Task | Output | Notes |
+|------|--------|-------|
+| Quick social graphics | 1K images | Fast iteration |
+| Meme templates | Social-ready | Quick turnaround |
+| Concept art variations | Multiple options | Ideation phase |
+| Screenshot enhancements | Polished visuals | Photo editing |
+
+### Nano Banana Pro (Gemini 3 Pro Image) - Premium Graphics
+*Access: Gemini app → Tools → 🍌Create images → Thinking*
+
+| Task | Output | Notes |
+|------|--------|-------|
+| Key art / capsule art | 2K-4K resolution | Steam store assets |
+| Logo variations | High-fidelity text | Readable at all sizes |
+| Press kit graphics | Professional quality | Brand-consistent |
+| Marketing banners | Text rendering | Infographics, promo art |
+| Style guide assets | Up to 14 reference images | Brand identity consistency |
+
+**Pro Tips for Nano Banana Pro:**
+- Upload your style guide (logos, color palette, character art) as reference
+- Use "grounding with Google Search" for real-world accuracy
+- Supports text in multiple languages for localization
+
+### Imagen 4 - Photorealistic & Abstract Art
+*Access: Gemini app, Whisk, Vertex AI*
+
+| Task | Output | Notes |
+|------|--------|-------|
+| Photorealistic promo shots | Up to 2K | Fine detail (fur, fabric, water) |
+| Abstract backgrounds | Multiple aspect ratios | Atmospheric art |
+| Character portraits | Stylized or realistic | Marketing characters |
+
+### Veo 3 - AI Video Generation
+*Access: Flow, Gemini app (AI Pro/Ultra subscribers)*
+
+| Task | Output | Notes |
+|------|--------|-------|
+| Teaser trailers | 8-second clips with audio | Native sound generation |
+| Cinematic intros | Dialogue + ambient audio | Storytelling clips |
+| Social video content | Short-form clips | Twitter/TikTok ready |
+| Announcement videos | SFX + background noise | Professional quality |
+
+**Veo 3 Features:**
+- Generates video WITH audio (dialogue, SFX, ambient)
+- Best-in-class physics and realism
+- Max 8 seconds per clip (stitch multiple for longer content)
+- SynthID watermarked for transparency
+
+### Flow - AI Filmmaking Tool
+*Access: flow.google.com (AI Pro/Ultra subscribers)*
+
+| Task | Output | Notes |
+|------|--------|-------|
+| Full game trailer | Multi-scene video | Character consistency |
+| Cinematic sequences | Camera-controlled shots | Scene builder tools |
+| Story-driven content | Continuous narrative | Asset management |
+
+**Flow Features:**
+- Built specifically for Veo, Imagen, and Gemini
+- Maintains character/scene consistency across clips
+- Camera controls for precise movement
+- Scene builder for extending shots
+- Ideal for longer trailer production
+
+### Lyria 2 - AI Music Generation
+*Access: Google AI tools*
+
+| Task | Output | Notes |
+|------|--------|-------|
+| Trailer music | Custom tracks | Mood-matched |
+| Social video BGM | Short loops | Royalty concerns - verify |
+
+## 12.3 Workflow: Creating Marketing Assets
+
+### Steam Capsule Art Workflow
+1. **Concept:** Claude generates description of desired art
+2. **Draft:** Nano Banana (Fast) creates 3-5 quick concepts
+3. **Refine:** Nano Banana Pro with style guide references
+4. **Polish:** Final output at 2K-4K resolution
+5. **Resize:** Export at Steam required dimensions
+
+### Trailer Creation Workflow
+1. **Script:** Claude writes trailer script with beats
+2. **Storyboard:** Nano Banana Pro generates key frames
+3. **Video clips:** Veo 3 generates 8-second segments
+4. **Assembly:** Flow stitches clips with consistency
+5. **Audio:** Veo 3 native audio OR Lyria 2 music
+6. **Gameplay:** Screen capture actual game footage
+7. **Edit:** Combine AI + gameplay in video editor
+
+### Social Content Batch Workflow
+1. **Copy:** Claude generates 20 post variations
+2. **Graphics:** Nano Banana creates matching visuals
+3. **Video:** Veo 3 for 2-3 video posts per week
+4. **Schedule:** Buffer/Hootsuite for consistent posting
+
+## 12.4 Automation & Management Tools
 
 | Task | Tool | Purpose |
 |------|------|---------|
@@ -786,19 +879,31 @@ First person to beat Diaboros gets a special role.
 | Email campaigns | Mailchimp | Press/streamer outreach |
 | Analytics | Google Analytics | Track traffic |
 | Discord bots | Carl-bot | Community management |
+| AI asset management | Google Drive | Organize generated content |
 
-## 12.4 "Nano Banana" Task Assignment
+## 12.5 Manual Tasks (Developer)
 
-*[Assuming this is a team member or alias for manual tasks]*
+| Task | Priority | Notes |
+|------|----------|-------|
+| Discord daily moderation | High | Community presence |
+| Streamer relationship building | High | Personal touch required |
+| Bug triage from feedback | High | Technical knowledge |
+| Steam discussion responses | Medium | Authentic engagement |
+| Reddit engagement | Medium | Community rules |
+| Final asset approval | High | Quality control |
+| AI prompt refinement | Medium | Better outputs over time |
 
-| Task | Priority |
-|------|----------|
-| Discord daily moderation | High |
-| Streamer relationship building | High |
-| Bug triage from feedback | High |
-| Steam discussion responses | Medium |
-| Reddit engagement | Medium |
-| Twitter engagement | Medium |
+## 12.6 Cost Considerations
+
+| Service | Tier | Monthly Cost | Notes |
+|---------|------|--------------|-------|
+| Gemini (Nano Banana) | Free/Pro | $0-20 | Basic image generation |
+| Google AI Ultra | Subscription | $249.99 | Full Veo 3 + Flow access |
+| Claude | Pro | $20 | Text generation |
+| Buffer | Pro | $15 | Social scheduling |
+
+**Budget Option:** Use free Gemini tier + Claude Pro (~$20/month)
+**Full Suite:** Google AI Ultra + Claude Pro (~$270/month)
 
 ---
 
