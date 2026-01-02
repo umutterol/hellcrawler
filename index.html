@@ -10,25 +10,24 @@
         padding: 0;
         box-sizing: border-box;
       }
-      body {
-        background-color: #1a1a2e;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
+      html, body {
+        width: 100%;
+        height: 100%;
+        background-color: transparent;
         overflow: hidden;
       }
-      /* Electron transparent mode */
-      body.electron-transparent {
-        background-color: transparent !important;
-      }
-      body.electron-transparent #game-container {
-        background-color: transparent !important;
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: flex-end; /* Align to bottom */
       }
       #game-container {
         display: flex;
         justify-content: center;
-        align-items: center;
+        align-items: flex-end;
+      }
+      #game-container canvas {
+        display: block;
       }
     </style>
   </head>

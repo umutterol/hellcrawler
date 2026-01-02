@@ -12,12 +12,17 @@
 
 import { getSettingsManager } from './SettingsManager';
 
+// Minimum depth for objects to be considered interactive (above background layers)
+const MIN_INTERACTIVE_DEPTH = 10;
+
 export class ClickThroughManager {
   private scene: Phaser.Scene;
   private isClickThroughEnabled: boolean = false;
   private lastUpdateTime: number = 0;
   private updateInterval: number = 50; // Check every 50ms to reduce overhead
   private pointerMoveHandler: ((pointer: Phaser.Input.Pointer) => void) | null = null;
+  private mouseLeaveHandler: (() => void) | null = null;
+  private mouseEnterHandler: (() => void) | null = null;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -51,16 +56,19 @@ export class ClickThroughManager {
 
     this.scene.input.on('pointermove', this.pointerMoveHandler);
 
-    // Also track when pointer leaves the game canvas entirely
-    this.scene.game.canvas.addEventListener('mouseleave', () => {
+    // Track when pointer leaves the game canvas entirely
+    this.mouseLeaveHandler = () => {
       this.setClickThrough(true);
-    });
+    };
+    this.scene.game.canvas.addEventListener('mouseleave', this.mouseLeaveHandler);
 
-    this.scene.game.canvas.addEventListener('mouseenter', () => {
+    // Track when pointer re-enters the canvas
+    this.mouseEnterHandler = () => {
       // Re-evaluate on re-entry
       const pointer = this.scene.input.activePointer;
       this.evaluateClickThrough(pointer);
-    });
+    };
+    this.scene.game.canvas.addEventListener('mouseenter', this.mouseEnterHandler);
   }
 
   /**
@@ -151,7 +159,7 @@ export class ClickThroughManager {
     }
 
     // Skip objects at very low depth (background layers)
-    if (sprite.depth < 10) {
+    if (sprite.depth < MIN_INTERACTIVE_DEPTH) {
       return false;
     }
 
@@ -191,12 +199,24 @@ export class ClickThroughManager {
   }
 
   /**
-   * Cleanup
+   * Cleanup - remove all event listeners to prevent memory leaks
    */
   public destroy(): void {
+    // Remove Phaser input listener
     if (this.pointerMoveHandler) {
       this.scene.input.off('pointermove', this.pointerMoveHandler);
       this.pointerMoveHandler = null;
+    }
+
+    // Remove canvas DOM event listeners
+    if (this.mouseLeaveHandler) {
+      this.scene.game.canvas.removeEventListener('mouseleave', this.mouseLeaveHandler);
+      this.mouseLeaveHandler = null;
+    }
+
+    if (this.mouseEnterHandler) {
+      this.scene.game.canvas.removeEventListener('mouseenter', this.mouseEnterHandler);
+      this.mouseEnterHandler = null;
     }
   }
 }

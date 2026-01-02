@@ -6,3 +6,4 @@ export { TankStatsPanel } from './TankStatsPanel';
 export { InventoryPanel } from './InventoryPanel';
 export { ShopPanel } from './ShopPanel';
 export { SettingsPanel } from './SettingsPanel';
+export { DebugPanel } from './DebugPanel';

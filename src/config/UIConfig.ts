@@ -29,9 +29,9 @@ export const UI_CONFIG = {
     BOTTOM_OFFSET: 60, // Above bottom bar
   },
 
-  // Sliding Panel - Same width, fits in short window
+  // Sliding Panel - 50% wider for better content layout
   PANEL: {
-    WIDTH: 350,
+    WIDTH: 525,
     OPEN_DURATION: 300,
     CLOSE_DURATION: 250,
     EASE_OPEN: 'Cubic.easeOut',
@@ -102,6 +102,7 @@ export enum PanelType {
   INVENTORY = 'inventory',
   SHOP = 'shop',
   SETTINGS = 'settings',
+  DEBUG = 'debug',
 }
 
 // Sidebar button configuration

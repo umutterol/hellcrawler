@@ -10,7 +10,7 @@ import { GameUI } from '../ui/GameUI';
 import { TopBar } from '../ui/TopBar';
 import { BottomBar } from '../ui/BottomBar';
 import { Sidebar } from '../ui/Sidebar';
-import { TankStatsPanel, InventoryPanel, ShopPanel, SettingsPanel } from '../ui/panels';
+import { TankStatsPanel, InventoryPanel, ShopPanel, SettingsPanel, DebugPanel } from '../ui/panels';
 import { ParallaxBackground } from '../ui/ParallaxBackground';
 import { ModuleManager } from '../modules/ModuleManager';
 import { ModuleItem } from '../modules/ModuleItem';
@@ -62,6 +62,7 @@ export class GameScene extends Phaser.Scene {
   private inventoryPanel!: InventoryPanel;
   private shopPanel!: ShopPanel;
   private settingsPanel!: SettingsPanel;
+  private debugPanel: DebugPanel | null = null;
 
   // Save system
   private saveManager!: SaveManager;
@@ -300,11 +301,17 @@ export class GameScene extends Phaser.Scene {
     this.panelManager.registerPanel(this.shopPanel);
     this.panelManager.registerPanel(this.settingsPanel);
 
+    // Create and register debug panel (DEV only)
+    if (import.meta.env.DEV) {
+      this.debugPanel = new DebugPanel(this, this.waveSystem, this.enemies);
+      this.panelManager.registerPanel(this.debugPanel);
+    }
+
     // Enable panel manager integration in InputManager
     this.inputManager.enablePanelManager();
 
     if (import.meta.env.DEV) {
-      console.log('[GameScene] Panel system initialized with 4 panels');
+      console.log(`[GameScene] Panel system initialized with ${this.debugPanel ? 5 : 4} panels`);
     }
   }
 

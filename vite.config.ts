@@ -2,8 +2,10 @@ import { defineConfig } from 'vite';
 import path from 'path';
 import electron from 'vite-plugin-electron/simple';
 
-const isElectron = process.env.npm_lifecycle_event?.includes('electron') ||
-                   process.argv.includes('--mode') && process.argv.includes('electron');
+// Detect if running in Electron mode
+const isElectron = process.env.ELECTRON === 'true' ||
+                   process.env.npm_lifecycle_event?.includes('electron') ||
+                   process.argv.some(arg => arg.includes('electron'));
 
 export default defineConfig({
   resolve: {

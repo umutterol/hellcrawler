@@ -66,6 +66,14 @@ export class SettingsPanel extends SlidingPanel {
     // Setup global pointer events for slider dragging
     this.scene.input.on('pointermove', this.onPointerMove, this);
     this.scene.input.on('pointerup', this.onPointerUp, this);
+
+    // Calculate total content height for scrolling
+    // Save section is the last section and its Y position depends on Electron mode
+    const settingsManager = getSettingsManager();
+    const saveYOffset = settingsManager.isElectron() ? 820 : 715;
+    // Save section contains: divider + save button (y=16, h=36) + quit button (y=60, h=36)
+    const totalContentHeight = saveYOffset + 60 + 36 + 20; // ~816-921px depending on mode
+    this.setContentHeight(totalContentHeight);
   }
 
   /**
@@ -294,8 +302,8 @@ export class SettingsPanel extends SlidingPanel {
     });
     container.add(labelText);
 
-    // Slider track
-    const trackWidth = 150;
+    // Slider track - wider for better precision on 525px panel
+    const trackWidth = 220;
     const trackHeight = 6;
     const trackX = this.getContentWidth() - trackWidth - 50;
     const trackY = 4;

@@ -19,6 +19,7 @@ class SidebarButton extends Phaser.GameObjects.Container {
     [PanelType.INVENTORY]: 'I',
     [PanelType.SHOP]: 'S',
     [PanelType.SETTINGS]: 'O',
+    [PanelType.DEBUG]: 'D',
   };
 
   constructor(
@@ -187,6 +188,22 @@ export class Sidebar extends Phaser.GameObjects.Container {
       this.buttons.set(config.type, button);
       this.add(button);
     });
+
+    // Add debug button in DEV mode only
+    if (import.meta.env.DEV) {
+      const debugIndex = SIDEBAR_BUTTONS.length;
+      const debugButton = new SidebarButton(
+        this.scene,
+        UI_CONFIG.SIDEBAR.PADDING,
+        startY + debugIndex * buttonSpacing,
+        PanelType.DEBUG,
+        () => {
+          panelManager.togglePanel(PanelType.DEBUG);
+        }
+      );
+      this.buttons.set(PanelType.DEBUG, debugButton);
+      this.add(debugButton);
+    }
   }
 
   /**

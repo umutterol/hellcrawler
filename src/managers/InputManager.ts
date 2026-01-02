@@ -47,6 +47,7 @@ export class InputManager {
   private iKey: Phaser.Input.Keyboard.Key | null = null;
   private pKey: Phaser.Input.Keyboard.Key | null = null;
   private escKey: Phaser.Input.Keyboard.Key | null = null;
+  private backtickKey: Phaser.Input.Keyboard.Key | null = null;
 
   // SHIFT key for auto-mode toggle
   private shiftKey: Phaser.Input.Keyboard.Key | null = null;
@@ -82,8 +83,10 @@ export class InputManager {
     // Create SHIFT key for auto-mode toggle
     this.shiftKey = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
 
+    // Create backtick key for debug panel (DEV only)
     if (import.meta.env.DEV) {
-      console.log('[InputManager] Initialized with 10 skill keys + panel shortcuts (TAB, I, P, ESC)');
+      this.backtickKey = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.BACKTICK);
+      console.log('[InputManager] Initialized with 10 skill keys + panel shortcuts (TAB, I, P, ESC, `)');
     }
   }
 
@@ -176,6 +179,11 @@ export class InputManager {
       if (this.escKey && Phaser.Input.Keyboard.JustDown(this.escKey)) {
         panelManager.handleEscapeKey();
       }
+
+      // Backtick -> Debug Panel (DEV only)
+      if (this.backtickKey && Phaser.Input.Keyboard.JustDown(this.backtickKey)) {
+        panelManager.togglePanel(PanelType.DEBUG);
+      }
     } else {
       // Legacy behavior - only TAB with callback
       if (this.tabKey && Phaser.Input.Keyboard.JustDown(this.tabKey)) {
@@ -242,6 +250,9 @@ export class InputManager {
       if (this.shiftKey) {
         this.scene.input.keyboard.removeKey(this.shiftKey);
       }
+      if (this.backtickKey) {
+        this.scene.input.keyboard.removeKey(this.backtickKey);
+      }
     }
 
     this.skillKeys = [];
@@ -250,6 +261,7 @@ export class InputManager {
     this.pKey = null;
     this.escKey = null;
     this.shiftKey = null;
+    this.backtickKey = null;
     this.scene = null;
     this.onTabPress = null;
     this.usePanelManager = false;

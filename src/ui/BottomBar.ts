@@ -55,13 +55,13 @@ export class BottomBar {
   private waveProgress!: Phaser.GameObjects.Graphics;
   private enemyCountText!: Phaser.GameObjects.Text;
 
-  // Constants
+  // Constants - Compact layout for 60px height
   private readonly HEIGHT = UI_CONFIG.BOTTOM_BAR.HEIGHT;
-  private readonly HP_BAR_HEIGHT = 28;
-  private readonly SLOT_SIZE = 56;
-  private readonly SLOT_SPACING = 12;
-  private readonly SKILL_INDICATOR_SIZE = 20;
-  private readonly PADDING = 20;
+  private readonly HP_BAR_HEIGHT = 18;
+  private readonly SLOT_SIZE = 36;
+  private readonly SLOT_SPACING = 6;
+  private readonly SKILL_INDICATOR_SIZE = 14;
+  private readonly PADDING = 12;
 
   // Rarity colors
   private readonly RARITY_COLORS: Record<string, number> = {
@@ -106,11 +106,8 @@ export class BottomBar {
 
   private createBackground(): void {
     this.background = this.scene.add.graphics();
-    this.background.fillStyle(0x1a1a2e, 0.95);
-    this.background.fillRect(0, 0, GAME_CONFIG.WIDTH, this.HEIGHT);
-
-    // Top border
-    this.background.lineStyle(2, 0x3d3d5c, 1);
+    // Transparent background for desktop mode - just a subtle top border
+    this.background.lineStyle(1, 0x3d3d5c, 0.5);
     this.background.lineBetween(0, 0, GAME_CONFIG.WIDTH, 0);
 
     this.container.add(this.background);
@@ -123,14 +120,14 @@ export class BottomBar {
 
   private createHPBar(): void {
     const hpBarWidth = this.getHPBarWidth();
-    const hpBarY = 10;
+    const hpBarY = 4;
 
     // HP Bar background
     this.hpBarBg = this.scene.add.graphics();
     this.hpBarBg.fillStyle(0x333333, 1);
-    this.hpBarBg.fillRoundedRect(this.PADDING, hpBarY, hpBarWidth, this.HP_BAR_HEIGHT, 6);
-    this.hpBarBg.lineStyle(2, 0x555555, 1);
-    this.hpBarBg.strokeRoundedRect(this.PADDING, hpBarY, hpBarWidth, this.HP_BAR_HEIGHT, 6);
+    this.hpBarBg.fillRoundedRect(this.PADDING, hpBarY, hpBarWidth, this.HP_BAR_HEIGHT, 4);
+    this.hpBarBg.lineStyle(1, 0x555555, 1);
+    this.hpBarBg.strokeRoundedRect(this.PADDING, hpBarY, hpBarWidth, this.HP_BAR_HEIGHT, 4);
     this.container.add(this.hpBarBg);
 
     // HP Bar fill
@@ -139,7 +136,7 @@ export class BottomBar {
 
     // HP Text (centered on bar)
     this.hpText = this.scene.add.text(this.PADDING + hpBarWidth / 2, hpBarY + this.HP_BAR_HEIGHT / 2, '', {
-      fontSize: '14px',
+      fontSize: '11px',
       color: '#ffffff',
       fontStyle: 'bold',
       stroke: '#000000',
@@ -207,7 +204,7 @@ export class BottomBar {
 
   private createModuleSlots(): void {
     const startX = this.PADDING;
-    const y = this.HP_BAR_HEIGHT + 20;
+    const y = this.HP_BAR_HEIGHT + 8; // Closer to HP bar
 
     // Create 5 slot UI elements
     for (let i = 0; i < 5; i++) {
@@ -234,14 +231,14 @@ export class BottomBar {
 
     // Module icon placeholder
     const icon = this.scene.add.rectangle(
-      size / 2, size / 2, size - 12, size - 12, 0x666666, 0
+      size / 2, size / 2, size - 8, size - 8, 0x666666, 0
     );
     slotContainer.add(icon);
     this.slotIcons.push(icon);
 
-    // Slot level text (bottom right)
-    const levelText = this.scene.add.text(size - 4, size - 4, '', {
-      fontSize: '11px',
+    // Slot level text (bottom right) - smaller
+    const levelText = this.scene.add.text(size - 2, size - 2, '', {
+      fontSize: '9px',
       color: '#ffffff',
       stroke: '#000000',
       strokeThickness: 2,
@@ -254,7 +251,7 @@ export class BottomBar {
     let lockIcon: Phaser.GameObjects.Text | null = null;
     if (index > 0) {
       lockIcon = this.scene.add.text(size / 2, size / 2, '🔒', {
-        fontSize: '20px',
+        fontSize: '14px',
       });
       lockIcon.setOrigin(0.5, 0.5);
       lockIcon.setVisible(false);
@@ -262,7 +259,7 @@ export class BottomBar {
     }
     this.slotLockIcons.push(lockIcon);
 
-    // Skill cooldown indicators
+    // Skill cooldown indicators - positioned inside slot corners
     const skill1Cooldown = this.scene.add.graphics();
     slotContainer.add(skill1Cooldown);
     this.skill1Cooldowns.push(skill1Cooldown);
@@ -271,47 +268,47 @@ export class BottomBar {
     slotContainer.add(skill2Cooldown);
     this.skill2Cooldowns.push(skill2Cooldown);
 
-    // Skill hotkey labels (below slot)
-    const skill1Key = this.scene.add.text(12, size + 6, `${index * 2 + 1}`, {
-      fontSize: '10px',
+    // Skill hotkey labels - inside slot at bottom corners (compact)
+    const skill1Key = this.scene.add.text(4, size - 2, `${index * 2 + 1}`, {
+      fontSize: '8px',
       color: '#888888',
     });
-    skill1Key.setOrigin(0.5, 0);
+    skill1Key.setOrigin(0, 1);
     slotContainer.add(skill1Key);
     this.skill1Keys.push(skill1Key);
 
-    const skill2Key = this.scene.add.text(size - 12, size + 6, `${index * 2 + 2}`, {
-      fontSize: '10px',
+    const skill2Key = this.scene.add.text(size - 4, size - 2, `${index * 2 + 2}`, {
+      fontSize: '8px',
       color: '#888888',
     });
-    skill2Key.setOrigin(0.5, 0);
+    skill2Key.setOrigin(1, 1);
     slotContainer.add(skill2Key);
     this.skill2Keys.push(skill2Key);
 
-    // Slot number (top left)
-    const slotNum = this.scene.add.text(4, 2, `${index + 1}`, {
-      fontSize: '10px',
+    // Slot number (top left) - smaller
+    const slotNum = this.scene.add.text(2, 1, `${index + 1}`, {
+      fontSize: '8px',
       color: '#666666',
     });
     slotContainer.add(slotNum);
 
-    // Auto-mode indicators
-    const skill1Auto = this.scene.add.text(12, size + 18, 'A', {
-      fontSize: '8px',
+    // Auto-mode indicators - inside slot at top corners
+    const skill1Auto = this.scene.add.text(4, 10, 'A', {
+      fontSize: '7px',
       color: '#444444',
       fontStyle: 'bold',
     });
-    skill1Auto.setOrigin(0.5, 0);
+    skill1Auto.setOrigin(0, 0);
     skill1Auto.setVisible(false);
     slotContainer.add(skill1Auto);
     this.skill1Autos.push(skill1Auto);
 
-    const skill2Auto = this.scene.add.text(size - 12, size + 18, 'A', {
-      fontSize: '8px',
+    const skill2Auto = this.scene.add.text(size - 4, 10, 'A', {
+      fontSize: '7px',
       color: '#444444',
       fontStyle: 'bold',
     });
-    skill2Auto.setOrigin(0.5, 0);
+    skill2Auto.setOrigin(1, 0);
     skill2Auto.setVisible(false);
     slotContainer.add(skill2Auto);
     this.skill2Autos.push(skill2Auto);
@@ -319,34 +316,34 @@ export class BottomBar {
 
   private createWaveProgress(): void {
     const rightX = GAME_CONFIG.WIDTH - this.PADDING;
-    const y = this.HP_BAR_HEIGHT + 25;
+    const y = 8;
 
-    // Wave text
+    // Wave text - compact
     this.waveText = this.scene.add.text(rightX, y, 'Wave 1/7', {
-      fontSize: '20px',
+      fontSize: '14px',
       color: '#ffff00',
       fontStyle: 'bold',
     });
     this.waveText.setOrigin(1, 0);
     this.container.add(this.waveText);
 
-    // Wave progress bar background
-    const progressWidth = 150;
-    const progressHeight = 12;
+    // Wave progress bar background - compact
+    const progressWidth = 100;
+    const progressHeight = 8;
     const progressX = rightX - progressWidth;
-    const progressY = y + 30;
+    const progressY = y + 18;
 
     this.waveProgressBg = this.scene.add.graphics();
     this.waveProgressBg.fillStyle(0x333333, 1);
-    this.waveProgressBg.fillRoundedRect(progressX, progressY, progressWidth, progressHeight, 4);
+    this.waveProgressBg.fillRoundedRect(progressX, progressY, progressWidth, progressHeight, 3);
     this.container.add(this.waveProgressBg);
 
     this.waveProgress = this.scene.add.graphics();
     this.container.add(this.waveProgress);
 
-    // Enemy count text
-    this.enemyCountText = this.scene.add.text(rightX, progressY + progressHeight + 8, 'Enemies: 0', {
-      fontSize: '14px',
+    // Enemy count text - compact
+    this.enemyCountText = this.scene.add.text(rightX, progressY + progressHeight + 6, 'Enemies: 0', {
+      fontSize: '10px',
       color: '#ff8888',
     });
     this.enemyCountText.setOrigin(1, 0);
@@ -383,7 +380,7 @@ export class BottomBar {
     const percent = Math.max(0, Math.min(currentHP / maxHP, 1));
 
     const hpBarWidth = this.getHPBarWidth();
-    const hpBarY = 10;
+    const hpBarY = 4;
 
     this.hpBar.clear();
 
@@ -403,7 +400,7 @@ export class BottomBar {
         hpBarY + 2,
         (hpBarWidth - 4) * percent,
         this.HP_BAR_HEIGHT - 4,
-        4
+        3
       );
     }
 
@@ -551,10 +548,10 @@ export class BottomBar {
   private updateWaveProgress(): void {
     this.waveText.setText(`Wave ${this.currentWave}/${GAME_CONFIG.WAVES_PER_ZONE}`);
 
-    const progressWidth = 150;
-    const progressHeight = 12;
+    const progressWidth = 100;
+    const progressHeight = 8;
     const progressX = GAME_CONFIG.WIDTH - this.PADDING - progressWidth;
-    const progressY = this.HP_BAR_HEIGHT + 25 + 30;
+    const progressY = 8 + 18; // y + 18 from createWaveProgress
 
     this.waveProgress.clear();
 
@@ -567,7 +564,7 @@ export class BottomBar {
           progressY + 2,
           (progressWidth - 4) * killPercent,
           progressHeight - 4,
-          3
+          2
         );
       }
     }
@@ -707,23 +704,23 @@ export class BottomBar {
         continue;
       }
 
-      // Update skill 1 cooldown
+      // Update skill 1 cooldown - positioned at bottom left inside slot
       if (skill1Cooldown) {
         this.drawCooldownIndicator(
           skill1Cooldown,
-          12,
-          this.SLOT_SIZE + 6,
+          this.SKILL_INDICATOR_SIZE / 2 + 2,
+          this.SLOT_SIZE - this.SKILL_INDICATOR_SIZE / 2 - 2,
           activeModule,
           0
         );
       }
 
-      // Update skill 2 cooldown
+      // Update skill 2 cooldown - positioned at bottom right inside slot
       if (skill2Cooldown) {
         this.drawCooldownIndicator(
           skill2Cooldown,
-          this.SLOT_SIZE - 12,
-          this.SLOT_SIZE + 6,
+          this.SLOT_SIZE - this.SKILL_INDICATOR_SIZE / 2 - 2,
+          this.SLOT_SIZE - this.SKILL_INDICATOR_SIZE / 2 - 2,
           activeModule,
           1
         );
