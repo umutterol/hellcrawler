@@ -1,9 +1,10 @@
 # HELLCRAWLER - UI Specification Document
 
-## Version 1.0 | December 2024
+## Version 1.1 | January 2025
 
 > **Reference:** Desktop Heroes UI/UX patterns
 > **Philosophy:** Game never pauses, menus overlay, idle-first design
+> **Desktop Mode:** 350px horizontal strip, transparent window, bottom-docked
 
 ---
 
@@ -91,15 +92,18 @@
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Dimensions (1920x1080 base)
+### Dimensions (Desktop Mode - 1920x350 base)
 
 | Element | Width | Height | Position |
 |---------|-------|--------|----------|
-| Top Bar | 100% | 48px | Top |
-| Sidebar | 56px | calc(100% - 48px - 120px) | Left |
-| Game Area | calc(100% - 56px) | calc(100% - 48px - 120px) | Center-Right |
-| Bottom Bar | 100% | 120px | Bottom |
-| Sliding Panel | 400px | calc(100% - 48px - 120px) | Left (when open) |
+| Top Bar | 100% | 28px | Top |
+| Sidebar | 40px | calc(100% - 28px - 60px) | Left |
+| Game Area | calc(100% - 40px) | calc(100% - 28px - 60px) | Center-Right |
+| Bottom Bar | 100% | 60px | Bottom |
+| Sliding Panel | 525px | calc(100% - 28px - 60px) | Left (when open) |
+| Ground Height | 100% | 60px | Bottom of game area |
+
+> **Note:** Desktop Mode uses compact dimensions for the 350px tall horizontal strip layout. The game runs in a transparent, frameless window docked to the bottom of the screen.
 
 ---
 
@@ -119,11 +123,15 @@ CLOSED                    OPENING                   OPEN
 
 | Property | Value |
 |----------|-------|
-| Duration | 300ms |
-| Easing | Cubic.easeOut |
-| Panel slide | 0px → 400px (x position) |
-| Game area shift | 0px → 400px (x offset) |
+| Open Duration | 300ms |
+| Close Duration | 200ms |
+| Ease Open | Cubic.easeOut |
+| Ease Close | Cubic.easeIn |
+| Panel slide | -525px → 0px (x position) |
+| Panel remains static | Game area does NOT shift |
 | Stagger | None (simultaneous) |
+
+> **Note:** Panels slide in from off-screen left. The game area remains fixed - it does not shift when panels open.
 
 ### Panel Stack Rules
 
@@ -284,17 +292,17 @@ CLOSED                    OPENING                   OPEN
 ├─────────────────────────────────────┤
 │ INVENTORY (24/50)      [Sort ▼]    │  ← Item count + sort dropdown
 ├─────────────────────────────────────┤
-│ ┌────┬────┬────┬────┬────┬────┐    │
-│ │ MG │ MG │MSL │TES │REP │FLM │    │  ← 6-column grid
-│ │ U  │ R  │ R  │ E  │ U  │ E  │    │  ← Rarity indicator
-│ ├────┼────┼────┼────┼────┼────┤    │
-│ │EMP │MOR │ MG │MSL │    │    │    │
-│ │ L  │ R  │ U  │ E  │    │    │    │
-│ ├────┼────┼────┼────┼────┼────┤    │
-│ │    │    │    │    │    │    │    │  ← Empty slots
-│ │    │    │    │    │    │    │    │
-│ └────┴────┴────┴────┴────┴────┘    │
-│           [▲ Scroll ▼]              │
+│ ┌────┬────┬────┬────┬────┬────┬────┬────┐  │
+│ │ MG │ MG │MSL │TES │REP │FLM │EMP │MOR │  │  ← 8-column grid
+│ │ U  │ R  │ R  │ E  │ U  │ E  │ L  │ R  │  │  ← Rarity indicator
+│ ├────┼────┼────┼────┼────┼────┼────┼────┤  │
+│ │ MG │MSL │    │    │    │    │    │    │  │
+│ │ U  │ E  │    │    │    │    │    │    │  │
+│ ├────┼────┼────┼────┼────┼────┼────┼────┤  │
+│ │    │    │    │    │    │    │    │    │  │  ← Empty slots
+│ │    │    │    │    │    │    │    │    │  │
+│ └────┴────┴────┴────┴────┴────┴────┴────┘  │
+│ [< PREV]     Page 1 / 2     [NEXT >]       │  ← Pagination
 ├─────────────────────────────────────┤
 │ SELECTED: Machine Gun (Rare)        │  ← Selection detail
 │ ┌─────────────────────────────────┐ │
@@ -322,6 +330,14 @@ CLOSED                    OPENING                   OPEN
 | Rare | #60a5fa (blue) | 2px solid |
 | Epic | #c084fc (purple) | 2px solid + glow |
 | Legendary | #fb923c (orange) | 3px solid + glow + particle |
+
+**Pagination (Desktop Mode):**
+| Property | Value |
+|----------|-------|
+| Grid Size | 8 columns × 4 rows |
+| Items Per Page | 32 |
+| Max Inventory | 50 |
+| Total Pages | 2 (ceil(50/32)) |
 
 **Interactions:**
 - Click inventory item → Select (show details below)
@@ -403,6 +419,15 @@ CLOSED                    OPENING                   OPEN
 | Available + Cannot Afford | Orange, shows "Need X more" |
 | Locked | Dark, shows requirement + future cost |
 
+**Pagination (Desktop Mode):**
+| Property | Value |
+|----------|-------|
+| Cards Per Page | 3 |
+| Total Slots | 5 |
+| Total Pages | 2 |
+
+> **Note:** Page 1 shows Slots 1-3, Page 2 shows Slots 4-5. Pagination controls appear below the slot cards.
+
 ---
 
 ### 4.4 Settings Panel
@@ -444,6 +469,17 @@ CLOSED                    OPENING                   OPEN
 │ Shop: P                             │
 │ Settings: ESC                       │
 ├─────────────────────────────────────┤
+│ DESKTOP MODE (Electron only)        │
+├─────────────────────────────────────┤
+│ Always on Top              [✓]     │
+│ Click-Through              [✓]     │
+│                                     │
+│ LAYER VISIBILITY                    │
+│ Sky & Clouds               [✓]     │
+│ Mountains                  [✓]     │
+│ Far Buildings              [✓]     │
+│ Forest & Town              [✓]     │
+├─────────────────────────────────────┤
 │                                     │
 │      [SAVE GAME]                    │
 │                                     │
@@ -451,6 +487,16 @@ CLOSED                    OPENING                   OPEN
 │                                     │
 └─────────────────────────────────────┘
 ```
+
+**Desktop Mode Settings (Electron only):**
+| Setting | Default | Description |
+|---------|---------|-------------|
+| Always on Top | ON | Keep game window above other applications |
+| Click-Through | ON | Mouse clicks pass through transparent areas to desktop |
+| Sky & Clouds | ON | Toggle bg-sky and bg-clouds layers |
+| Mountains | ON | Toggle bg-mountains and bg-mountains-lights layers |
+| Far Buildings | ON | Toggle bg-far-buildings layer |
+| Forest & Town | ON | Toggle bg-forest and bg-town layers |
 
 **Toggle States:**
 - [✓] = Enabled (green checkmark)
@@ -834,6 +880,21 @@ Panel.refresh() to update content
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** December 2024
+**Document Version:** 1.1
+**Last Updated:** January 2025
 **Status:** APPROVED FOR IMPLEMENTATION
+
+---
+
+## Changelog
+
+### v1.1 (January 2025)
+- Updated dimensions for Desktop Mode (350px height, compact UI)
+- Changed panel width from 400px to 525px
+- Added Desktop Mode settings section (Always on Top, Click-Through, Layer Visibility)
+- Added pagination for Inventory (8x4 grid, 32 items/page) and Shop (3 cards/page)
+- Updated animation timing (separate open/close durations)
+- Clarified that game area does NOT shift when panels open
+
+### v1.0 (December 2024)
+- Initial specification document

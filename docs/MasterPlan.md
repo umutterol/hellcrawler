@@ -257,6 +257,40 @@ All must be true before moving to Vertical Slice:
 
 ## Changelog
 
+### January 2, 2025 - Panel System Fixes & ClickThroughManager Cleanup
+- **Panel Scrolling Fix:**
+  - Root cause: Panels never called `setContentHeight()`, so `maxScrollY` stayed at 0
+  - Fixed InventoryPanel: Added `setContentHeight(544)` for equipped + grid + details
+  - Fixed ShopPanel: Added `setContentHeight(370)` for header + slot cards + pagination
+  - Fixed SettingsPanel: Added dynamic `setContentHeight(816-921)` based on Electron mode
+  - All panels now scroll correctly via mouse wheel and touch drag
+- **ClickThroughManager Memory Leak Fix:**
+  - Canvas event listeners (`mouseleave`, `mouseenter`) were not cleaned up
+  - Added `mouseLeaveHandler` and `mouseEnterHandler` properties to store references
+  - Updated `destroy()` to properly remove all DOM event listeners
+  - Added `MIN_INTERACTIVE_DEPTH` constant to replace magic number `10`
+
+### January 2025 - Desktop Mode (Electron)
+- **Desktop Heroes Layout Implementation:**
+  - Changed game resolution from 1920x1080 to 1920x350 (bottom-docked strip)
+  - Electron window uses full screen width, positioned at bottom of work area
+  - Compact UI: TopBar 28px, BottomBar 60px, Sidebar 40px, Ground 60px
+- **Transparent Window Support:**
+  - Always-transparent frameless Electron window
+  - Click-through behavior for transparent areas via `setIgnoreMouseEvents`
+  - `ClickThroughManager` dynamically toggles click-through based on cursor position
+- **Background Layer Toggles:**
+  - 4 layer groups: Sky+Clouds, Mountains, Far Buildings, Forest+Town
+  - Settings panel toggles for each group
+  - `ParallaxBackground` listens to `SETTINGS_CHANGED` events
+- **Settings Manager Additions:**
+  - `alwaysOnTop`, `clickThroughEnabled` settings
+  - Layer visibility settings: `showSkyLayer`, `showMountainsLayer`, `showFarBuildingsLayer`, `showForegroundLayer`
+  - Electron IPC helpers: `applyAlwaysOnTop()`, `applyClickThrough()`
+- **Panel Width Increase:**
+  - Increased `UI_CONFIG.PANEL.WIDTH` from 350px to 525px (50% wider)
+  - Better layout for inventory grids and shop cards
+
 ### December 27, 2024 - Parallax Background System
 - **Parallax Background Implementation:**
   - Created `src/ui/ParallaxBackground.ts` - Multi-layer scrolling background system

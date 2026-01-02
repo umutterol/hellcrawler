@@ -1,5 +1,5 @@
 # HELLCRAWLER - Product Requirements Document (PRD)
-## Version 1.0 | December 2024
+## Version 1.1 | January 2025
 
 ---
 
@@ -1130,6 +1130,10 @@ function createWindow(): void {
 - When cursor is over transparent areas (no game elements), clicks pass through to desktop
 - Uses `setIgnoreMouseEvents(true, { forward: true })` for dynamic toggling
 - Interactive elements (UI, tank, enemies) always receive mouse events
+- Managed by `ClickThroughManager` class (`src/managers/ClickThroughManager.ts`)
+- Uses throttled pointer tracking (50ms interval) to minimize IPC overhead
+- Objects with `depth < 10` are treated as background (not interactive)
+- Proper event listener cleanup in `destroy()` prevents memory leaks
 
 **IPC Channels:**
 | Channel | Direction | Purpose |
@@ -1367,7 +1371,19 @@ export const GAME_CONFIG = {
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** December 2024
+**Document Version:** 1.1
+**Last Updated:** January 2025
 **Author:** Product Team
 **Status:** APPROVED FOR DEVELOPMENT
+
+---
+
+## Changelog
+
+### v1.1 (January 2025)
+- Updated Desktop Mode section with ClickThroughManager implementation details
+- Added panel system improvements (525px width, pagination, scrolling fixes)
+- Documented layer visibility toggles and settings persistence
+
+### v1.0 (December 2024)
+- Initial product requirements document

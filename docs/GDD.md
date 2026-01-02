@@ -1,5 +1,5 @@
 # HELLCRAWLER - Game Design Document (GDD)
-## Version 1.0 | December 2024
+## Version 1.1 | January 2025
 
 ---
 
@@ -852,6 +852,7 @@ Uber versions of all 8 bosses with:
 
 > **Reference:** Desktop Heroes sliding panel system
 > **Full Specification:** See `docs/UISpec.md` for complete implementation details
+> **Desktop Mode:** Game runs as a 350px tall transparent widget docked to bottom of screen
 
 ## 11.1 Design Philosophy
 
@@ -859,8 +860,24 @@ Uber versions of all 8 bosses with:
 |-----------|-------------|
 | **Idle-First** | Game NEVER pauses - continues during all menu interactions |
 | **No Scene Transitions** | All UI is overlay-based, no black screen transitions |
-| **Sliding Panels** | Menus slide in from left, pushing game area right |
+| **Sliding Panels** | Menus slide in from left (game area stays fixed) |
 | **Always Accessible** | Core actions (skills, flee) always visible |
+| **Desktop Widget** | Transparent window floats above desktop (Electron only) |
+
+### Desktop Mode (Electron)
+
+When running in Electron, the game displays as a **desktop widget**:
+
+| Feature | Description |
+|---------|-------------|
+| Window Size | 1920 × 350px (full width, short height) |
+| Position | Bottom-docked, above taskbar |
+| Transparency | Always transparent, see-through to desktop |
+| Always on Top | Configurable - keeps game above other windows |
+| Click-Through | Mouse clicks pass through transparent areas to desktop |
+| Layer Toggles | Toggle visibility of parallax background layers |
+
+This creates an "idle widget" experience where players can monitor their tank while working in other applications.
 
 ## 11.2 Screen Layout
 
@@ -1166,7 +1183,19 @@ Future consideration: Localization framework in place
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** December 2024
+**Document Version:** 1.1
+**Last Updated:** January 2025
 **Author:** Game Design Team
 **Status:** LOCKED FOR IMPLEMENTATION
+
+---
+
+## Changelog
+
+### v1.1 (January 2025)
+- Added Desktop Mode (Electron) section to UI/UX Design
+- Updated sliding panel behavior (game area stays fixed)
+- Added Desktop Widget principle to design philosophy
+
+### v1.0 (December 2024)
+- Initial game design document
