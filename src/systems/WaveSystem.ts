@@ -451,11 +451,12 @@ export class WaveSystem {
       return null;
     }
 
-    // Spawn at consistent Y position (ground level)
-    enemy.activate(this.spawnXBase, this.spawnY, config);
+    // Spawn with X variation so multiple debug spawns don't overlap
+    const xOffset = Phaser.Math.Between(0, 200);
+    enemy.activate(this.spawnXBase + xOffset, this.spawnY, config);
 
     if (import.meta.env.DEV) {
-      console.log(`[WaveSystem] Debug spawned: ${type}`);
+      console.log(`[WaveSystem] Debug spawned: ${type} at x=${this.spawnXBase + xOffset}`);
     }
 
     return enemy;
