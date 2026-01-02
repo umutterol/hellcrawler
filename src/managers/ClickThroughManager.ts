@@ -33,9 +33,24 @@ export class ClickThroughManager {
     }
 
     this.setupPointerTracking();
+    this.applyElectronSettings();
 
     if (import.meta.env.DEV) {
       console.log('[ClickThroughManager] Initialized for Electron environment');
+    }
+  }
+
+  /**
+   * Apply saved Electron-specific settings on startup
+   */
+  private async applyElectronSettings(): Promise<void> {
+    const settings = getSettingsManager();
+
+    // Apply saved always-on-top setting
+    await settings.applyAlwaysOnTop();
+
+    if (import.meta.env.DEV) {
+      console.log(`[ClickThroughManager] Applied alwaysOnTop: ${settings.alwaysOnTop}`);
     }
   }
 
