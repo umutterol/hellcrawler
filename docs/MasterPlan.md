@@ -15,11 +15,13 @@
 | Milestone | Status | Blocking Issues | ETA |
 |-----------|--------|-----------------|-----|
 | MVP | ✅ Complete | None | Done |
-| Vertical Slice (VFX) | 🟡 IN PROGRESS | Audio assets not ready | This week |
+| Balance Guide | ✅ Complete | None | Done |
+| Vertical Slice (VFX) | 🟡 IN PROGRESS | None | This week |
+| Balance Implementation | ⏳ Ready | None | Can start now |
 | Vertical Slice (Audio) | ⏸️ PAUSED | Waiting for SFX/music | TBD |
-| Content Expansion | ⏳ Waiting | VFX complete | 2 weeks |
+| Content Expansion | ⏳ Waiting | VFX + Balance complete | 2 weeks |
 
-**Note:** Audio deprioritized - no SFX/music assets ready. Focus on VFX and game feel improvements that don't require audio.
+**Note:** Audio deprioritized - no SFX/music assets ready. Balance formulas now documented in `docs/BalanceGuide.md` - ready for implementation.
 
 ---
 
@@ -31,14 +33,14 @@ Visual feedback that makes combat feel impactful. **Can complete without audio a
 
 | # | Task | Complexity | Dependency | Status |
 |---|------|------------|------------|--------|
-| 1.1 | Damage numbers pop animation | Low | None | ⏳ |
-| 1.2 | Enemy death flash + fade | Low | None | ⏳ |
-| 1.3 | Crit hit visual ("CRIT!" + bigger) | Low | 1.1 | ⏳ |
+| 1.1 | Damage numbers pop animation | Low | None | ✅ |
+| 1.2 | Enemy death flash + fade | Low | None | ✅ |
+| 1.3 | Crit hit visual ("CRIT!" + bigger) | Low | 1.1 | ✅ |
 | 1.4 | Cannon muzzle flash + recoil | Low | None | ⏳ |
 | 1.5 | Missile smoke puff + wobble | Low | None | ⏳ |
-| 1.6 | Hit spark/flash at impact point | Low | None | ⏳ |
-| 1.7 | DEPTH constants in GameConfig | Low | None | ⏳ |
-| 1.8 | EFFECT_TIMING constants | Low | None | ⏳ |
+| 1.6 | Hit spark/flash at impact point | Low | None | ✅ |
+| 1.7 | DEPTH constants in GameConfig | Low | None | ✅ |
+| 1.8 | EFFECT_TIMING constants | Low | None | ✅ |
 
 **Estimated Time:** 2-3 days
 
@@ -54,24 +56,35 @@ Nice-to-have visual polish. **Still no audio required.**
 | 2.2 | Near Death smoke + pulse | Medium | None | ⏳ |
 | 2.3 | Legendary drop glow effect | Low | None | ⏳ |
 | 2.4 | Onboarding tooltips (3-4) | Medium | None | ⏳ |
+| 2.5 | **Gore System: GoreManager + pools** | Medium | Gib assets | ⏳ |
+| 2.6 | **Gore System: Fake ragdoll gibs** | Medium | 2.5 | ⏳ |
+| 2.7 | **Gore System: Blood particles + splatters** | Low | 2.5 | ⏳ |
 
-**Estimated Time:** 2-3 days
+**Gore System Details:** Fake ragdoll deaths using tweens (no physics). Generic gib sprites tinted per-enemy. See full plan: `~/.claude/plans/purring-shimmying-leaf.md`
+
+**Asset Requirement:** Create 5 gib sprites (16-bit pixel art): `gib-head.png`, `gib-torso.png`, `gib-limb-upper.png`, `gib-limb-lower.png`, `gib-chunk.png` in `public/assets/effects/gore/`
+
+**Estimated Time:** 3-4 days (including gore system)
 
 ---
 
-### 🔵 TIER 3: QUICK DESIGN WINS (Can Parallelize)
+### 🔵 TIER 3: BALANCE IMPLEMENTATION & QUICK WINS (Can Parallelize)
 
-Low-effort, high-impact design improvements. **No audio needed.**
+Implement balance formulas from `docs/BalanceGuide.md`. **No audio needed.**
 
 | # | Task | Complexity | Dependency | Impact |
 |---|------|------------|------------|--------|
-| 3.1 | Zone gold multipliers (+40%/zone) | Low | None | High - farming optimization |
-| 3.2 | Elite = 2× drop rate | Low | None | Medium - loot satisfaction |
-| 3.3 | Super Elite = guaranteed drop | Low | None | High - milestone reward |
-| 3.4 | Boss = guaranteed + higher rarity | Low | None | High - boss value |
-| 3.5 | Milestone rewards (5/10/25 levels) | Medium | None | High - dopamine hits |
+| 3.1 | Add BALANCE constants to GameConfig | Low | None | High - foundation for all scaling |
+| 3.2 | Implement per-act enemy scaling | Medium | 3.1 | High - proper difficulty curve |
+| 3.3 | Add base enemy stats (HP, damage, speed) | Low | 3.1 | High - combat feel |
+| 3.4 | Zone gold multipliers (+40%/zone) | Low | 3.1 | High - farming optimization |
+| 3.5 | Elite = 2× drop rate | Low | None | Medium - loot satisfaction |
+| 3.6 | Super Elite = guaranteed drop | Low | None | High - milestone reward |
+| 3.7 | Boss = guaranteed + higher rarity | Low | None | High - boss value |
+| 3.8 | Milestone rewards (5/10/25 levels) | Medium | None | High - dopamine hits |
 
-**Estimated Time:** 1-2 days total
+**Reference:** `docs/BalanceGuide.md` - Complete formulas and base values
+**Estimated Time:** 2-3 days total
 
 ---
 
@@ -208,22 +221,17 @@ Zone multipliers, drop rates, milestone rewards
                     │            MVP COMPLETE ✅               │
                     └─────────────────┬───────────────────────┘
                                       │
-                    ┌─────────────────▼───────────────────────┐
-                    │  🔴 TIER 0: AudioManager (BLOCKER)      │
-                    │     - AudioManager.ts                    │
-                    │     - SFXPool.ts                         │
-                    │     - Event hooks                        │
-                    └─────────────────┬───────────────────────┘
-                                      │
           ┌───────────────────────────┼───────────────────────────┐
           │                           │                           │
           ▼                           ▼                           ▼
 ┌─────────────────┐     ┌─────────────────────┐     ┌─────────────────┐
-│ 🟠 TIER 1: SFX   │     │ 🟠 TIER 1: VFX      │     │ 🟡 TIER 2: Polish│
-│ - Cannon boom    │     │ - Damage numbers    │     │ - Muzzle flash  │
-│ - MG rattle      │     │ - Enemy death       │     │ - Boss intro    │
-│ - Missiles       │     │ - Crit visual       │     │ - Near Death    │
-│ - Impacts        │     │                     │     │ - Onboarding    │
+│ 🟠 TIER 1: VFX   │     │ 🟡 TIER 2: Polish   │     │ 🔵 TIER 3:       │
+│ - Damage nums ✅ │     │ - Boss intro        │     │ BALANCE          │
+│ - Enemy death ✅ │     │ - Near Death VFX    │     │ (Can parallelize)│
+│ - Crit visual ✅ │     │ - Legendary glow    │     │ - BALANCE config │
+│ - Cannon recoil⏳│     │ - Onboarding        │     │ - Enemy scaling  │
+│ - Missile smoke⏳│     │                     │     │ - Drop rates     │
+│ - Hit sparks ✅  │     │                     │     │ - Milestones     │
 └────────┬────────┘     └──────────┬──────────┘     └────────┬────────┘
          │                         │                          │
          └─────────────────────────┼──────────────────────────┘
@@ -237,11 +245,11 @@ Zone multipliers, drop rates, milestone rewards
          │                         │                         │
          ▼                         ▼                         ▼
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│ 🟢 TIER 3:       │     │ 🔵 TIER 4:       │     │ ⚪ TIER 5:       │
-│ Content          │     │ Quick Wins       │     │ Architecture   │
-│ - Act 2          │     │ - Zone gold ×    │     │ - 4-store      │
-│ - Zone select    │     │ - Drop rates     │     │ - Auto-save    │
-│ - Auto-sell      │     │ - Milestones     │     │ - Shaders      │
+│ ⏸️ TIER 4:       │     │ 🟢 TIER 5:       │     │ ⚪ TIER 6:       │
+│ AUDIO (Paused)   │     │ Content          │     │ Architecture   │
+│ - AudioManager   │     │ - Act 2          │     │ - 4-store      │
+│ - SFXPool        │     │ - Zone select    │     │ - Auto-save    │
+│ - All SFX        │     │ - Auto-sell      │     │ - Shaders      │
 └─────────────────┘     └─────────────────┘     └─────────────────┘
          │                         │                         │
          └─────────────────────────┼─────────────────────────┘
@@ -251,6 +259,12 @@ Zone multipliers, drop rates, milestone rewards
                     └─────────────────────────────────────────┘
 ```
 
+**Key Changes:**
+- Audio moved to TIER 4 (paused, waiting for assets)
+- Balance implementation (TIER 3) can run in parallel with VFX
+- VFX tasks updated to show completion status
+- Reference: `docs/BalanceGuide.md` for all scaling formulas
+
 ---
 
 ## Current Status
@@ -259,11 +273,14 @@ Zone multipliers, drop rates, milestone rewards
 |-----------|--------|--------------|
 | Prototype | ✅ Complete | Dec 2024 |
 | MVP | ✅ Complete | Dec 2024 |
-| Vertical Slice | ⏳ Pending | - |
+| Balance Guide | ✅ Complete | Jan 3, 2025 |
+| Vertical Slice (VFX) | 🟡 In Progress | Jan 3, 2025 |
+| Balance Implementation | ⏳ Ready | - |
 | Content Expansion | ⏳ Pending | - |
 
-**Current Phase:** Vertical Slice - Phase 2
-**Current Focus:** Audio, VFX, Polish
+**Current Phase:** Vertical Slice - VFX Polish
+**Current Focus:** VFX completion, then Balance implementation
+**Audio Status:** ⏸️ Paused (waiting for assets)
 
 ---
 
@@ -624,6 +641,8 @@ All must be true before moving to Vertical Slice:
 | Jan 2025 | Zone gold multipliers (+40%) | Desktop Heroes economy pattern, creates farming sweet spots |
 | Jan 2025 | Milestone rewards at 5/10/25 levels | Dopamine hits at regular intervals, Desktop Heroes pattern |
 | Jan 2025 | Support Drone = Hellcrawler's Fairy | Secondary progression layer, auto-collect + bonuses |
+| Jan 2025 | BalanceGuide.md = Appendix B | Concrete numbers for enemy stats, scaling, economy targets |
+| Jan 2025 | Desktop Heroes scaling patterns | HP 1.8^act, Damage 1.4^act, Gold 1.6^act exponential curves |
 
 ---
 
@@ -640,13 +659,43 @@ All must be true before moving to Vertical Slice:
 | No particle pooling | P3 | May need for VFX | |
 | No status effect system | P2 | Burn/Shock/Slow for module synergies | [04-combat-system.md](Meeting/04-combat-system.md) |
 | Limited stat pool (11) | P2 | Expand to 16 for build variety | [04-combat-system.md](Meeting/04-combat-system.md) |
-| No zone scaling | P2 | Gold/XP multipliers per zone | [06-economy.md](Meeting/06-economy.md) |
+| No zone scaling | P2 | Gold/XP multipliers per zone | [BalanceGuide.md](BalanceGuide.md) |
+| No enemy base stats | P1 | Base HP/damage/speed per enemy type | [BalanceGuide.md](BalanceGuide.md) |
+| No per-act scaling | P1 | Enemy stats scale exponentially per act | [BalanceGuide.md](BalanceGuide.md) |
 | No milestone rewards | P2 | Every 5/10/25 levels | [05-progression.md](Meeting/05-progression.md) |
 | No essence crafting | P3 | Conversion recipes for essence sink | [07-inventory.md](Meeting/07-inventory.md) |
 
 ---
 
 ## Changelog
+
+### January 3, 2025 - Gore/Ragdoll Death System Planning
+- **Designed comprehensive gore system** (tasks 2.5-2.7):
+  - Fake ragdoll physics via tweens (no Matter.js needed)
+  - Generic gib sprites (head, torso, limbs, chunks) tinted per-enemy
+  - Blood particle burst + ground splatters
+  - GoreManager singleton with object pools (150 gibs, 300 blood, 50 splatters)
+- **Full implementation plan:** `~/.claude/plans/purring-shimmying-leaf.md`
+- **Asset prompts included** for AI image generators (Midjourney/DALL-E)
+- **Key technique:** Parabolic motion calculated in tween `onUpdate`, not real physics
+
+### January 3, 2025 - Balance Guide Creation
+- **Created `docs/BalanceGuide.md`:**
+  - Complete balance formulas and base values (Appendix B from GDD)
+  - Base enemy stats for Act 1: Imp (50 HP, 5 dmg), Hellhound (40 HP, 8 dmg), etc.
+  - Per-act scaling multipliers: HP 1.8^(act-1), Damage 1.4^(act-1), Gold 1.6^(act-1)
+  - Module base damage values: Machine Gun 50 DPS, Missile Pod 40 DPS, etc.
+  - Gold economy targets: Slot 2 in 30min, Slot 3 in 2hrs, etc.
+  - XP progression targets: Act-by-act level expectations
+  - Ready-to-use `BALANCE` constants for GameConfig.ts
+- **Updated `CLAUDE.md`:**
+  - Added BalanceGuide.md to Key Documents
+  - Added to "When to Check" table as first priority for scaling/balance
+- **Updated `docs/MasterPlan.md`:**
+  - Renamed TIER 3 to "BALANCE IMPLEMENTATION & QUICK WINS"
+  - Added tasks 3.1-3.3 for implementing balance constants
+  - Added balance-related items to Technical Debt (P1 priority)
+  - References to BalanceGuide.md throughout
 
 ### January 3, 2025 - Desktop Heroes Analysis & Refactor Planning
 - **Created `docs/DesktopHeroesAnalysis.md`:**
@@ -673,6 +722,83 @@ All must be true before moving to Vertical Slice:
     - Sprint 6: Support Drone (Fairy equivalent)
   - Updated Architecture Decisions Log with 8 new decisions
   - Expanded Technical Debt with 9 new items linked to Meeting docs
+
+### January 3, 2025 - TIER 1 VFX Progress (6/8)
+Tier 1 VFX tasks status:
+- 1.1 ✅ Damage numbers pop animation
+- 1.2 ✅ Enemy death flash + fade
+- 1.3 ✅ Crit hit visual
+- 1.4 ⏳ Cannon muzzle flash + recoil (reverted - needs rework)
+- 1.5 ⏳ Missile smoke puff + wobble (reverted - needs rework)
+- 1.6 ✅ Hit spark/flash at impact point
+- 1.7 ✅ DEPTH constants
+- 1.8 ✅ EFFECT_TIMING constants
+
+**Note:** Tasks 1.4 and 1.5 were implemented but reverted due to issues. Will revisit later.
+
+### January 3, 2025 - VFX: Hit Spark/Flash at Impact
+- **Impact Effect (single-target):**
+  - Core flash that scales and fades (80ms)
+  - 4-6 spark particles radiating outward
+  - Crit hits: yellow color, more sparks
+  - Normal hits: white color
+- **AoE Effect (missiles/explosives):**
+  - White core flash
+  - Orange fire ring expanding
+  - Shockwave ring outline
+  - 5-8 fire/debris particles rising and spreading
+  - Crit hits spawn more particles
+- Files: `src/entities/Projectile.ts`
+
+### January 3, 2025 - VFX: Missile Smoke Puff + Wobble
+- **Smoke Puff Effect:**
+  - Layered smoke particles (main dark gray + 3 secondary lighter puffs)
+  - Particles expand, drift backward (exhaust direction), and fade over 350-500ms
+  - Uses DEPTH.EFFECTS layer
+  - Added to both normal missile firing and barrage skill
+- **Missile Wobble:**
+  - Sinusoidal rotation wobble during flight (±0.2 radians at 8Hz)
+  - Creates classic "unstable missile" visual
+  - Added `wobble` property to ProjectileConfig interface
+  - Wobble state tracked per-projectile
+- Files: `src/modules/MissilePodModule.ts`, `src/entities/Projectile.ts`
+
+### January 3, 2025 - VFX: Cannon Muzzle Flash + Recoil
+- **Cannon Muzzle Flash:**
+  - Created layered ellipse effect: orange outer glow → yellow middle → white core
+  - Flash scales from 0.3 → 1.2 while fading out over 100ms
+  - Positioned at cannon barrel (x+70, y-65 from tank position)
+  - Uses DEPTH.EFFECTS layer for proper rendering order
+- **Enhanced Recoil Animation:**
+  - Tank body kicks back 8px with `Back.easeOut` for punchy feel
+  - Duration increased to 60ms with yoyo
+- Files: `src/entities/Tank.ts`
+
+### January 3, 2025 - VFX: Enemy Death Flash + Fade
+- **Enemy Death Effect Enhancement:**
+  - Phase 1: Instant white tint flash (0xffffff)
+  - Phase 2: Quick scale pop (1.2x) during flash with yoyo bounce
+  - Phase 3: Fade out with alpha 0 and scale reduction (0.5x)
+  - Uses `EFFECT_TIMING.DEATH_FLASH_DURATION` (150ms) and `DEATH_FADE_DURATION` (300ms)
+  - Health bar hidden immediately on death
+  - Enemy animation and movement stopped during death sequence
+  - Proper state reset before returning to pool
+  - Files: `src/entities/Enemy.ts`
+
+### January 3, 2025 - VFX: Damage Numbers Pop Animation
+- **Damage Numbers Enhancement:**
+  - Added pop-in animation: scale 0 → 1.2 → 1.0 with `Back.easeOut` bounce
+  - Random horizontal offset (±20px) prevents stacking when multiple hits occur
+  - Float up 60px with fade out over 800ms
+  - Slight horizontal drift for visual interest
+- **Crit Hit Visual:**
+  - "CRIT!" text displayed above damage number
+  - Yellow color (#ffff00) with larger font (32px)
+  - Scale peaks at 1.5x before settling at 1.2x
+- **GameConfig Constants:**
+  - Added `DEPTH` object with 12 layer constants (BACKGROUND=0 → DEBUG=1000)
+  - Added `EFFECT_TIMING` object with animation timing constants
+  - Files: `src/config/GameConfig.ts`, `src/systems/CombatSystem.ts`
 
 ### January 3, 2025 - Debug Panel Fix & Electron Settings Persistence
 - **Debug Spawn Counter Fix:**

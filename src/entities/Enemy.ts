@@ -4,6 +4,7 @@ import { EnemyConfig, EnemyType, EnemyCategory } from '../types/EnemyTypes';
 import { EventManager, getEventManager } from '../managers/EventManager';
 import { GameEvents } from '../types/GameEvents';
 import { getSettingsManager } from '../managers/SettingsManager';
+import { GAME_CONFIG } from '../config/GameConfig';
 
 /**
  * Enemy - Base class for all enemy types
@@ -417,9 +418,12 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
 
   /**
    * Handle enemy death
+   * Visual effect: Flash white → hold → fade out
    */
   protected die(): void {
     if (!this.config) return;
+
+    const timing = GAME_CONFIG.EFFECT_TIMING;
 
     // Emit death event with rewards
     this.eventManager.emit(GameEvents.ENEMY_DIED, {
@@ -430,16 +434,53 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
       goldAwarded: this.config.goldReward,
     });
 
-    // Death animation (simple fade)
+    // Stop any animations and movement
+    this.stop();
+    this.setVelocity(0, 0);
+
+    // Hide health bar immediately
+    if (this.healthBar) {
+      this.healthBar.setVisible(false);
+    }
+
+    // Store original scale for death animation
+    const originalScale = this.scale;
+
+    // Phase 1: Flash white (instant tint)
+    this.setTint(0xffffff);
+
+    // Phase 2: Quick scale pop during flash
     this.scene.tweens.add({
       targets: this,
-      alpha: 0,
-      scale: 0.5,
-      duration: 200,
-      onComplete: () => {
-        this.alpha = 1;
-        this.deactivate();
-      },
+      scaleX: originalScale * 1.2,
+      scaleY: originalScale * 1.2,
+      duration: timing.DEATH_FLASH_DURATION / 2,
+      yoyo: true,
+      ease: 'Quad.easeOut',
+    });
+
+    // Phase 3: After flash duration, fade out
+    this.scene.time.delayedCall(timing.DEATH_FLASH_DURATION, () => {
+      if (!this.active) return;
+
+      // Clear tint for proper fade visual
+      this.clearTint();
+
+      // Fade out with scale reduction
+      this.scene.tweens.add({
+        targets: this,
+        alpha: 0,
+        scaleX: originalScale * 0.5,
+        scaleY: originalScale * 0.5,
+        duration: timing.DEATH_FADE_DURATION,
+        ease: 'Quad.easeIn',
+        onComplete: () => {
+          // Reset state before returning to pool
+          this.alpha = 1;
+          this.setScale(originalScale);
+          this.deactivate();
+        },
+      });
     });
   }
 

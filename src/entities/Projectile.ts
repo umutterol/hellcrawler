@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { IPoolable } from '../managers/PoolManager';
+import { GAME_CONFIG } from '../config/GameConfig';
 
 /**
  * Projectile type enumeration
@@ -299,29 +300,118 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite implements IPoolabl
     }
   }
 
+  /**
+   * Play impact effect for single-target hits
+   * Creates a bright flash with spark particles
+   */
   private playImpactEffect(): void {
-    // Create a small flash at impact point
-    const flash = this.scene.add.circle(this.x, this.y, 10, 0xffffff, 1);
+    const isCrit = this.config?.isCrit || false;
+    const baseColor = isCrit ? 0xffff00 : 0xffffff;
+    const sparkColor = isCrit ? 0xffaa00 : 0xffffcc;
+
+    // Core flash (bright center)
+    const flash = this.scene.add.circle(this.x, this.y, isCrit ? 14 : 10, baseColor, 1);
+    flash.setDepth(GAME_CONFIG.DEPTH.EFFECTS);
+
     this.scene.tweens.add({
       targets: flash,
-      scale: 0,
+      scale: isCrit ? 1.5 : 1.2,
       alpha: 0,
-      duration: 100,
+      duration: 80,
+      ease: 'Quad.easeOut',
       onComplete: () => flash.destroy(),
     });
+
+    // Spark particles radiating outward
+    const sparkCount = isCrit ? 6 : 4;
+    for (let i = 0; i < sparkCount; i++) {
+      const angle = (i / sparkCount) * Math.PI * 2 + Math.random() * 0.3;
+      const distance = 15 + Math.random() * 10;
+
+      const spark = this.scene.add.circle(this.x, this.y, 3, sparkColor, 0.9);
+      spark.setDepth(GAME_CONFIG.DEPTH.EFFECTS);
+
+      this.scene.tweens.add({
+        targets: spark,
+        x: this.x + Math.cos(angle) * distance,
+        y: this.y + Math.sin(angle) * distance,
+        scale: 0,
+        alpha: 0,
+        duration: 120 + Math.random() * 60,
+        ease: 'Quad.easeOut',
+        onComplete: () => spark.destroy(),
+      });
+    }
   }
 
+  /**
+   * Play AoE explosion effect for missiles/explosives
+   * Creates an expanding shockwave with fire particles
+   */
   private playAoEEffect(): void {
     const radius = this.config?.aoeRadius || 50;
+    const isCrit = this.config?.isCrit || false;
 
-    // Create expanding circle for AOE
-    const circle = this.scene.add.circle(this.x, this.y, 5, 0xff8800, 0.5);
+    // Inner explosion flash (bright core)
+    const core = this.scene.add.circle(this.x, this.y, 8, 0xffffff, 1);
+    core.setDepth(GAME_CONFIG.DEPTH.EFFECTS);
+
     this.scene.tweens.add({
-      targets: circle,
-      radius: radius,
+      targets: core,
+      scale: 2,
       alpha: 0,
-      duration: 200,
-      onComplete: () => circle.destroy(),
+      duration: 100,
+      onComplete: () => core.destroy(),
     });
+
+    // Middle fire ring (orange)
+    const fireRing = this.scene.add.circle(this.x, this.y, 5, 0xff6600, 0.8);
+    fireRing.setDepth(GAME_CONFIG.DEPTH.EFFECTS - 1);
+
+    this.scene.tweens.add({
+      targets: fireRing,
+      scale: radius / 5,
+      alpha: 0,
+      duration: 180,
+      ease: 'Quad.easeOut',
+      onComplete: () => fireRing.destroy(),
+    });
+
+    // Outer shockwave ring (expanding circle outline)
+    const shockwave = this.scene.add.circle(this.x, this.y, 10, 0xff4400, 0);
+    shockwave.setStrokeStyle(3, 0xff8800, 0.6);
+    shockwave.setDepth(GAME_CONFIG.DEPTH.EFFECTS - 2);
+
+    this.scene.tweens.add({
+      targets: shockwave,
+      scale: (radius * 1.2) / 10,
+      alpha: 0,
+      duration: 250,
+      ease: 'Quad.easeOut',
+      onComplete: () => shockwave.destroy(),
+    });
+
+    // Fire/debris particles
+    const particleCount = isCrit ? 8 : 5;
+    for (let i = 0; i < particleCount; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const distance = radius * 0.5 + Math.random() * radius * 0.5;
+      const size = 4 + Math.random() * 4;
+      const color = Math.random() > 0.5 ? 0xff6600 : 0xffaa00;
+
+      const particle = this.scene.add.circle(this.x, this.y, size, color, 0.8);
+      particle.setDepth(GAME_CONFIG.DEPTH.EFFECTS);
+
+      this.scene.tweens.add({
+        targets: particle,
+        x: this.x + Math.cos(angle) * distance,
+        y: this.y + Math.sin(angle) * distance - 20, // Rise slightly
+        scale: 0,
+        alpha: 0,
+        duration: 200 + Math.random() * 100,
+        ease: 'Quad.easeOut',
+        onComplete: () => particle.destroy(),
+      });
+    }
   }
 }

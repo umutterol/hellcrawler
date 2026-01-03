@@ -1,0 +1,183 @@
+{
+  "_description": "Machine-readable quick reference for AI agents analyzing this codebase",
+  "_version": "1.0",
+
+  "project": {
+    "type": "idle_game",
+    "engine": "phaser@4.0.0-rc.4",
+    "platform": "electron@36.5.0",
+    "language": "typescript",
+    "build": "vite@5.4.8"
+  },
+
+  "entry_points": {
+    "electron": "electron-loader.js",
+    "web": "index.html",
+    "game_bundle": "build/index.*.js"
+  },
+
+  "stores": {
+    "gameStore": {
+      "purpose": "characters, active_selection, fairy",
+      "key_fields": ["characters", "character", "fairyLevel", "sideKicks"]
+    },
+    "inventoryStore": {
+      "purpose": "items, equipment, skills",
+      "key_fields": ["chests", "autoSlots"]
+    },
+    "progressStore": {
+      "purpose": "statistics, map_progress",
+      "key_fields": ["map", "damage", "kill", "goldEarned"]
+    },
+    "settingsStore": {
+      "purpose": "user_preferences",
+      "key_fields": ["audio", "graphics", "window", "language"]
+    }
+  },
+
+  "save_format": {
+    "extension": ".pxt",
+    "encoding": "base64_json",
+    "location": "save/save-data-{slot}.pxt",
+    "decode": "JSON.parse(atob(content))",
+    "encode": "btoa(JSON.stringify(data))"
+  },
+
+  "stat_keys": [
+    "entity_stat_attack",
+    "entity_stat_defense",
+    "entity_stat_agility",
+    "entity_stat_gold_income",
+    "entity_stat_exp_income",
+    "entity_stat_drop_rate",
+    "entity_stat_walk_speed",
+    "entity_stat_dice_rate",
+    "entity_stat_vampiric",
+    "entity_stat_dodge",
+    "entity_stat_health_regen",
+    "entity_stat_slow",
+    "entity_stat_burning",
+    "entity_stat_poison",
+    "entity_stat_shock",
+    "entity_stat_disarm",
+    "entity_stat_shield_break",
+    "entity_stat_cooldown_reduction",
+    "entity_stat_effect_duration",
+    "entity_stat_aoe_range",
+    "entity_stat_charisma",
+    "entity_stat_skill_replacement"
+  ],
+
+  "character_ids": [
+    "char_edric",
+    "char_serewyn",
+    "char_corin",
+    "char_alaric"
+  ],
+
+  "map_ids": [
+    "map:forest",
+    "map:desert",
+    "map:jungle",
+    "map:water",
+    "map:village",
+    "map:graveyard",
+    "map:swamp",
+    "map:castle",
+    "map:dungeon",
+    "map:cave",
+    "map:inferno",
+    "map:snow",
+    "map:mountain"
+  ],
+
+  "chest_types": [
+    "shared",
+    "backpack",
+    "gear",
+    "skill_bar",
+    "crafting_table",
+    "fairy",
+    "quest",
+    "junk"
+  ],
+
+  "item_classes": [
+    "item_class:stackable",
+    "item_class:consumable",
+    "item_class:equippable",
+    "item_class:ingredient",
+    "item_class:craftable",
+    "item_class:skill_bar",
+    "item_class:pet_item"
+  ],
+
+  "class_types": ["warrior", "hunter", "assassin", "wizard"],
+
+  "shaders": {
+    "damageEffect.frag": "white_flash_on_hit",
+    "hue.frag": "color_rotation",
+    "flashEffect.frag": "general_flash",
+    "tv.frag": "retro_scanlines"
+  },
+
+  "custom_libraries": {
+    "@telazer/game-ui-kit": "dom_ui_components",
+    "@telazer/phaser-anim-helper": "sprite_animations",
+    "@telazer/phaser-audio-helper": "sound_music",
+    "@telazer/phaser-image-helper": "textures_nineslice",
+    "@telazer/phaser-text-helper": "text_rendering",
+    "@telazer/event-helper": "event_system",
+    "@telazer/steamworks": "steam_integration"
+  },
+
+  "asset_counts": {
+    "animations": 42,
+    "tilesets": 61,
+    "tilemaps": 61,
+    "sounds": 44,
+    "music": 23,
+    "fonts": 4,
+    "shaders": 4
+  },
+
+  "formulas": {
+    "damage": "baseAttack * stats.attack * skill.multiplier - enemy.defense",
+    "crit_chance": "min(stats.agility * 0.01, 0.5)",
+    "vampiric_heal": "damage * (stats.vampiric / 100)",
+    "difficulty_health": "base * (1 + (difficulty - 1) * 0.5)",
+    "difficulty_gold": "base * (1 + (difficulty - 1) * 0.4)"
+  },
+
+  "rendering": {
+    "base_height": 104,
+    "size_steps": [2, 4, 6, 8, 10],
+    "tile_size": 16,
+    "pixel_art": true,
+    "extrusion": 1
+  },
+
+  "paths": {
+    "source": "src/",
+    "build": "build/",
+    "assets": "build/assets/",
+    "saves": "save/",
+    "shaders": "build/assets/shaders/",
+    "animations": "build/assets/animations/",
+    "tilesets": "build/assets/sheets_extruded/",
+    "tilemaps": "build/assets/tilemaps/",
+    "sounds": "build/assets/sounds/",
+    "music": "build/assets/music/",
+    "ui_kit": "node_modules/@telazer/game-ui-kit/"
+  },
+
+  "data_access_patterns": {
+    "get_character_stats": "gameStore.characters[char_id].stats",
+    "get_equipped_items": "inventoryStore.chests.gear",
+    "get_map_progress": "progressStore.map[char_id][map_id]",
+    "get_inventory": "inventoryStore.chests.shared",
+    "get_skill_bar": "inventoryStore.chests.skill_bar",
+    "get_audio_settings": "settingsStore.audio",
+    "get_active_character": "gameStore.character"
+  }
+}

@@ -13,6 +13,7 @@
 - `docs/GDD.md` - Game Design Document (gameplay, systems, content)
 - `docs/PRD.md` - Product Requirements Document (technical specs, architecture)
 - `docs/QUICKREF.md` - Implementation cheatsheet
+- `docs/BalanceGuide.md` - **BALANCE NUMBERS** (enemy stats, scaling formulas, economy)
 - `docs/DesktopHeroesAnalysis.md` - Reference patterns from Desktop Heroes
 - `docs/Meeting/` - **REFERENCE IMPLEMENTATIONS** from Desktop Heroes (see below)
 
@@ -30,6 +31,7 @@ Desktop Heroes is a similar idle auto-battler built by friends. Their meeting no
 
 | Feature Type | Reference Document |
 |--------------|-------------------|
+| **Scaling/Balance** | [BalanceGuide.md](docs/BalanceGuide.md) - **CHECK FIRST for enemy stats, formulas** |
 | Combat/Damage | [04-combat-system.md](docs/Meeting/04-combat-system.md) |
 | XP/Leveling | [05-progression.md](docs/Meeting/05-progression.md) |
 | Gold/Economy | [06-economy.md](docs/Meeting/06-economy.md) |
@@ -59,8 +61,17 @@ Desktop Heroes is a similar idle auto-battler built by friends. Their meeting no
 
 **The `docs/MasterPlan.md` file MUST be kept updated at all times.**
 
+### ⚠️ MANDATORY: Update After EVERY Task Completion
+
+**IMMEDIATELY after finishing any task, you MUST:**
+1. Mark the task as complete (⏳ → ✅) in the Priority Tiers table
+2. Add a changelog entry with what was done
+3. Note any files modified
+
+**DO NOT move on to the next task until MasterPlan.md is updated!**
+
 ### When to Update MasterPlan.md
-- ✅ After completing ANY task in the current phase
+- ✅ **IMMEDIATELY after completing ANY task** (non-negotiable!)
 - ✅ After completing a day's work
 - ✅ After finishing a phase or sprint
 - ✅ When discovering new blockers or requirements
@@ -669,6 +680,33 @@ this.add.sprite(x, y, 'enemies-act1', 'enemy-imp-walk-0');
 - [ ] VFX (muzzle flash, explosions, impacts)
 - [ ] 60 FPS verification with 30 enemies
 - [ ] E2E tests for critical flows
+
+---
+
+## ✅ POST-TASK CHECKLIST
+
+**After completing ANY task, run through this checklist:**
+
+```
+□ 1. Code compiles (npm run typecheck)
+□ 2. Feature works (tested in browser/Electron)
+□ 3. MasterPlan.md updated:
+    □ Task marked complete (⏳ → ✅)
+    □ Changelog entry added
+    □ Files modified noted
+□ 4. Ready for next task
+```
+
+**Example changelog entry:**
+```markdown
+### January 3, 2025 - VFX: Damage Numbers Pop Animation
+- **What was done:**
+  - Added pop-in animation with bounce effect
+  - Crit visuals with "CRIT!" text
+- **Files modified:**
+  - `src/config/GameConfig.ts` - Added DEPTH and EFFECT_TIMING constants
+  - `src/systems/CombatSystem.ts` - Enhanced spawnDamageNumber()
+```
 
 ---
 
