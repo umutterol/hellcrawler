@@ -40,7 +40,7 @@ playwright-report/
 *.temp
 *.bak
 
-# Purchased assets (not for version control)
+# Purchased assets (not for version control)ß
 gamedevmarketassets/
 
 # Electron build
@@ -55,3 +55,5 @@ release/
 
 # .Playwright
 .playwright-mcp/
+
+Meeting/
