@@ -672,6 +672,24 @@ All must be true before moving to Vertical Slice:
 
 ## Changelog
 
+### January 3, 2025 - Critical Bug Fixes (Tank Hitbox, Health Bars)
+- **CRITICAL: Fixed tank hitbox being off-screen:**
+  - Tank hitbox was at y=980 but game canvas is only 350px tall
+  - Changed hitbox Y from hardcoded 980 to `this.y` (tank's actual ground position ~290)
+  - Enemies can now properly damage the tank when they reach the collision zone
+- **Removed tank health bar nameplate:**
+  - Tank no longer displays a health bar above it
+  - HP is shown in the HUD instead (cleaner look)
+- **Fixed enemy health bars:**
+  - Increased size from 30x4 to 50x6 pixels for better visibility
+  - Added border outline for clarity
+  - Fixed position calculation using displayHeight (bars now properly above enemy heads)
+  - Set explicit depth layer (DEPTH.UI_WORLD = 700) to prevent z-fighting
+  - Removed HP text (was cluttering, bar is sufficient)
+- **Files modified:**
+  - `src/entities/Tank.ts` - Fixed hitbox Y position, removed health bar code
+  - `src/entities/Enemy.ts` - Fixed health bar size, position, depth, removed text
+
 ### January 3, 2025 - Upgrade System Rebalance (Desktop Heroes Pattern)
 - **Problem:** Slot upgrades were scaling too slowly (+1% per level) compared to enemy scaling (1.8x HP per act)
   - Level 50 slot only gave 1.5x damage, but Act 8 enemies have 61x HP

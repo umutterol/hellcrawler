@@ -34,14 +34,12 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
 
   // Visual
   protected healthBar: Phaser.GameObjects.Graphics | null = null;
-  protected healthText: Phaser.GameObjects.Text | null = null;
   protected lastHealthPercent: number = 1; // Track for redraw optimization
 
   // Constants
-  private static readonly HEALTH_BAR_WIDTH = 30;
-  private static readonly HEALTH_BAR_HEIGHT = 4;
-  private static readonly HEALTH_BAR_OFFSET_Y = -40;
-  private static readonly HEALTH_TEXT_OFFSET_Y = -52; // Above the health bar
+  private static readonly HEALTH_BAR_WIDTH = 50;
+  private static readonly HEALTH_BAR_HEIGHT = 6;
+  private static readonly HEALTH_BAR_PADDING = 8; // Pixels above sprite top
   private static readonly STOP_X_POSITION = 400; // Stop 200px from tank (tank is at x=200)
   private static idCounter: number = 0;
 
@@ -134,14 +132,10 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
     // Disable physics body
     (this.body as Phaser.Physics.Arcade.Body)?.setEnable(false);
 
-    // Destroy health bar and text
+    // Destroy health bar
     if (this.healthBar) {
       this.healthBar.destroy();
       this.healthBar = null;
-    }
-    if (this.healthText) {
-      this.healthText.destroy();
-      this.healthText = null;
     }
 
     this.config = null;
@@ -281,22 +275,10 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
     if (this.healthBar) {
       this.healthBar.destroy();
     }
-    if (this.healthText) {
-      this.healthText.destroy();
-    }
 
     this.healthBar = this.scene.add.graphics();
-
-    // Create HP text above the health bar
-    this.healthText = this.scene.add.text(this.x, this.y + Enemy.HEALTH_TEXT_OFFSET_Y, '', {
-      fontFamily: 'monospace',
-      fontSize: '10px',
-      color: '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 2,
-      align: 'center',
-    });
-    this.healthText.setOrigin(0.5, 1); // Center horizontally, bottom aligned
+    // Set depth to render above enemies but below UI panels
+    this.healthBar.setDepth(GAME_CONFIG.DEPTH.UI_WORLD);
 
     this.updateHealthBar();
   }
@@ -308,16 +290,14 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
     if (!this.active) return;
 
     // Update health bar graphics position
+    // Position above sprite using displayHeight (enemy origin is 0.5, 1 = bottom center)
     if (this.healthBar) {
       const barWidth = Enemy.HEALTH_BAR_WIDTH;
+      // Since origin is (0.5, 1), this.y is at the feet
+      // Sprite extends upward by displayHeight
+      const offsetY = -this.displayHeight - Enemy.HEALTH_BAR_PADDING;
       this.healthBar.x = this.x - barWidth / 2;
-      this.healthBar.y = this.y + Enemy.HEALTH_BAR_OFFSET_Y;
-    }
-
-    // Update HP text position
-    if (this.healthText) {
-      this.healthText.x = this.x;
-      this.healthText.y = this.y + Enemy.HEALTH_TEXT_OFFSET_Y;
+      this.healthBar.y = this.y + offsetY;
     }
   }
 
@@ -341,9 +321,11 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
       this.healthBar.clear();
 
       // Draw at local origin (0,0) - position is set by graphics object x,y
-      // Background
-      this.healthBar.fillStyle(0x333333, 1);
+      // Background with border
+      this.healthBar.fillStyle(0x222222, 1);
       this.healthBar.fillRect(0, 0, barWidth, barHeight);
+      this.healthBar.lineStyle(1, 0x000000, 1);
+      this.healthBar.strokeRect(0, 0, barWidth, barHeight);
 
       // Health bar color
       let color = 0x00ff00;
@@ -353,14 +335,9 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
         color = 0xffff00;
       }
 
-      // Health fill
+      // Health fill with slight padding from border
       this.healthBar.fillStyle(color, 1);
-      this.healthBar.fillRect(1, 1, (barWidth - 2) * healthPercent, barHeight - 2);
-    }
-
-    // Update HP text
-    if (this.healthText) {
-      this.healthText.setText(`${Math.max(0, Math.floor(this.currentHP))}/${this.maxHP}`);
+      this.healthBar.fillRect(1, 1, (barWidth - 2) * Math.max(0, healthPercent), barHeight - 2);
     }
   }
 
@@ -374,15 +351,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
       if (this.healthBar) {
         this.healthBar.clear();
       }
-      if (this.healthText) {
-        this.healthText.setVisible(false);
-      }
       return;
-    }
-
-    // Make sure text is visible when enabled
-    if (this.healthText) {
-      this.healthText.setVisible(true);
     }
 
     // Initial draw
@@ -483,12 +452,9 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
     this.stop();
     this.setVelocity(0, 0);
 
-    // Hide health bar and text immediately
+    // Hide health bar immediately
     if (this.healthBar) {
       this.healthBar.setVisible(false);
-    }
-    if (this.healthText) {
-      this.healthText.setVisible(false);
     }
 
     // Store original scale for death animation

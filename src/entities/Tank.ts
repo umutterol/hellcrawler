@@ -25,8 +25,6 @@ export class Tank extends Phaser.GameObjects.Container {
   // Visual components
   private bodySprite!: Phaser.GameObjects.Sprite;
   private cannonSprite!: Phaser.GameObjects.Sprite;
-  private healthBar!: Phaser.GameObjects.Graphics;
-  private healthBarBg!: Phaser.GameObjects.Graphics;
 
   // Physics hitbox for enemy collision
   private hitbox!: Phaser.Physics.Arcade.Sprite;
@@ -39,9 +37,6 @@ export class Tank extends Phaser.GameObjects.Container {
 
   // Constants
   private static readonly NEAR_DEATH_THRESHOLD = 0.2;
-  private static readonly HEALTH_BAR_WIDTH = 120;
-  private static readonly HEALTH_BAR_HEIGHT = 10;
-  private static readonly HEALTH_BAR_OFFSET_Y = -50;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y);
@@ -52,7 +47,6 @@ export class Tank extends Phaser.GameObjects.Container {
 
     // Create visual components
     this.createSprites();
-    this.createHealthBar();
 
     // Add to scene
     scene.add.existing(this);
@@ -79,17 +73,15 @@ export class Tank extends Phaser.GameObjects.Container {
     this.add(this.cannonSprite);
 
     // Create physics hitbox for enemy collision detection
-    // Enemies stop at x=400 and spawn at y=980 with origin (0.5, 1)
-    // Enemy body is at their sprite position (after body.reset(x, y)), so around x=400, y=980
-    // Hitbox needs to cover where enemies stop AND slightly beyond to ensure overlap
-    const hitboxWidth = 120;
-    const hitboxHeight = 120;
+    // Enemies stop at x=400, tank is at x=200, ground level is y (passed from GameScene)
+    // Hitbox needs to cover where enemies stop to detect collision
+    const hitboxWidth = 150;
+    const hitboxHeight = 100;
 
-    // Position hitbox centered at enemy stop position
-    // After offset calculation, hitbox will cover x from hitboxX-width/2+16 to hitboxX+width/2+16
-    // We want the right edge to definitely cover x=400, so center at x=440
-    const hitboxX = 420;  // Centered to overlap with enemy stop position at x=400
-    const hitboxY = 980;  // At ground level where enemies are
+    // Position hitbox between tank and enemy stop position
+    // Tank at x=200, enemies stop at x=400, so center hitbox around x=350
+    const hitboxX = 350;
+    const hitboxY = this.y;  // Use tank's actual Y position (ground level)
 
     this.hitbox = this.scene.physics.add.sprite(hitboxX, hitboxY, 'tank-placeholder');
     this.hitbox.setVisible(import.meta.env.DEV); // Visible in dev for debugging
@@ -114,53 +106,6 @@ export class Tank extends Phaser.GameObjects.Container {
     }
   }
 
-  private createHealthBar(): void {
-    const barWidth = Tank.HEALTH_BAR_WIDTH;
-    const barHeight = Tank.HEALTH_BAR_HEIGHT;
-    const offsetY = Tank.HEALTH_BAR_OFFSET_Y;
-
-    // Background
-    this.healthBarBg = this.scene.add.graphics();
-    this.healthBarBg.fillStyle(0x333333, 1);
-    this.healthBarBg.fillRect(-barWidth / 2, offsetY, barWidth, barHeight);
-    this.healthBarBg.lineStyle(2, 0x000000, 1);
-    this.healthBarBg.strokeRect(-barWidth / 2, offsetY, barWidth, barHeight);
-    this.add(this.healthBarBg);
-
-    // Foreground (health)
-    this.healthBar = this.scene.add.graphics();
-    this.add(this.healthBar);
-
-    this.updateHealthBar();
-  }
-
-  private updateHealthBar(): void {
-    const stats = this.gameState.getTankStats();
-    const healthPercent = stats.currentHP / stats.maxHP;
-    const barWidth = Tank.HEALTH_BAR_WIDTH;
-    const barHeight = Tank.HEALTH_BAR_HEIGHT;
-    const offsetY = Tank.HEALTH_BAR_OFFSET_Y;
-
-    this.healthBar.clear();
-
-    // Color based on health percentage
-    let color = 0x00ff00; // Green
-    if (healthPercent <= 0.2) {
-      color = 0xff0000; // Red - near death
-    } else if (healthPercent <= 0.5) {
-      color = 0xffff00; // Yellow - caution
-    }
-
-    // Draw health bar
-    this.healthBar.fillStyle(color, 1);
-    this.healthBar.fillRect(
-      -barWidth / 2 + 2,
-      offsetY + 2,
-      (barWidth - 4) * healthPercent,
-      barHeight - 4
-    );
-  }
-
   private subscribeToEvents(): void {
     this.eventManager.on(GameEvents.DAMAGE_TAKEN, this.onDamageTaken, this);
     this.eventManager.on(GameEvents.TANK_REVIVED, this.onRevived, this);
@@ -170,7 +115,6 @@ export class Tank extends Phaser.GameObjects.Container {
   private onDamageTaken(payload: { targetType: string; remainingHealth: number }): void {
     if (payload.targetType !== 'tank') return;
 
-    this.updateHealthBar();
     this.flashDamage();
 
     // Check for near-death
@@ -184,11 +128,10 @@ export class Tank extends Phaser.GameObjects.Container {
 
   private onRevived(): void {
     this.exitNearDeath();
-    this.updateHealthBar();
   }
 
   private onHealed(): void {
-    this.updateHealthBar();
+    // Health updated in GameState - visual feedback could be added here
   }
 
   private flashDamage(): void {
