@@ -292,10 +292,9 @@ export class Tank extends Phaser.GameObjects.Container {
     const damage = calculateDamage(baseDamage, tankLevel, statBonus, isCrit, critBonus);
 
     // Cannon muzzle position - fire at enemy center height
-    // Tank is at ground level (Y = HEIGHT - 100 = 980)
-    // Enemy placeholder is 32px with origin (0.5, 1), so center is at Y - 16 = 964
+    // Tank is at ground level (Y = HEIGHT - GROUND_HEIGHT)
     const muzzleX = this.x + 70;
-    const muzzleY = this.y - 65; // Fire at enemy center height (964)
+    const muzzleY = this.y - 65; // Fire from cannon barrel
 
     // Visual feedback
     this.animateCannonFire();

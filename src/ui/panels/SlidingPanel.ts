@@ -31,6 +31,13 @@ export abstract class SlidingPanel extends Phaser.GameObjects.Container {
   protected scrollY: number = 0;
   protected maxScrollY: number = 0;
   protected contentHeight: number = 0;
+  protected isDragging: boolean = false;
+  protected dragStartY: number = 0;
+  protected dragStartScrollY: number = 0;
+  private potentialDrag: boolean = false;
+
+  // Content mask for clipping
+  private contentMask!: Phaser.GameObjects.Graphics;
 
   // Current tween reference for cleanup
   private openTween: Phaser.Tweens.Tween | null = null;
@@ -160,12 +167,143 @@ export abstract class SlidingPanel extends Phaser.GameObjects.Container {
   }
 
   /**
-   * Create the scrollable content container
+   * Create the scrollable content container with scroll handling and clipping mask
    */
   private createContentContainer(): void {
     this.content = this.scene.add.container(0, 56); // Below header
     this.content.setDepth(UI_CONFIG.DEPTHS.PANEL_CONTENT);
     this.add(this.content);
+
+    // Create a mask to clip content to the visible panel area
+    // The mask graphics is NOT added to the container - it stays in scene coords
+    // and we update its position when the panel moves
+    this.contentMask = this.scene.add.graphics();
+    this.contentMask.setDepth(UI_CONFIG.DEPTHS.PANEL - 1);
+    this.updateMaskPosition();
+
+    // Apply the mask to the content container
+    const mask = this.contentMask.createGeometryMask();
+    this.content.setMask(mask);
+
+    // Set up scroll interaction on the panel area
+    this.setupScrollInteraction();
+  }
+
+  /**
+   * Update the mask position to match the panel's current position
+   * Called when panel opens and during slide animation
+   */
+  private updateMaskPosition(): void {
+    if (!this.contentMask) return;
+
+    this.contentMask.clear();
+    this.contentMask.fillStyle(0xffffff);
+
+    // Mask area in world coordinates:
+    // - x: panel's current x position
+    // - y: panel's y position (TOP_BAR.HEIGHT) + header height (56)
+    // - height: from header bottom to panel bottom
+    const maskX = this.x;
+    const maskY = this.y + 56; // this.y is TOP_BAR.HEIGHT, add 56 for header
+    const maskHeight = this.panelHeight - 56;
+
+    this.contentMask.fillRect(maskX, maskY, this.panelWidth, maskHeight);
+  }
+
+  /**
+   * Check if pointer is over the panel content area
+   */
+  private isPointerOverPanel(pointer: Phaser.Input.Pointer): boolean {
+    const localX = pointer.x - this.x;
+    const localY = pointer.y - this.y;
+    return localX >= 0 && localX <= this.panelWidth &&
+           localY >= 56 && localY <= this.panelHeight;
+  }
+
+  /**
+   * Set up mouse/touch scroll interaction
+   * Uses threshold-based drag detection to avoid blocking button clicks
+   */
+  private setupScrollInteraction(): void {
+    // Mouse wheel scrolling
+    this.scene.input.on('wheel', (pointer: Phaser.Input.Pointer, _gameObjects: unknown[], _deltaX: number, deltaY: number) => {
+      if (!this.isOpen) return;
+      if (this.isPointerOverPanel(pointer)) {
+        this.scroll(deltaY * 0.5);
+      }
+    });
+
+    // Touch/drag scrolling with threshold to avoid blocking button clicks
+    this.scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (!this.isOpen) return;
+      if (this.isPointerOverPanel(pointer)) {
+        // Store start position, but don't start drag yet
+        this.dragStartY = pointer.y;
+        this.dragStartScrollY = this.scrollY;
+        this.potentialDrag = true;
+      }
+    });
+
+    this.scene.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (!this.potentialDrag || !this.isOpen) return;
+
+      const deltaY = Math.abs(this.dragStartY - pointer.y);
+      // Only start dragging after 5px movement threshold
+      if (deltaY > 5) {
+        this.isDragging = true;
+      }
+
+      if (this.isDragging) {
+        const scrollDelta = this.dragStartY - pointer.y;
+        this.scrollY = Phaser.Math.Clamp(
+          this.dragStartScrollY + scrollDelta,
+          0,
+          this.maxScrollY
+        );
+        this.updateContentPosition();
+      }
+    });
+
+    this.scene.input.on('pointerup', () => {
+      this.isDragging = false;
+      this.potentialDrag = false;
+    });
+  }
+
+  /**
+   * Scroll the content by delta amount
+   */
+  protected scroll(delta: number): void {
+    this.scrollY = Phaser.Math.Clamp(
+      this.scrollY + delta,
+      0,
+      this.maxScrollY
+    );
+    this.updateContentPosition();
+  }
+
+  /**
+   * Update content position based on scroll
+   */
+  protected updateContentPosition(): void {
+    this.content.y = 56 - this.scrollY;
+  }
+
+  /**
+   * Set the total content height (call this after adding content)
+   */
+  protected setContentHeight(height: number): void {
+    this.contentHeight = height;
+    const viewableHeight = this.panelHeight - 56;
+    this.maxScrollY = Math.max(0, this.contentHeight - viewableHeight);
+  }
+
+  /**
+   * Reset scroll to top
+   */
+  protected resetScroll(): void {
+    this.scrollY = 0;
+    this.updateContentPosition();
   }
 
   /**
@@ -245,9 +383,14 @@ export abstract class SlidingPanel extends Phaser.GameObjects.Container {
       x: 0,
       duration: UI_CONFIG.PANEL.OPEN_DURATION,
       ease: UI_CONFIG.PANEL.EASE_OPEN,
+      onUpdate: () => {
+        // Update mask position as panel slides
+        this.updateMaskPosition();
+      },
       onComplete: () => {
         this.isOpen = true;
         this.isAnimating = false;
+        this.updateMaskPosition();
         this.onOpenComplete();
       },
     });
@@ -277,6 +420,10 @@ export abstract class SlidingPanel extends Phaser.GameObjects.Container {
       x: -this.panelWidth,
       duration: UI_CONFIG.PANEL.CLOSE_DURATION,
       ease: UI_CONFIG.PANEL.EASE_CLOSE,
+      onUpdate: () => {
+        // Update mask position as panel slides
+        this.updateMaskPosition();
+      },
       onComplete: () => {
         this.isOpen = false;
         this.isAnimating = false;
@@ -314,6 +461,7 @@ export abstract class SlidingPanel extends Phaser.GameObjects.Container {
     this.isOpen = false;
     this.isAnimating = false;
     this.setVisible(false);
+    this.updateMaskPosition();
   }
 
   /**
@@ -367,6 +515,13 @@ export abstract class SlidingPanel extends Phaser.GameObjects.Container {
     if (this.openTween) {
       this.openTween.stop();
       this.openTween = null;
+    }
+    // Clean up mask
+    if (this.content.mask) {
+      this.content.clearMask(true);
+    }
+    if (this.contentMask) {
+      this.contentMask.destroy();
     }
     super.destroy(fromScene);
   }

@@ -19,6 +19,10 @@ export class ShopPanel extends SlidingPanel {
   private gameState: GameState = getGameState();
   private eventManager: EventManager = getEventManager();
 
+  // Pagination state
+  private currentPage: number = 0;
+  private static readonly CARDS_PER_PAGE = 3;
+
   // Slot requirements (null = no requirement, string = boss requirement)
   private static readonly SLOT_REQUIREMENTS: (string | null)[] = [
     null, // Slot 1: Always unlocked
@@ -58,6 +62,12 @@ export class ShopPanel extends SlidingPanel {
   protected createContent(): void {
     this.createSectionHeader();
     this.createSlotCards();
+
+    // Calculate total content height for scrolling
+    // Section header: ~40px
+    // Slot cards: 3 per page × 100px + pagination ~20px = ~320-350px
+    const totalContentHeight = 40 + ShopPanel.CARDS_PER_PAGE * 100 + 30; // ~370px
+    this.setContentHeight(totalContentHeight);
   }
 
   /**
@@ -108,17 +118,88 @@ export class ShopPanel extends SlidingPanel {
   }
 
   /**
-   * Create all slot cards
+   * Create all slot cards with pagination
    */
   private createSlotCards(): void {
     const slots = this.gameState.getModuleSlots();
 
-    for (let i = 0; i < 5; i++) {
-      const cardY = 40 + i * 100;
+    // Calculate pagination
+    const totalSlots = 5;
+    const totalPages = Math.ceil(totalSlots / ShopPanel.CARDS_PER_PAGE);
+    const startIndex = this.currentPage * ShopPanel.CARDS_PER_PAGE;
+    const endIndex = Math.min(startIndex + ShopPanel.CARDS_PER_PAGE, totalSlots);
+
+    // Create cards for current page
+    for (let i = startIndex; i < endIndex; i++) {
+      const cardY = 40 + (i - startIndex) * 100;
       const slot = slots[i];
       const card = this.createSlotCard(i, cardY, slot?.unlocked ?? false);
       this.addToContent(card);
     }
+
+    // Pagination controls
+    const paginationY = 40 + ShopPanel.CARDS_PER_PAGE * 100 + 10;
+    this.createPaginationControls(paginationY, totalPages);
+  }
+
+  /**
+   * Create pagination controls
+   */
+  private createPaginationControls(y: number, totalPages: number): void {
+    if (totalPages <= 1) return;
+
+    const container = this.scene.add.container(16, y);
+    const contentWidth = this.getContentWidth();
+
+    // Previous button
+    const prevBtn = this.scene.add.text(0, 0, '< PREV', {
+      fontSize: '12px',
+      color: this.currentPage > 0 ? '#ffffff' : '#555555',
+      fontStyle: 'bold',
+    });
+    if (this.currentPage > 0) {
+      prevBtn.setInteractive({ useHandCursor: true });
+      prevBtn.on('pointerdown', () => {
+        this.currentPage--;
+        this.rebuildContent();
+      });
+      prevBtn.on('pointerover', () => prevBtn.setColor('#ffd700'));
+      prevBtn.on('pointerout', () => prevBtn.setColor('#ffffff'));
+    }
+    container.add(prevBtn);
+
+    // Page indicator
+    const pageText = this.scene.add.text(
+      contentWidth / 2,
+      0,
+      `Page ${this.currentPage + 1} / ${totalPages}`,
+      {
+        fontSize: '12px',
+        color: '#a0a0a0',
+      }
+    );
+    pageText.setOrigin(0.5, 0);
+    container.add(pageText);
+
+    // Next button
+    const nextBtn = this.scene.add.text(contentWidth, 0, 'NEXT >', {
+      fontSize: '12px',
+      color: this.currentPage < totalPages - 1 ? '#ffffff' : '#555555',
+      fontStyle: 'bold',
+    });
+    nextBtn.setOrigin(1, 0);
+    if (this.currentPage < totalPages - 1) {
+      nextBtn.setInteractive({ useHandCursor: true });
+      nextBtn.on('pointerdown', () => {
+        this.currentPage++;
+        this.rebuildContent();
+      });
+      nextBtn.on('pointerover', () => nextBtn.setColor('#ffd700'));
+      nextBtn.on('pointerout', () => nextBtn.setColor('#ffffff'));
+    }
+    container.add(nextBtn);
+
+    this.addToContent(container);
   }
 
   /**

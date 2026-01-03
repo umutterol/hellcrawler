@@ -63,10 +63,10 @@ export class TankStatsPanel extends SlidingPanel {
   // Current stat rows (for active tab)
   private statRows: Map<string, StatRowElement> = new Map();
 
-  // Layout constants
-  private static readonly TAB_HEIGHT = 40;
-  private static readonly TAB_WIDTH = 50;
-  private static readonly ROW_HEIGHT = 58;
+  // Layout constants - wider for 525px window
+  private static readonly TAB_HEIGHT = 32;
+  private static readonly TAB_WIDTH = 76; // Wider tabs for better labels
+  private static readonly ROW_HEIGHT = 52; // More breathing room
 
   // Tank stat configs
   private static readonly TANK_STATS = [
@@ -102,7 +102,7 @@ export class TankStatsPanel extends SlidingPanel {
   private createTabBar(): void {
     const tabBarY = 0;
     const tabTypes = [TabType.Tank, TabType.Slot1, TabType.Slot2, TabType.Slot3, TabType.Slot4, TabType.Slot5];
-    const tabLabels = ['Tank', '1', '2', '3', '4', '5'];
+    const tabLabels = ['Tank', 'Slot 1', 'Slot 2', 'Slot 3', 'Slot 4', 'Slot 5'];
 
     for (let i = 0; i < tabTypes.length; i++) {
       const tabType = tabTypes[i]!;
@@ -131,9 +131,9 @@ export class TankStatsPanel extends SlidingPanel {
     background.setInteractive({ useHandCursor: true });
     container.add(background);
 
-    // Label
+    // Label - consistent font size for wider tabs
     const text = this.scene.add.text(TankStatsPanel.TAB_WIDTH / 2, TankStatsPanel.TAB_HEIGHT / 2, label, {
-      fontSize: index === 0 ? '11px' : '14px',
+      fontSize: '11px',
       color: '#ffffff',
       fontStyle: 'bold',
     });
@@ -236,8 +236,8 @@ export class TankStatsPanel extends SlidingPanel {
     if (!this.contentContainer) return;
 
     // Header
-    const header = this.scene.add.text(16, 0, 'TANK STATS', {
-      fontSize: '14px',
+    const header = this.scene.add.text(12, 0, 'TANK STATS', {
+      fontSize: '12px',
       color: UI_CONFIG.COLORS.TEXT_SECONDARY,
       fontStyle: 'bold',
     });
@@ -246,92 +246,94 @@ export class TankStatsPanel extends SlidingPanel {
     // Divider
     const divider = this.scene.add.graphics();
     divider.lineStyle(1, UI_CONFIG.COLORS.PANEL_BORDER, 0.5);
-    divider.lineBetween(16, 20, this.getContentWidth() - 16, 20);
+    divider.lineBetween(12, 16, this.getContentWidth() - 12, 16);
     this.contentContainer.add(divider);
 
     // Stat rows
     TankStatsPanel.TANK_STATS.forEach((stat, index) => {
-      const rowY = 32 + index * TankStatsPanel.ROW_HEIGHT;
+      const rowY = 24 + index * TankStatsPanel.ROW_HEIGHT;
       const row = this.createTankStatRow(stat, rowY);
       this.statRows.set(stat.type, row);
     });
+
+    // Set content height for scrolling
+    const totalHeight = 24 + TankStatsPanel.TANK_STATS.length * TankStatsPanel.ROW_HEIGHT + 16;
+    this.setContentHeight(TankStatsPanel.TAB_HEIGHT + 8 + totalHeight);
   }
 
   /**
-   * Create a tank stat row
+   * Create a tank stat row (compact)
    */
   private createTankStatRow(
     stat: typeof TankStatsPanel.TANK_STATS[0],
     y: number
   ): StatRowElement {
-    const container = this.scene.add.container(16, y);
+    const container = this.scene.add.container(12, y);
     this.contentContainer!.add(container);
 
     const level = this.gameState.getTankStatLevel(stat.type);
     const atCap = !this.gameState.canUpgradeTankStat(stat.type);
 
-    // Icon
+    // Icon - smaller
     const icon = this.scene.add.graphics();
     icon.fillStyle(stat.color, 1);
-    icon.fillRoundedRect(0, 0, 36, 36, 6);
+    icon.fillRoundedRect(0, 0, 28, 28, 4);
     container.add(icon);
 
-    // Level badge
-    const levelBadge = this.scene.add.circle(28, 0, 10, 0x1a1a2e);
+    // Level badge - smaller
+    const levelBadge = this.scene.add.circle(22, 0, 8, 0x1a1a2e);
     levelBadge.setStrokeStyle(1, stat.color);
     container.add(levelBadge);
 
-    const levelText = this.scene.add.text(28, 0, `${level}`, {
-      fontSize: '10px',
+    const levelText = this.scene.add.text(22, 0, `${level}`, {
+      fontSize: '9px',
       color: '#ffffff',
       fontStyle: 'bold',
     });
     levelText.setOrigin(0.5);
     container.add(levelText);
 
-    // Name
-    const nameText = this.scene.add.text(48, 4, stat.name, {
-      fontSize: '13px',
+    // Name - smaller
+    const nameText = this.scene.add.text(36, 2, stat.name, {
+      fontSize: '11px',
       color: UI_CONFIG.COLORS.TEXT_PRIMARY,
       fontStyle: 'bold',
     });
     container.add(nameText);
 
-    // Value preview
+    // Value preview - smaller
     const currentValue = stat.getValue(level);
     const nextValue = stat.getValue(level + 1);
     const valueText = this.scene.add.text(
-      48, 20,
+      36, 16,
       atCap ? `${currentValue.toFixed(1)}${stat.suffix} (MAX)` : `${currentValue.toFixed(1)}${stat.suffix} > ${nextValue.toFixed(1)}${stat.suffix}`,
-      { fontSize: '11px', color: atCap ? '#ffaa00' : '#888888' }
+      { fontSize: '9px', color: atCap ? '#ffaa00' : '#888888' }
     );
     container.add(valueText);
 
-    // Upgrade button - determine initial color based on affordability
-    const buttonWidth = 75;
+    // Upgrade button - wider for better readability
+    const buttonWidth = 80;
     const cost = this.gameState.getTankStatUpgradeCost(stat.type);
     const canAfford = this.gameState.canAfford(cost);
 
-    // Set initial button color: green if affordable, brownish if not, gray if at cap
     let initialColor: number = UI_CONFIG.COLORS.HEALTH_GREEN;
     if (atCap) {
       initialColor = UI_CONFIG.COLORS.BUTTON_DISABLED;
     } else if (!canAfford) {
-      initialColor = 0x5a4a37; // Brownish color for can't afford
+      initialColor = 0x5a4a37;
     }
 
-    const buttonBg = this.scene.add.rectangle(this.getContentWidth() - 32 - buttonWidth / 2, 18, buttonWidth, 28, initialColor);
+    const buttonBg = this.scene.add.rectangle(this.getContentWidth() - 24 - buttonWidth / 2, 14, buttonWidth, 22, initialColor);
     container.add(buttonBg);
 
-    const costText = this.scene.add.text(this.getContentWidth() - 32 - buttonWidth / 2, 18, atCap ? 'MAX' : this.formatCost(cost), {
-      fontSize: '12px',
+    const costText = this.scene.add.text(this.getContentWidth() - 24 - buttonWidth / 2, 14, atCap ? 'MAX' : this.formatCost(cost), {
+      fontSize: '10px',
       color: '#ffffff',
       fontStyle: 'bold',
     });
     costText.setOrigin(0.5);
     container.add(costText);
 
-    // Button interactions
     if (!atCap) {
       buttonBg.setInteractive({ useHandCursor: true });
       buttonBg.on('pointerdown', () => this.onTankStatUpgrade(stat.type));
@@ -354,8 +356,8 @@ export class TankStatsPanel extends SlidingPanel {
     const isUnlocked = slot?.unlocked ?? false;
 
     // Header
-    const header = this.scene.add.text(16, 0, `SLOT ${slotIndex + 1} UPGRADES`, {
-      fontSize: '14px',
+    const header = this.scene.add.text(12, 0, `SLOT ${slotIndex + 1} UPGRADES`, {
+      fontSize: '12px',
       color: UI_CONFIG.COLORS.TEXT_SECONDARY,
       fontStyle: 'bold',
     });
@@ -364,109 +366,112 @@ export class TankStatsPanel extends SlidingPanel {
     // Divider
     const divider = this.scene.add.graphics();
     divider.lineStyle(1, UI_CONFIG.COLORS.PANEL_BORDER, 0.5);
-    divider.lineBetween(16, 20, this.getContentWidth() - 16, 20);
+    divider.lineBetween(12, 16, this.getContentWidth() - 12, 16);
     this.contentContainer.add(divider);
 
     if (!isUnlocked) {
       // Show locked message
       const lockMessage = this.scene.add.text(
-        this.getContentWidth() / 2, 100,
-        '🔒 SLOT LOCKED\n\nUnlock this slot in\nthe Shop panel',
+        this.getContentWidth() / 2, 60,
+        '🔒 SLOT LOCKED\n\nUnlock in Shop',
         {
-          fontSize: '14px',
+          fontSize: '12px',
           color: '#ff6666',
           align: 'center',
         }
       );
       lockMessage.setOrigin(0.5);
       this.contentContainer.add(lockMessage);
+      this.setContentHeight(TankStatsPanel.TAB_HEIGHT + 8 + 120);
       return;
     }
 
     // Slot stat rows
     TankStatsPanel.SLOT_STATS.forEach((stat, index) => {
-      const rowY = 32 + index * TankStatsPanel.ROW_HEIGHT;
+      const rowY = 24 + index * TankStatsPanel.ROW_HEIGHT;
       const row = this.createSlotStatRow(slotIndex, stat, rowY);
       this.statRows.set(`${slotIndex}_${stat.type}`, row);
     });
+
+    // Set content height for scrolling
+    const totalHeight = 24 + TankStatsPanel.SLOT_STATS.length * TankStatsPanel.ROW_HEIGHT + 16;
+    this.setContentHeight(TankStatsPanel.TAB_HEIGHT + 8 + totalHeight);
   }
 
   /**
-   * Create a slot stat row
+   * Create a slot stat row (compact)
    */
   private createSlotStatRow(
     slotIndex: number,
     stat: typeof TankStatsPanel.SLOT_STATS[0],
     y: number
   ): StatRowElement {
-    const container = this.scene.add.container(16, y);
+    const container = this.scene.add.container(12, y);
     this.contentContainer!.add(container);
 
     const level = this.gameState.getSlotStatLevel(slotIndex, stat.type);
     const atCap = !this.gameState.canUpgradeSlotStat(slotIndex, stat.type);
 
-    // Icon
+    // Icon - smaller
     const icon = this.scene.add.graphics();
     icon.fillStyle(stat.color, 1);
-    icon.fillRoundedRect(0, 0, 36, 36, 6);
+    icon.fillRoundedRect(0, 0, 28, 28, 4);
     container.add(icon);
 
-    // Level badge
-    const levelBadge = this.scene.add.circle(28, 0, 10, 0x1a1a2e);
+    // Level badge - smaller
+    const levelBadge = this.scene.add.circle(22, 0, 8, 0x1a1a2e);
     levelBadge.setStrokeStyle(1, stat.color);
     container.add(levelBadge);
 
-    const levelText = this.scene.add.text(28, 0, `${level}`, {
-      fontSize: '10px',
+    const levelText = this.scene.add.text(22, 0, `${level}`, {
+      fontSize: '9px',
       color: '#ffffff',
       fontStyle: 'bold',
     });
     levelText.setOrigin(0.5);
     container.add(levelText);
 
-    // Name
-    const nameText = this.scene.add.text(48, 4, stat.name, {
-      fontSize: '13px',
+    // Name - smaller
+    const nameText = this.scene.add.text(36, 2, stat.name, {
+      fontSize: '11px',
       color: UI_CONFIG.COLORS.TEXT_PRIMARY,
       fontStyle: 'bold',
     });
     container.add(nameText);
 
-    // Value preview
+    // Value preview - smaller
     const currentBonus = level;
     const nextBonus = level + 1;
     const valueText = this.scene.add.text(
-      48, 20,
+      36, 16,
       atCap ? `+${currentBonus}% (MAX)` : `+${currentBonus}% > +${nextBonus}%`,
-      { fontSize: '11px', color: atCap ? '#ffaa00' : '#888888' }
+      { fontSize: '9px', color: atCap ? '#ffaa00' : '#888888' }
     );
     container.add(valueText);
 
-    // Upgrade button - determine initial color based on affordability
-    const buttonWidth = 75;
+    // Upgrade button - wider for better readability
+    const buttonWidth = 80;
     const cost = this.gameState.getSlotStatUpgradeCost(slotIndex, stat.type);
     const canAfford = this.gameState.canAfford(cost);
 
-    // Set initial button color: green if affordable, brownish if not, gray if at cap
     let initialColor: number = UI_CONFIG.COLORS.HEALTH_GREEN;
     if (atCap) {
       initialColor = UI_CONFIG.COLORS.BUTTON_DISABLED;
     } else if (!canAfford) {
-      initialColor = 0x5a4a37; // Brownish color for can't afford
+      initialColor = 0x5a4a37;
     }
 
-    const buttonBg = this.scene.add.rectangle(this.getContentWidth() - 32 - buttonWidth / 2, 18, buttonWidth, 28, initialColor);
+    const buttonBg = this.scene.add.rectangle(this.getContentWidth() - 24 - buttonWidth / 2, 14, buttonWidth, 22, initialColor);
     container.add(buttonBg);
 
-    const costText = this.scene.add.text(this.getContentWidth() - 32 - buttonWidth / 2, 18, atCap ? 'MAX' : this.formatCost(cost), {
-      fontSize: '12px',
+    const costText = this.scene.add.text(this.getContentWidth() - 24 - buttonWidth / 2, 14, atCap ? 'MAX' : this.formatCost(cost), {
+      fontSize: '10px',
       color: '#ffffff',
       fontStyle: 'bold',
     });
     costText.setOrigin(0.5);
     container.add(costText);
 
-    // Button interactions
     if (!atCap) {
       buttonBg.setInteractive({ useHandCursor: true });
       buttonBg.on('pointerdown', () => this.onSlotStatUpgrade(slotIndex, stat.type));

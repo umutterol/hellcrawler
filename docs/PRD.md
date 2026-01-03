@@ -1,5 +1,5 @@
 # HELLCRAWLER - Product Requirements Document (PRD)
-## Version 1.0 | December 2024
+## Version 1.1 | January 2025
 
 ---
 
@@ -1037,6 +1037,8 @@ npm run build:all    # Build all platforms
 
 ## 8.2 Electron Configuration
 
+### 8.2.1 Builder Configuration
+
 ```javascript
 // electron-builder.config.js
 module.exports = {
@@ -1059,6 +1061,95 @@ module.exports = {
   }
 };
 ```
+
+### 8.2.2 Desktop Mode (Transparent Window)
+
+Hellcrawler runs as a **desktop widget** with always-transparent background, similar to Desktop Heroes. The game displays as a horizontal strip docked to the bottom of the screen.
+
+**Window Layout (Desktop Heroes Style):**
+| Attribute | Value | Description |
+|-----------|-------|-------------|
+| Width | `workArea.width` | Full screen width |
+| Height | 350px | Short horizontal strip |
+| Position X | `workArea.x` | Left edge of work area |
+| Position Y | `workArea.y + workArea.height - 350` | Bottom of work area |
+
+**Note:** Uses `screen.getPrimaryDisplay().workArea` (not `workAreaSize`) to properly account for menu bars, taskbars, and docks on all platforms.
+
+**BrowserWindow Configuration:**
+```typescript
+function createWindow(): void {
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const workArea = primaryDisplay.workArea;
+
+  const windowWidth = workArea.width;
+  const windowHeight = 350;
+  const windowX = workArea.x;
+  const windowY = workArea.y + workArea.height - windowHeight;
+
+  mainWindow = new BrowserWindow({
+    width: windowWidth,
+    height: windowHeight,
+    x: windowX,
+    y: windowY,
+    transparent: true,      // Always transparent
+    frame: false,           // Required for transparency on Windows
+    resizable: false,       // Transparent windows can't resize
+    alwaysOnTop: true,      // Default ON, toggled via settings
+    hasShadow: false,       // No window shadow for clean look
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      preload: 'preload.js'
+    }
+  });
+}
+```
+
+**Compact UI Dimensions:**
+| Component | Value | Description |
+|-----------|-------|-------------|
+| Top Bar | 28px | Gold, XP, zone info |
+| Bottom Bar | 60px | HP bar, module slots, wave progress |
+| Sidebar | 40px wide | Panel toggle buttons |
+| Ground Height | 60px | Gameplay ground level |
+| Game Height | 350px | Full canvas height |
+| Game Width | 1920px | Base canvas width (scales to screen) |
+
+**Desktop Mode Settings:**
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| alwaysOnTop | boolean | true | Keep window above other applications |
+| clickThroughEnabled | boolean | true | Pass clicks through transparent areas |
+| showSkyLayer | boolean | true | Show bg-sky + bg-clouds |
+| showMountainsLayer | boolean | true | Show bg-mountains + bg-mountains-lights |
+| showFarBuildingsLayer | boolean | true | Show bg-far-buildings |
+| showForegroundLayer | boolean | true | Show bg-forest + bg-town |
+
+**Click-Through Behavior:**
+- When cursor is over transparent areas (no game elements), clicks pass through to desktop
+- Uses `setIgnoreMouseEvents(true, { forward: true })` for dynamic toggling
+- Interactive elements (UI, tank, enemies) always receive mouse events
+- Managed by `ClickThroughManager` class (`src/managers/ClickThroughManager.ts`)
+- Uses throttled pointer tracking (50ms interval) to minimize IPC overhead
+- Objects with `depth < 10` are treated as background (not interactive)
+- Proper event listener cleanup in `destroy()` prevents memory leaks
+
+**Settings Persistence:**
+- Desktop Mode settings (`alwaysOnTop`, `clickThroughEnabled`, layer visibility) persist in localStorage
+- On Electron startup, `ClickThroughManager.applyElectronSettings()` applies saved settings via IPC
+- Settings Panel toggles update both localStorage and Electron window state in real-time
+
+**IPC Channels:**
+| Channel | Direction | Purpose |
+|---------|-----------|---------|
+| set-always-on-top | Renderer → Main | Toggle always-on-top state |
+| set-click-through | Renderer → Main | Toggle click-through for transparent areas |
+| get-window-state | Renderer → Main | Get current alwaysOnTop and clickThrough state |
+| set-window-position | Renderer → Main | Set window position (for dragging) |
+| get-window-position | Renderer → Main | Get current window position |
+| minimize-window | Renderer → Main | Minimize window |
+| close-window | Renderer → Main | Close window |
 
 ## 8.3 Steam Integration
 
@@ -1245,9 +1336,10 @@ See separate TypeScript documentation generated from source.
 ### GameConfig.ts
 ```typescript
 export const GAME_CONFIG = {
-  // Display
+  // Display (Desktop Heroes style - bottom strip)
   WIDTH: 1920,
-  HEIGHT: 1080,
+  HEIGHT: 350,        // Compact horizontal strip
+  GROUND_HEIGHT: 60,  // Ground level from bottom
   FPS: 60,
   
   // Combat
@@ -1284,7 +1376,19 @@ export const GAME_CONFIG = {
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** December 2024
+**Document Version:** 1.1
+**Last Updated:** January 2025
 **Author:** Product Team
 **Status:** APPROVED FOR DEVELOPMENT
+
+---
+
+## Changelog
+
+### v1.1 (January 2025)
+- Updated Desktop Mode section with ClickThroughManager implementation details
+- Added panel system improvements (525px width, pagination, scrolling fixes)
+- Documented layer visibility toggles and settings persistence
+
+### v1.0 (December 2024)
+- Initial product requirements document

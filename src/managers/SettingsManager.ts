@@ -30,6 +30,16 @@ export interface GameSettings {
   masterVolume: number;
   musicVolume: number;
   sfxVolume: number;
+
+  // Desktop Mode settings (Electron only)
+  alwaysOnTop: boolean;
+  clickThroughEnabled: boolean;
+
+  // Background Layer visibility
+  showSkyLayer: boolean; // bg-sky + bg-clouds
+  showMountainsLayer: boolean; // bg-mountains + bg-mountains-lights
+  showFarBuildingsLayer: boolean; // bg-far-buildings
+  showForegroundLayer: boolean; // bg-forest + bg-town
 }
 
 /**
@@ -50,6 +60,16 @@ const DEFAULT_SETTINGS: GameSettings = {
   masterVolume: 80,
   musicVolume: 60,
   sfxVolume: 80,
+
+  // Desktop Mode - enabled by default
+  alwaysOnTop: true,
+  clickThroughEnabled: true,
+
+  // Background Layers - all visible by default
+  showSkyLayer: true,
+  showMountainsLayer: true,
+  showFarBuildingsLayer: true,
+  showForegroundLayer: true,
 };
 
 const SETTINGS_STORAGE_KEY = 'hellcrawler_settings';
@@ -229,6 +249,60 @@ export class SettingsManager {
 
   public get sfxVolume(): number {
     return this.settings.sfxVolume;
+  }
+
+  // Desktop Mode getters
+
+  public get alwaysOnTop(): boolean {
+    return this.settings.alwaysOnTop;
+  }
+
+  public get clickThroughEnabled(): boolean {
+    return this.settings.clickThroughEnabled;
+  }
+
+  // Background Layer getters
+
+  public get showSkyLayer(): boolean {
+    return this.settings.showSkyLayer;
+  }
+
+  public get showMountainsLayer(): boolean {
+    return this.settings.showMountainsLayer;
+  }
+
+  public get showFarBuildingsLayer(): boolean {
+    return this.settings.showFarBuildingsLayer;
+  }
+
+  public get showForegroundLayer(): boolean {
+    return this.settings.showForegroundLayer;
+  }
+
+  /**
+   * Check if running in Electron environment
+   */
+  public isElectron(): boolean {
+    return typeof window !== 'undefined' && window.electronAPI?.isElectron === true;
+  }
+
+  /**
+   * Apply always-on-top setting to Electron window
+   */
+  public async applyAlwaysOnTop(): Promise<void> {
+    if (this.isElectron()) {
+      await window.electronAPI?.setAlwaysOnTop(this.settings.alwaysOnTop);
+    }
+  }
+
+  /**
+   * Apply click-through setting to Electron window
+   */
+  public async applyClickThrough(enabled?: boolean): Promise<void> {
+    if (this.isElectron()) {
+      const value = enabled ?? this.settings.clickThroughEnabled;
+      await window.electronAPI?.setClickThrough(value);
+    }
   }
 
   /**

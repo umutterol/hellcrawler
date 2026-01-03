@@ -1,5 +1,5 @@
 # HELLCRAWLER - Game Design Document (GDD)
-## Version 1.0 | December 2024
+## Version 1.1 | January 2025
 
 ---
 
@@ -852,6 +852,7 @@ Uber versions of all 8 bosses with:
 
 > **Reference:** Desktop Heroes sliding panel system
 > **Full Specification:** See `docs/UISpec.md` for complete implementation details
+> **Desktop Mode:** Game runs as a 350px tall transparent widget docked to bottom of screen
 
 ## 11.1 Design Philosophy
 
@@ -859,8 +860,24 @@ Uber versions of all 8 bosses with:
 |-----------|-------------|
 | **Idle-First** | Game NEVER pauses - continues during all menu interactions |
 | **No Scene Transitions** | All UI is overlay-based, no black screen transitions |
-| **Sliding Panels** | Menus slide in from left, pushing game area right |
+| **Sliding Panels** | Menus slide in from left (game area stays fixed) |
 | **Always Accessible** | Core actions (skills, flee) always visible |
+| **Desktop Widget** | Transparent window floats above desktop (Electron only) |
+
+### Desktop Mode (Electron)
+
+When running in Electron, the game displays as a **desktop widget**:
+
+| Feature | Description |
+|---------|-------------|
+| Window Size | 1920 × 350px (full width, short height) |
+| Position | Bottom-docked, above taskbar |
+| Transparency | Always transparent, see-through to desktop |
+| Always on Top | Configurable - keeps game above other windows |
+| Click-Through | Mouse clicks pass through transparent areas to desktop |
+| Layer Toggles | Toggle visibility of parallax background layers |
+
+This creates an "idle widget" experience where players can monitor their tank while working in other applications.
 
 ## 11.2 Screen Layout
 
@@ -972,6 +989,44 @@ Uber versions of all 8 bosses with:
 
 ## 11.7 Resolution & Scaling
 
+### Desktop Mode (Electron - Primary)
+
+Hellcrawler runs as a **desktop widget** in Electron, displayed as a horizontal strip docked to the bottom of the screen (similar to Desktop Heroes).
+
+| Attribute | Value |
+|-----------|-------|
+| Window Width | Full screen width (workArea.width) |
+| Window Height | 350px |
+| Canvas Resolution | 1920×350 |
+| Position | Bottom of screen, above taskbar/dock |
+| Scaling | FIT mode, centered horizontally |
+
+**Compact UI Layout:**
+| Component | Size | Position |
+|-----------|------|----------|
+| Top Bar | 28px height | Top of window |
+| Bottom Bar | 60px height | Bottom of window |
+| Sidebar | 40px wide | Left edge |
+| Game Area | ~262px height | Between bars |
+| Ground | 60px from bottom | Where tank/enemies stand |
+
+**Background Layer System:**
+- All parallax layers positioned from bottom with proper yOffset values
+- Layers can be individually toggled via settings
+- When all layers disabled, transparent window shows desktop behind
+
+### Web Mode (Browser - Development)
+
+| Attribute | Value |
+|-----------|-------|
+| Base Resolution | 1920×350 |
+| Aspect Ratio | 5.49:1 (fixed) |
+| Scaling | FIT mode, centered |
+| Minimum | 1280×350 |
+| Panel Width | 300px (scales down at lower res) |
+
+### Legacy Full-Screen Mode (Not Used)
+
 | Attribute | Value |
 |-----------|-------|
 | Base Resolution | 1920×1080 |
@@ -979,6 +1034,32 @@ Uber versions of all 8 bosses with:
 | Scaling | Letterbox for non-16:9 displays |
 | Minimum | 1280×720 |
 | Panel Width | 400px (scales down at lower res) |
+
+## 11.8 Desktop Mode Features
+
+The Electron desktop build includes special features for desktop widget functionality:
+
+### Always-On-Top
+- Window stays above all other applications
+- Togglable via Settings panel
+- Default: ON
+
+### Click-Through
+- Transparent areas pass mouse clicks to desktop
+- Interactive elements (UI, tank, enemies) always receive input
+- Uses dynamic `setIgnoreMouseEvents` with forwarding
+
+### Background Layer Toggles
+Players can hide/show parallax background groups:
+
+| Group | Layers | Default |
+|-------|--------|---------|
+| Sky | bg-sky, bg-clouds | Visible |
+| Mountains | bg-mountains, bg-mountains-lights | Visible |
+| Far Buildings | bg-far-buildings | Visible |
+| Foreground | bg-forest, bg-town | Visible |
+
+When all layers are hidden, the game shows only the ground, tank, enemies, and UI - with full desktop transparency behind.
 
 ---
 
@@ -1102,7 +1183,19 @@ Future consideration: Localization framework in place
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** December 2024
+**Document Version:** 1.1
+**Last Updated:** January 2025
 **Author:** Game Design Team
 **Status:** LOCKED FOR IMPLEMENTATION
+
+---
+
+## Changelog
+
+### v1.1 (January 2025)
+- Added Desktop Mode (Electron) section to UI/UX Design
+- Updated sliding panel behavior (game area stays fixed)
+- Added Desktop Widget principle to design philosophy
+
+### v1.0 (December 2024)
+- Initial game design document

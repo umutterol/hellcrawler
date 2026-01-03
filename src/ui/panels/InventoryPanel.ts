@@ -23,7 +23,7 @@ interface ModuleSelection {
  * Based on UISpec.md:
  * - View all modules in inventory
  * - Equipped modules shown at top (5 slots)
- * - 6-column grid for inventory
+ * - 8-column grid for inventory with pagination
  * - Click to select, see details
  * - Equip/Unequip/Sell buttons
  */
@@ -37,6 +37,12 @@ export class InventoryPanel extends SlidingPanel {
 
   // Selection state
   private selectedModule: ModuleSelection | null = null;
+
+  // Pagination state
+  private currentPage: number = 0;
+  private static readonly GRID_COLS = 8;
+  private static readonly GRID_ROWS = 4;
+  private static readonly ITEMS_PER_PAGE = 32; // 8 cols × 4 rows
 
   // Action buttons
   private equipButton!: Phaser.GameObjects.Container;
@@ -74,6 +80,13 @@ export class InventoryPanel extends SlidingPanel {
     this.createEquippedSection();
     this.createInventoryGrid();
     this.createDetailsSection();
+
+    // Calculate total content height for scrolling
+    // Equipped section: ~90px (header + 64px slots)
+    // Grid section at y=100: header (32) + grid (4 rows × 58) + pagination (30) = 294px
+    // Details section at y=394: ~150px (details + buttons)
+    const totalContentHeight = 100 + 294 + 150; // ~544px
+    this.setContentHeight(totalContentHeight);
   }
 
   /**
@@ -132,9 +145,9 @@ export class InventoryPanel extends SlidingPanel {
     });
     sectionContainer.add(headerText);
 
-    // Equipped slots (5 slots)
-    const slotSize = 56;
-    const slotSpacing = 8;
+    // Equipped slots (5 slots) - wider spacing for new panel width
+    const slotSize = 64; // Larger slots
+    const slotSpacing = 16; // More spacing
     const slotsY = 24;
 
     for (let i = 0; i < 5; i++) {
@@ -235,11 +248,17 @@ export class InventoryPanel extends SlidingPanel {
   }
 
   /**
-   * Create the inventory grid
+   * Create the inventory grid with pagination
    */
   private createInventoryGrid(): void {
     const inventory = this.gameState.getModuleInventory();
     const sectionContainer = this.scene.add.container(16, 100);
+
+    // Calculate pagination
+    const totalPages = Math.max(1, Math.ceil(inventory.length / InventoryPanel.ITEMS_PER_PAGE));
+    const startIndex = this.currentPage * InventoryPanel.ITEMS_PER_PAGE;
+    const endIndex = Math.min(startIndex + InventoryPanel.ITEMS_PER_PAGE, inventory.length);
+    const pageItems = inventory.slice(startIndex, endIndex);
 
     // Section header with item count
     const inventoryHeaderText = this.scene.add.text(
@@ -261,31 +280,34 @@ export class InventoryPanel extends SlidingPanel {
     divider.lineBetween(0, 20, this.getContentWidth(), 20);
     sectionContainer.add(divider);
 
-    // Grid parameters
+    // Grid parameters - 8 columns for wider panel
     const cellSize = 52;
     const cellSpacing = 6;
     const gridY = 32;
-    const cols = 6;
-    const rows = 4;
 
     // Draw grid cells and modules
-    for (let row = 0; row < rows; row++) {
-      for (let col = 0; col < cols; col++) {
-        const cellIndex = row * cols + col;
+    for (let row = 0; row < InventoryPanel.GRID_ROWS; row++) {
+      for (let col = 0; col < InventoryPanel.GRID_COLS; col++) {
+        const cellIndex = row * InventoryPanel.GRID_COLS + col;
         const cellX = col * (cellSize + cellSpacing);
         const cellY = gridY + row * (cellSize + cellSpacing);
-        const module = inventory[cellIndex];
+        const module = pageItems[cellIndex];
+        const globalIndex = startIndex + cellIndex;
 
-        const cellContainer = this.createInventoryCell(cellX, cellY, cellSize, module, cellIndex);
+        const cellContainer = this.createInventoryCell(cellX, cellY, cellSize, module, globalIndex);
         sectionContainer.add(cellContainer);
       }
     }
+
+    // Pagination controls (below grid)
+    const paginationY = gridY + InventoryPanel.GRID_ROWS * (cellSize + cellSpacing) + 8;
+    this.createPaginationControls(sectionContainer, paginationY, totalPages);
 
     // Empty state text (only show if inventory is empty)
     if (inventory.length === 0) {
       const emptyText = this.scene.add.text(
         this.getContentWidth() / 2 - 16,
-        gridY + (rows * (cellSize + cellSpacing)) / 2,
+        gridY + (InventoryPanel.GRID_ROWS * (cellSize + cellSpacing)) / 2,
         'No modules in inventory\nDefeat enemies to collect drops',
         {
           fontSize: '12px',
@@ -298,6 +320,67 @@ export class InventoryPanel extends SlidingPanel {
     }
 
     this.addToContent(sectionContainer);
+  }
+
+  /**
+   * Create pagination controls
+   */
+  private createPaginationControls(
+    container: Phaser.GameObjects.Container,
+    y: number,
+    totalPages: number
+  ): void {
+    if (totalPages <= 1) return;
+
+    const contentWidth = this.getContentWidth();
+
+    // Previous button
+    const prevBtn = this.scene.add.text(0, y, '< PREV', {
+      fontSize: '12px',
+      color: this.currentPage > 0 ? '#ffffff' : '#555555',
+      fontStyle: 'bold',
+    });
+    if (this.currentPage > 0) {
+      prevBtn.setInteractive({ useHandCursor: true });
+      prevBtn.on('pointerdown', () => {
+        this.currentPage--;
+        this.rebuildContent();
+      });
+      prevBtn.on('pointerover', () => prevBtn.setColor('#ffd700'));
+      prevBtn.on('pointerout', () => prevBtn.setColor('#ffffff'));
+    }
+    container.add(prevBtn);
+
+    // Page indicator
+    const pageText = this.scene.add.text(
+      contentWidth / 2,
+      y,
+      `Page ${this.currentPage + 1} / ${totalPages}`,
+      {
+        fontSize: '12px',
+        color: UI_CONFIG.COLORS.TEXT_SECONDARY,
+      }
+    );
+    pageText.setOrigin(0.5, 0);
+    container.add(pageText);
+
+    // Next button
+    const nextBtn = this.scene.add.text(contentWidth, y, 'NEXT >', {
+      fontSize: '12px',
+      color: this.currentPage < totalPages - 1 ? '#ffffff' : '#555555',
+      fontStyle: 'bold',
+    });
+    nextBtn.setOrigin(1, 0);
+    if (this.currentPage < totalPages - 1) {
+      nextBtn.setInteractive({ useHandCursor: true });
+      nextBtn.on('pointerdown', () => {
+        this.currentPage++;
+        this.rebuildContent();
+      });
+      nextBtn.on('pointerover', () => nextBtn.setColor('#ffd700'));
+      nextBtn.on('pointerout', () => nextBtn.setColor('#ffffff'));
+    }
+    container.add(nextBtn);
   }
 
   /**
@@ -369,7 +452,9 @@ export class InventoryPanel extends SlidingPanel {
    * Create the details/actions section
    */
   private createDetailsSection(): void {
-    const sectionContainer = this.scene.add.container(16, 380);
+    // Position below grid (100 + grid height + pagination)
+    const gridHeight = InventoryPanel.GRID_ROWS * (52 + 6) + 32 + 30; // cells + header + pagination
+    const sectionContainer = this.scene.add.container(16, 100 + gridHeight);
 
     // Divider
     const divider = this.scene.add.graphics();

@@ -58,12 +58,22 @@ export class SettingsPanel extends SlidingPanel {
     this.createDisplaySection();
     this.createGameplaySection();
     this.createAudioSection();
+    this.createBackgroundLayersSection();
+    this.createDesktopModeSection();
     this.createControlsSection();
     this.createSaveSection();
 
     // Setup global pointer events for slider dragging
     this.scene.input.on('pointermove', this.onPointerMove, this);
     this.scene.input.on('pointerup', this.onPointerUp, this);
+
+    // Calculate total content height for scrolling
+    // Save section is the last section and its Y position depends on Electron mode
+    const settingsManager = getSettingsManager();
+    const saveYOffset = settingsManager.isElectron() ? 820 : 715;
+    // Save section contains: divider + save button (y=16, h=36) + quit button (y=60, h=36)
+    const totalContentHeight = saveYOffset + 60 + 36 + 20; // ~816-921px depending on mode
+    this.setContentHeight(totalContentHeight);
   }
 
   /**
@@ -292,8 +302,8 @@ export class SettingsPanel extends SlidingPanel {
     });
     container.add(labelText);
 
-    // Slider track
-    const trackWidth = 150;
+    // Slider track - wider for better precision on 525px panel
+    const trackWidth = 220;
     const trackHeight = 6;
     const trackX = this.getContentWidth() - trackWidth - 50;
     const trackY = 4;
@@ -435,10 +445,110 @@ export class SettingsPanel extends SlidingPanel {
   }
 
   /**
+   * Create background layers visibility section
+   */
+  private createBackgroundLayersSection(): void {
+    const sectionContainer = this.scene.add.container(16, 390);
+
+    // Section header
+    const headerText = this.scene.add.text(0, 0, 'BACKGROUND LAYERS', {
+      fontFamily: 'Arial',
+      fontSize: '14px',
+      color: UI_CONFIG.COLORS.TEXT_SECONDARY,
+      fontStyle: 'bold',
+    });
+    sectionContainer.add(headerText);
+
+    // Divider
+    const divider = this.scene.add.graphics();
+    divider.lineStyle(1, UI_CONFIG.COLORS.PANEL_BORDER, 0.5);
+    divider.lineBetween(0, 20, this.getContentWidth(), 20);
+    sectionContainer.add(divider);
+
+    // Toggle options for layer groups
+    const toggles: { label: string; key: keyof GameSettings }[] = [
+      { label: 'Sky & Clouds', key: 'showSkyLayer' },
+      { label: 'Mountains', key: 'showMountainsLayer' },
+      { label: 'Far Buildings', key: 'showFarBuildingsLayer' },
+      { label: 'Forest & Town', key: 'showForegroundLayer' },
+    ];
+
+    toggles.forEach((toggle, index) => {
+      const toggleRow = this.createToggleRow(toggle.label, toggle.key, 32 + index * 32);
+      sectionContainer.add(toggleRow);
+    });
+
+    this.addToContent(sectionContainer);
+  }
+
+  /**
+   * Create desktop mode section (Electron only)
+   */
+  private createDesktopModeSection(): void {
+    // Only show in Electron environment
+    const settingsManager = getSettingsManager();
+    if (!settingsManager.isElectron()) {
+      return; // Skip this section in web browser
+    }
+
+    const sectionContainer = this.scene.add.container(16, 555);
+
+    // Section header
+    const headerText = this.scene.add.text(0, 0, 'DESKTOP MODE', {
+      fontFamily: 'Arial',
+      fontSize: '14px',
+      color: UI_CONFIG.COLORS.TEXT_SECONDARY,
+      fontStyle: 'bold',
+    });
+    sectionContainer.add(headerText);
+
+    // Divider
+    const divider = this.scene.add.graphics();
+    divider.lineStyle(1, UI_CONFIG.COLORS.PANEL_BORDER, 0.5);
+    divider.lineBetween(0, 20, this.getContentWidth(), 20);
+    sectionContainer.add(divider);
+
+    // Toggle options
+    const toggles: { label: string; key: keyof GameSettings }[] = [
+      { label: 'Always On Top', key: 'alwaysOnTop' },
+      { label: 'Click-Through Empty Areas', key: 'clickThroughEnabled' },
+    ];
+
+    toggles.forEach((toggle, index) => {
+      const toggleRow = this.createToggleRow(toggle.label, toggle.key, 32 + index * 32);
+      sectionContainer.add(toggleRow);
+
+      // For these toggles, apply Electron window settings on change
+      const rowData = this.toggleRows[this.toggleRows.length - 1];
+      if (!rowData) return;
+
+      const originalHitArea = rowData.hitArea;
+
+      // Override the click handler to also apply to Electron
+      originalHitArea.off('pointerdown');
+      originalHitArea.on('pointerdown', async () => {
+        const newValue = settingsManager.toggleSetting(toggle.key);
+        this.updateToggleVisual(rowData, newValue);
+
+        // Apply to Electron window
+        if (toggle.key === 'alwaysOnTop') {
+          await settingsManager.applyAlwaysOnTop();
+        }
+        // Click-through is managed dynamically, not via this toggle directly
+      });
+    });
+
+    this.addToContent(sectionContainer);
+  }
+
+  /**
    * Create controls reference section
    */
   private createControlsSection(): void {
-    const sectionContainer = this.scene.add.container(16, 390);
+    // Adjust Y position based on whether Desktop Mode section is shown
+    const settingsManager = getSettingsManager();
+    const yOffset = settingsManager.isElectron() ? 660 : 555;
+    const sectionContainer = this.scene.add.container(16, yOffset);
 
     // Section header
     const headerText = this.scene.add.text(0, 0, 'CONTROLS', {
@@ -480,7 +590,10 @@ export class SettingsPanel extends SlidingPanel {
    * Create save/quit section
    */
   private createSaveSection(): void {
-    const sectionContainer = this.scene.add.container(16, 540);
+    // Adjust Y position based on whether Desktop Mode section is shown
+    const settingsManager = getSettingsManager();
+    const yOffset = settingsManager.isElectron() ? 820 : 715;
+    const sectionContainer = this.scene.add.container(16, yOffset);
 
     // Divider
     const divider = this.scene.add.graphics();

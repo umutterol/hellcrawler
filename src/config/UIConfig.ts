@@ -5,9 +5,9 @@
  */
 
 export const UI_CONFIG = {
-  // Screen dimensions (reference)
+  // Screen dimensions (reference) - Desktop Heroes style
   WIDTH: 1920,
-  HEIGHT: 1080,
+  HEIGHT: 350,
 
   // Depth layers
   DEPTHS: {
@@ -20,32 +20,32 @@ export const UI_CONFIG = {
     MODAL: 400,
   },
 
-  // Sidebar
+  // Sidebar - Compact for short window
   SIDEBAR: {
-    WIDTH: 56,
-    ICON_SIZE: 40,
-    PADDING: 8,
-    TOP_OFFSET: 48, // Below top bar
-    BOTTOM_OFFSET: 120, // Above bottom bar
+    WIDTH: 40,
+    ICON_SIZE: 28,
+    PADDING: 6,
+    TOP_OFFSET: 28, // Below top bar
+    BOTTOM_OFFSET: 60, // Above bottom bar
   },
 
-  // Sliding Panel
+  // Sliding Panel - 50% wider for better content layout
   PANEL: {
-    WIDTH: 400,
+    WIDTH: 525,
     OPEN_DURATION: 300,
     CLOSE_DURATION: 250,
     EASE_OPEN: 'Cubic.easeOut',
     EASE_CLOSE: 'Cubic.easeIn',
   },
 
-  // Top Bar
+  // Top Bar - Compact for Desktop Heroes style
   TOP_BAR: {
-    HEIGHT: 48,
+    HEIGHT: 28,
   },
 
-  // Bottom Bar
+  // Bottom Bar - Compact for Desktop Heroes style
   BOTTOM_BAR: {
-    HEIGHT: 120,
+    HEIGHT: 60,
   },
 
   // Colors (from UISpec.md)
@@ -71,26 +71,26 @@ export const UI_CONFIG = {
     SIDEBAR_HOVER: 0x2d2d44,
   },
 
-  // Typography
+  // Typography - Compact for Desktop Heroes style
   FONTS: {
     HEADER: {
       fontFamily: 'Arial',
-      fontSize: '24px',
+      fontSize: '16px',
       color: '#f5f5f5',
     },
     SECTION_HEADER: {
       fontFamily: 'Arial',
-      fontSize: '18px',
+      fontSize: '13px',
       color: '#f5f5f5',
     },
     BODY: {
       fontFamily: 'Arial',
-      fontSize: '14px',
+      fontSize: '11px',
       color: '#f5f5f5',
     },
     SMALL: {
       fontFamily: 'Arial',
-      fontSize: '12px',
+      fontSize: '10px',
       color: '#a0a0a0',
     },
   },
@@ -102,6 +102,7 @@ export enum PanelType {
   INVENTORY = 'inventory',
   SHOP = 'shop',
   SETTINGS = 'settings',
+  DEBUG = 'debug',
 }
 
 // Sidebar button configuration

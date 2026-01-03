@@ -1,7 +1,260 @@
 # HELLCRAWLER - Master Plan
-## Last Updated: December 2024
+## Last Updated: January 2025
 
 > **THIS DOCUMENT MUST BE KEPT UP TO DATE.** Update after completing any phase, sprint, or major feature.
+
+---
+
+# PRIORITIZED ROADMAP (PM Analysis)
+
+> **Analysis Date:** January 3, 2025
+> **Methodology:** Prioritized by dependency chain, Vertical Slice needs, complexity, and risk
+
+## Executive Summary
+
+| Milestone | Status | Blocking Issues | ETA |
+|-----------|--------|-----------------|-----|
+| MVP | ✅ Complete | None | Done |
+| Vertical Slice | 🔴 BLOCKED | No AudioManager | 1 week after unblock |
+| Content Expansion | ⏳ Waiting | Vertical Slice | 2 weeks |
+| Architecture Refactor | ⏳ Planned | None (can parallelize) | 2-3 weeks |
+
+**Critical Finding:** Vertical Slice is BLOCKED by missing AudioManager. This was scheduled for Phase 4 but must be pulled forward immediately.
+
+---
+
+## Priority Tiers
+
+### 🔴 TIER 0: BLOCKERS (Do First)
+
+These block Vertical Slice completion. **Must resolve before any other work.**
+
+| # | Task | Complexity | Dependency | Why Blocking |
+|---|------|------------|------------|--------------|
+| 0.1 | Create AudioManager | Medium | None | ALL audio tasks blocked |
+| 0.2 | Create SFXPool | Low | 0.1 | Audio pooling for performance |
+| 0.3 | Add event-driven audio hooks | Low | 0.1, 0.2 | Decoupled audio triggers |
+
+**Files to Create:**
+- `src/managers/AudioManager.ts`
+- `src/audio/SFXPool.ts`
+
+**Reference:** [11-audio.md](Meeting/11-audio.md)
+
+**Estimated Time:** 1-2 days
+
+---
+
+### 🟠 TIER 1: VERTICAL SLICE CORE (High Priority)
+
+Core feedback that makes combat feel impactful. **Required for "would put in Steam trailer" exit criteria.**
+
+| # | Task | Complexity | Dependency | Status |
+|---|------|------------|------------|--------|
+| 1.1 | Cannon boom SFX | Low | 0.1 | ⏳ |
+| 1.2 | Machine gun rattle SFX | Low | 0.1 | ⏳ |
+| 1.3 | Missile whoosh SFX | Low | 0.1 | ⏳ |
+| 1.4 | Hit impact SFX | Low | 0.1 | ⏳ |
+| 1.5 | UI click SFX | Low | 0.1 | ⏳ |
+| 1.6 | Damage numbers pop animation | Low | None | ⏳ |
+| 1.7 | Enemy death flash + fade | Low | None | ⏳ |
+| 1.8 | Crit hit visual ("CRIT!" + bigger) | Low | 1.6 | ⏳ |
+
+**Estimated Time:** 2-3 days
+
+---
+
+### 🟡 TIER 2: VERTICAL SLICE POLISH (Medium Priority)
+
+Nice-to-have polish that elevates quality. **Helps but not strictly required.**
+
+| # | Task | Complexity | Dependency | Status |
+|---|------|------------|------------|--------|
+| 2.1 | Cannon muzzle flash + recoil | Low | None | ⏳ |
+| 2.2 | Missile smoke puff + wobble | Low | None | ⏳ |
+| 2.3 | Hit spark/flash at impact point | Low | None | ⏳ |
+| 2.4 | Skill activation flash + sound | Low | 0.1 | ⏳ |
+| 2.5 | Boss spawn intro (darken + animation) | Medium | None | ⏳ |
+| 2.6 | Boss death celebration | Medium | 0.1 | ⏳ |
+| 2.7 | Legendary drop glow + sound | Low | 0.1 | ⏳ |
+| 2.8 | Near Death smoke + pulse | Medium | None | ⏳ |
+| 2.9 | Onboarding tooltips (3-4) | Medium | None | ⏳ |
+| 2.10 | DEPTH constants in GameConfig | Low | None | ⏳ |
+| 2.11 | EFFECT_TIMING constants | Low | None | ⏳ |
+
+**Estimated Time:** 3-4 days
+
+---
+
+### 🟢 TIER 3: CONTENT EXPANSION (After Vertical Slice)
+
+New content. **Only start after Vertical Slice exit criteria met.**
+
+| # | Task | Complexity | Dependency | Status |
+|---|------|------------|------------|--------|
+| 3.1 | Zone 2 polish (Super Elite focus) | Medium | VS Complete | ⏳ |
+| 3.2 | Act 2 Zone 1 enemies (4 types) | Medium | 3.1 | ⏳ |
+| 3.3 | Act 2 Zone 1 waves | Low | 3.2 | ⏳ |
+| 3.4 | Act 2 background art | Medium | None | ⏳ |
+| 3.5 | Act 2 Zone 2 + Gargoyle boss | High | 3.2, 3.3 | ⏳ |
+| 3.6 | Zone selection UI | Medium | 3.1 | ⏳ |
+| 3.7 | Act/Zone progression tracking | Low | 3.6 | ⏳ |
+| 3.8 | Auto-sell toggle for rarities | Low | None | ⏳ |
+
+**Estimated Time:** 2 weeks
+
+---
+
+### 🔵 TIER 4: QUICK DESIGN WINS (Can Parallelize)
+
+Low-effort, high-impact design improvements. **Can be done alongside Tier 3.**
+
+| # | Task | Complexity | Dependency | Impact |
+|---|------|------------|------------|--------|
+| 4.1 | Zone gold multipliers (+40%/zone) | Low | None | High - farming optimization |
+| 4.2 | Elite = 2× drop rate | Low | None | Medium - loot satisfaction |
+| 4.3 | Super Elite = guaranteed drop | Low | None | High - milestone reward |
+| 4.4 | Boss = guaranteed + higher rarity | Low | None | High - boss value |
+| 4.5 | Milestone rewards (5/10/25 levels) | Medium | None | High - dopamine hits |
+
+**Estimated Time:** 1-2 days total
+
+**Reference:** [06-economy.md](Meeting/06-economy.md), [05-progression.md](Meeting/05-progression.md)
+
+---
+
+### ⚪ TIER 5: ARCHITECTURE REFACTOR (Low Priority)
+
+Large refactors that improve maintainability. **Do after Content Expansion or during downtime.**
+
+| # | Task | Complexity | Dependency | Risk |
+|---|------|------------|------------|------|
+| 5.1 | 4-store state architecture | High | None | Medium - breaking change |
+| 5.2 | Debounced auto-save (5s) | Medium | 5.1 | Low |
+| 5.3 | Save file versioning | Low | 5.2 | Low |
+| 5.4 | GLSL damage flash shader | Medium | None | Low |
+| 5.5 | Near Death visual shader | Medium | 5.4 | Low |
+| 5.6 | Music controller + crossfade | Medium | 0.1 | Low |
+
+**Estimated Time:** 1-2 weeks
+
+**Reference:** [03-state-management.md](Meeting/03-state-management.md)
+
+---
+
+### ⬜ TIER 6: FUTURE SYSTEMS (Post-Release Backlog)
+
+New systems for long-term engagement. **Plan after Steam release.**
+
+| # | Task | Complexity | Dependency | Value |
+|---|------|------------|------------|-------|
+| 6.1 | Status effects (Burn/Shock/Slow) | High | None | Medium |
+| 6.2 | New stats (Dodge, Burn%, etc.) | Medium | 6.1 | Medium |
+| 6.3 | Essence crafting recipes | Medium | None | Low |
+| 6.4 | Module reforging | High | 6.3 | Medium |
+| 6.5 | Support Drone system | High | None | High |
+| 6.6 | Paragon/Prestige system | High | None | High |
+
+**Estimated Time:** 3-4 weeks total
+
+---
+
+## Recommended Sprint Plan
+
+### Sprint A: Unblock Audio (1-2 days)
+```
+Day 1: AudioManager + SFXPool
+Day 2: Event hooks + test with cannon SFX
+```
+**Exit:** Cannon fires with sound
+
+### Sprint B: Core Feedback (2-3 days)
+```
+Day 1: All weapon SFX + UI clicks
+Day 2: Damage numbers animation + enemy death
+Day 3: Crit visuals + hit impacts
+```
+**Exit:** Combat feels impactful
+
+### Sprint C: Polish & Boss (3-4 days)
+```
+Day 1: Muzzle flash, missile smoke, skill activation
+Day 2: Boss intro + death celebration
+Day 3: Near Death VFX + Legendary glow
+Day 4: Onboarding tooltips + constants
+```
+**Exit:** Vertical Slice complete
+
+### Sprint D: Content (2 weeks)
+```
+Week 1: Zone 2 + Act 2 enemies
+Week 2: Act 2 boss + zone selection + auto-sell
+```
+**Exit:** 45-60 minutes of content
+
+### Sprint E: Quick Wins (parallel with D)
+```
+Zone multipliers, drop rates, milestone rewards
+```
+**Exit:** Better economy feel
+
+### Sprint F: Architecture (when ready)
+```
+4-store refactor, auto-save, shaders
+```
+**Exit:** Cleaner codebase
+
+---
+
+## Dependency Graph
+
+```
+                    ┌─────────────────────────────────────────┐
+                    │            MVP COMPLETE ✅               │
+                    └─────────────────┬───────────────────────┘
+                                      │
+                    ┌─────────────────▼───────────────────────┐
+                    │  🔴 TIER 0: AudioManager (BLOCKER)      │
+                    │     - AudioManager.ts                    │
+                    │     - SFXPool.ts                         │
+                    │     - Event hooks                        │
+                    └─────────────────┬───────────────────────┘
+                                      │
+          ┌───────────────────────────┼───────────────────────────┐
+          │                           │                           │
+          ▼                           ▼                           ▼
+┌─────────────────┐     ┌─────────────────────┐     ┌─────────────────┐
+│ 🟠 TIER 1: SFX   │     │ 🟠 TIER 1: VFX      │     │ 🟡 TIER 2: Polish│
+│ - Cannon boom    │     │ - Damage numbers    │     │ - Muzzle flash  │
+│ - MG rattle      │     │ - Enemy death       │     │ - Boss intro    │
+│ - Missiles       │     │ - Crit visual       │     │ - Near Death    │
+│ - Impacts        │     │                     │     │ - Onboarding    │
+└────────┬────────┘     └──────────┬──────────┘     └────────┬────────┘
+         │                         │                          │
+         └─────────────────────────┼──────────────────────────┘
+                                   │
+                    ┌──────────────▼──────────────────────────┐
+                    │      VERTICAL SLICE COMPLETE            │
+                    │  "Would put this in a Steam trailer"    │
+                    └──────────────┬──────────────────────────┘
+                                   │
+         ┌─────────────────────────┼─────────────────────────┐
+         │                         │                         │
+         ▼                         ▼                         ▼
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│ 🟢 TIER 3:       │     │ 🔵 TIER 4:       │     │ ⚪ TIER 5:       │
+│ Content          │     │ Quick Wins       │     │ Architecture   │
+│ - Act 2          │     │ - Zone gold ×    │     │ - 4-store      │
+│ - Zone select    │     │ - Drop rates     │     │ - Auto-save    │
+│ - Auto-sell      │     │ - Milestones     │     │ - Shaders      │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+         │                         │                         │
+         └─────────────────────────┼─────────────────────────┘
+                                   │
+                    ┌──────────────▼──────────────────────────┐
+                    │         STEAM RELEASE READY             │
+                    └─────────────────────────────────────────┘
+```
 
 ---
 
@@ -141,10 +394,22 @@ All must be true before moving to Vertical Slice:
 | 4 | Boss Polish | Sentinel intro sequence, phase transitions, death celebration |
 | 5 | Onboarding | 3-4 tooltip hints for new players |
 
+### Desktop Mode (Electron) ✅
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| Desktop Heroes Layout | 350px tall strip, full screen width, docked to bottom | ✅ |
+| Transparent Window | Always-transparent frameless Electron build | ✅ |
+| Layer Toggles | 4 groups: Sky+Clouds, Mountains, Far Buildings, Forest+Town | ✅ |
+| Always On Top | Keep window above other applications | ✅ |
+| Click-Through | Pass clicks through transparent areas to desktop | ✅ |
+| Compact UI | TopBar 28px, BottomBar 60px, Sidebar 40px | ✅ |
+
 ### Juice Checklist (No Screen Shake)
 
 | Element | Implementation | Status |
 |---------|----------------|--------|
+| Parallax background | 7-layer scrolling with auto-drifting clouds | ✅ |
 | Enemy death | Flash white → explosion → fade | ⏳ |
 | Damage numbers | Pop + float up + scale down | ⏳ |
 | Crit hits | Bigger font + "CRIT!" prefix | ⏳ |
@@ -196,20 +461,146 @@ All must be true before moving to Vertical Slice:
 
 ---
 
-## Future Phases (Post-MVP)
+## Phase 4: Architecture Refactor (Desktop Heroes Patterns)
 
-### Phase 4: Remaining Content
+> **Reference:** `docs/DesktopHeroesAnalysis.md` and `docs/Meeting/` folder
+> Based on analysis of Desktop Heroes, a similar idle auto-battler with proven patterns.
+
+### Sprint 1: State Management Refactor
+
+| Task | Priority | Status | Reference |
+|------|----------|--------|-----------|
+| Create `src/state/TankStore.ts` | P1 | ⏳ | [03-state-management.md](Meeting/03-state-management.md) |
+| Create `src/state/InventoryStore.ts` | P1 | ⏳ | |
+| Create `src/state/ProgressStore.ts` | P1 | ⏳ | |
+| Create `src/state/SettingsStore.ts` | P1 | ⏳ | |
+| Create `src/state/StateManager.ts` | P1 | ⏳ | |
+| Migrate GameState → 4 stores | P1 | ⏳ | |
+
+**Goal:** Split monolithic GameState into specialized stores for cleaner separation of concerns.
+
+### Sprint 2: Auto-Save System
+
+| Task | Priority | Status | Reference |
+|------|----------|--------|-----------|
+| Create `src/utils/debounce.ts` | P1 | ⏳ | [03-state-management.md](Meeting/03-state-management.md) |
+| Create `src/state/SaveManager.ts` (new) | P1 | ⏳ | |
+| Implement 5-second debounced auto-save | P1 | ⏳ | |
+| Add save file versioning | P2 | ⏳ | |
+| Add timestamp for offline progress | P2 | ⏳ | |
+| Add migration system for version changes | P3 | ⏳ | |
+
+**Goal:** Data safety without I/O thrashing, foundation for offline progress.
+
+### Sprint 3: Audio Architecture
+
+| Task | Priority | Status | Reference |
+|------|----------|--------|-----------|
+| Create `src/managers/AudioManager.ts` | P1 | ⏳ | [11-audio.md](Meeting/11-audio.md) |
+| Create `src/audio/SFXPool.ts` | P1 | ⏳ | |
+| Create `src/audio/MusicController.ts` | P2 | ⏳ | |
+| Implement event-driven audio triggers | P1 | ⏳ | |
+| Add pitch variation (0.9-1.1x) | P2 | ⏳ | |
+| Add crossfade for music transitions | P3 | ⏳ | |
+
+**Goal:** Decoupled, pooled audio system that prevents repetitive sound fatigue.
+
+### Sprint 4: Visual Effects
+
+| Task | Priority | Status | Reference |
+|------|----------|--------|-----------|
+| Create damage flash shader (GLSL) | P1 | ⏳ | [10-visual-effects.md](Meeting/10-visual-effects.md) |
+| Create Near Death visual shader | P2 | ⏳ | |
+| Implement coordinated effect timing | P1 | ⏳ | |
+| Add DEPTH constants to GameConfig | P1 | ⏳ | [08-rendering.md](Meeting/08-rendering.md) |
+| Add EFFECT_TIMING constants | P1 | ⏳ | |
+
+**Goal:** GPU-accelerated effects with satisfying combat feedback timing.
+
+---
+
+## Phase 5: Game Design Improvements (Desktop Heroes Patterns)
+
+> **Reference:** `docs/DesktopHeroesAnalysis.md` Part 1: Game Design Patterns
+
+### Sprint 1: Economy Tuning
+
+| Task | Priority | Status | Reference |
+|------|----------|--------|-----------|
+| Add zone gold multipliers (+40%/zone) | P1 | ⏳ | [06-economy.md](Meeting/06-economy.md) |
+| Add drop rate bonus by enemy type | P1 | ⏳ | |
+| Elite = 2× base drop rate | P1 | ⏳ | |
+| Super Elite = guaranteed drop | P1 | ⏳ | |
+| Boss = guaranteed + higher rarity | P1 | ⏳ | |
+
+### Sprint 2: Progression Enhancements
+
+| Task | Priority | Status | Reference |
+|------|----------|--------|-----------|
+| Add milestone rewards (every 5/10/25 levels) | P1 | ⏳ | [05-progression.md](Meeting/05-progression.md) |
+| Every 5 levels: +1 inventory slot | P2 | ⏳ | |
+| Every 25 levels: free random module | P2 | ⏳ | |
+| Evaluate XP curve (1.15 → 1.12?) | P3 | ⏳ | |
+
+### Sprint 3: New Module Stats
+
+| Task | Priority | Status | Reference |
+|------|----------|--------|-----------|
+| Add Dodge % stat | P2 | ⏳ | [04-combat-system.md](Meeting/04-combat-system.md) |
+| Add Burn Chance % stat | P2 | ⏳ | |
+| Add Shock Chance % stat | P2 | ⏳ | |
+| Add Essence Find % stat | P2 | ⏳ | |
+| Add Shield Break % stat | P3 | ⏳ | |
+
+**Goal:** Expand stat pool from 11 → 16 for more build variety.
+
+### Sprint 4: Status Effect System
+
+| Task | Priority | Status | Reference |
+|------|----------|--------|-----------|
+| Create StatusEffectManager | P2 | ⏳ | [04-combat-system.md](Meeting/04-combat-system.md) |
+| Implement Burn DoT (Flamethrower) | P2 | ⏳ | |
+| Implement Shock stun (Tesla Coil) | P2 | ⏳ | |
+| Implement Slow (EMP Emitter) | P2 | ⏳ | |
+
+### Sprint 5: Essence Crafting
+
+| Task | Priority | Status | Reference |
+|------|----------|--------|-----------|
+| Add essence conversion recipes | P2 | ⏳ | [07-inventory.md](Meeting/07-inventory.md) |
+| 5× Lesser Evil → 1× Prime Evil | P2 | ⏳ | |
+| 3× Prime Evil → 1× Uber | P2 | ⏳ | |
+| Module reforging (reroll stats) | P3 | ⏳ | |
+
+### Sprint 6: Support Drone System (New)
+
+| Task | Priority | Status | Reference |
+|------|----------|--------|-----------|
+| Design Support Drone progression | P3 | ⏳ | [05-progression.md](Meeting/05-progression.md) (Fairy) |
+| Level 1: Auto-collect gold | P3 | ⏳ | |
+| Level 2: +10% Gold Find | P3 | ⏳ | |
+| Level 3: Auto-collect loot | P3 | ⏳ | |
+| Level 4: +15% XP Bonus | P3 | ⏳ | |
+| Level 5: Combat assist (small DPS) | P3 | ⏳ | |
+
+**Goal:** Secondary progression layer similar to Desktop Heroes' Fairy companion.
+
+---
+
+## Future Phases (Post-Refactor)
+
+### Phase 6: Remaining Content
 - Acts 3-8
 - 7 more modules
 - 6 more bosses
 - Uber boss variants
 
-### Phase 5: Endgame Systems
+### Phase 7: Endgame Systems
 - Paragon/Prestige system
 - Boss summoning (Essences)
 - Infernal Cores currency
 
-### Phase 6: Steam Release
+### Phase 8: Steam Release
 - Electron packaging
 - Steam SDK integration
 - Achievements
@@ -230,20 +621,119 @@ All must be true before moving to Vertical Slice:
 | Dec 2024 | 4 panels: Tank, Inventory, Shop, Settings | Covers all player needs without clutter |
 | Dec 2024 | Game runs during menu access | Core idle game philosophy |
 | Dec 2024 | Per-slot stats (Damage/AtkSpd/CDR) | Each slot has 3 individual stats that only affect modules in that slot |
+| Jan 2025 | Desktop Heroes as reference architecture | Friends' idle auto-battler has proven patterns for similar problems |
+| Jan 2025 | 4-store state architecture | Split GameState → Tank/Inventory/Progress/Settings for cleaner concerns |
+| Jan 2025 | Debounced auto-save (5s) | Data safety without I/O thrashing, Desktop Heroes pattern |
+| Jan 2025 | Event-driven audio | Decouple audio from gameplay, enable pooling and pitch variation |
+| Jan 2025 | GLSL shaders for VFX | GPU-accelerated damage flash, Near Death effects |
+| Jan 2025 | Zone gold multipliers (+40%) | Desktop Heroes economy pattern, creates farming sweet spots |
+| Jan 2025 | Milestone rewards at 5/10/25 levels | Dopamine hits at regular intervals, Desktop Heroes pattern |
+| Jan 2025 | Support Drone = Hellcrawler's Fairy | Secondary progression layer, auto-collect + bonuses |
 
 ---
 
 ## Known Technical Debt
 
-| Issue | Priority | Notes |
-|-------|----------|-------|
-| Damage calc tests needed | P1 | Verify auto-mode penalty |
-| No AudioManager | P2 | Needed for Phase 2 |
-| No particle pooling | P3 | May need for VFX |
+| Issue | Priority | Notes | Reference |
+|-------|----------|-------|-----------|
+| Monolithic GameState | P1 | Split into 4 stores (Phase 4) | [03-state-management.md](Meeting/03-state-management.md) |
+| Zone-complete only saves | P1 | Add debounced auto-save (Phase 4) | [03-state-management.md](Meeting/03-state-management.md) |
+| No AudioManager | P1 | Needed for Phase 2, event-driven | [11-audio.md](Meeting/11-audio.md) |
+| Damage calc tests needed | P1 | Verify auto-mode penalty | |
+| No DEPTH constants | P2 | Add to GameConfig for layer management | [08-rendering.md](Meeting/08-rendering.md) |
+| No EFFECT_TIMING constants | P2 | Coordinated combat feedback timing | [10-visual-effects.md](Meeting/10-visual-effects.md) |
+| No particle pooling | P3 | May need for VFX | |
+| No status effect system | P2 | Burn/Shock/Slow for module synergies | [04-combat-system.md](Meeting/04-combat-system.md) |
+| Limited stat pool (11) | P2 | Expand to 16 for build variety | [04-combat-system.md](Meeting/04-combat-system.md) |
+| No zone scaling | P2 | Gold/XP multipliers per zone | [06-economy.md](Meeting/06-economy.md) |
+| No milestone rewards | P2 | Every 5/10/25 levels | [05-progression.md](Meeting/05-progression.md) |
+| No essence crafting | P3 | Conversion recipes for essence sink | [07-inventory.md](Meeting/07-inventory.md) |
 
 ---
 
 ## Changelog
+
+### January 3, 2025 - Desktop Heroes Analysis & Refactor Planning
+- **Created `docs/DesktopHeroesAnalysis.md`:**
+  - Complete analysis of Desktop Heroes architecture (idle auto-battler by friends)
+  - Part 1: Game Design Patterns (economy, progression, combat, loot)
+  - Part 2: Technical Architecture (state, save, UI, audio, VFX)
+  - All sections reference `docs/Meeting/` folder for implementation details
+- **Updated `CLAUDE.md`:**
+  - Added Desktop Heroes Reference section
+  - Feature-to-document lookup table
+  - Workflow: "Check Meeting folder before implementing new features"
+- **Updated `docs/MasterPlan.md`:**
+  - Added Phase 4: Architecture Refactor (4 sprints)
+    - Sprint 1: State Management (4-store pattern)
+    - Sprint 2: Auto-Save System (debounced, versioned)
+    - Sprint 3: Audio Architecture (event-driven, pooled)
+    - Sprint 4: Visual Effects (shaders, timing)
+  - Added Phase 5: Game Design Improvements (6 sprints)
+    - Sprint 1: Economy Tuning (zone multipliers, drop rates)
+    - Sprint 2: Progression (milestone rewards)
+    - Sprint 3: New Stats (Dodge, Burn, Shock, Essence Find)
+    - Sprint 4: Status Effects (Burn, Shock, Slow)
+    - Sprint 5: Essence Crafting
+    - Sprint 6: Support Drone (Fairy equivalent)
+  - Updated Architecture Decisions Log with 8 new decisions
+  - Expanded Technical Debt with 9 new items linked to Meeting docs
+
+### January 3, 2025 - Debug Panel Fix & Electron Settings Persistence
+- **Debug Spawn Counter Fix:**
+  - Bug: Spawning multiple enemies via Debug Panel appeared to spawn only 1
+  - Root cause: All debug-spawned enemies had identical X position, stacking on top of each other
+  - Fix: Added random 0-200px X offset in `WaveSystem.debugSpawnEnemy()` so enemies spread out
+  - Debug log now shows spawn position: `Debug spawned: imp at x=2075`
+- **Always-On-Top Setting Persistence:**
+  - Bug: "Always On Top" toggle didn't persist across Electron restarts
+  - Root cause: Saved setting wasn't applied when Electron window initialized
+  - Fix: `ClickThroughManager.applyElectronSettings()` now applies saved `alwaysOnTop` setting on startup
+  - Setting properly persists in localStorage and is applied via IPC on window creation
+
+### January 2, 2025 - Panel System Fixes & ClickThroughManager Cleanup
+- **Panel Scrolling Fix:**
+  - Root cause: Panels never called `setContentHeight()`, so `maxScrollY` stayed at 0
+  - Fixed InventoryPanel: Added `setContentHeight(544)` for equipped + grid + details
+  - Fixed ShopPanel: Added `setContentHeight(370)` for header + slot cards + pagination
+  - Fixed SettingsPanel: Added dynamic `setContentHeight(816-921)` based on Electron mode
+  - All panels now scroll correctly via mouse wheel and touch drag
+- **ClickThroughManager Memory Leak Fix:**
+  - Canvas event listeners (`mouseleave`, `mouseenter`) were not cleaned up
+  - Added `mouseLeaveHandler` and `mouseEnterHandler` properties to store references
+  - Updated `destroy()` to properly remove all DOM event listeners
+  - Added `MIN_INTERACTIVE_DEPTH` constant to replace magic number `10`
+
+### January 2025 - Desktop Mode (Electron)
+- **Desktop Heroes Layout Implementation:**
+  - Changed game resolution from 1920x1080 to 1920x350 (bottom-docked strip)
+  - Electron window uses full screen width, positioned at bottom of work area
+  - Compact UI: TopBar 28px, BottomBar 60px, Sidebar 40px, Ground 60px
+- **Transparent Window Support:**
+  - Always-transparent frameless Electron window
+  - Click-through behavior for transparent areas via `setIgnoreMouseEvents`
+  - `ClickThroughManager` dynamically toggles click-through based on cursor position
+- **Background Layer Toggles:**
+  - 4 layer groups: Sky+Clouds, Mountains, Far Buildings, Forest+Town
+  - Settings panel toggles for each group
+  - `ParallaxBackground` listens to `SETTINGS_CHANGED` events
+- **Settings Manager Additions:**
+  - `alwaysOnTop`, `clickThroughEnabled` settings
+  - Layer visibility settings: `showSkyLayer`, `showMountainsLayer`, `showFarBuildingsLayer`, `showForegroundLayer`
+  - Electron IPC helpers: `applyAlwaysOnTop()`, `applyClickThrough()`
+- **Panel Width Increase:**
+  - Increased `UI_CONFIG.PANEL.WIDTH` from 350px to 525px (50% wider)
+  - Better layout for inventory grids and shop cards
+
+### December 27, 2024 - Parallax Background System
+- **Parallax Background Implementation:**
+  - Created `src/ui/ParallaxBackground.ts` - Multi-layer scrolling background system
+  - Integrated 7 layers: sky, clouds, mountains, mountains-lights, far-buildings, forest, town
+  - Implemented auto-scrolling clouds with slow drift effect
+  - Each layer scrolls at different speeds creating depth perception
+  - Replaced placeholder graphics with actual pixel art assets from Gothicvania pack
+  - TileSprite-based for seamless horizontal scrolling
+  - Updated GameScene to use ParallaxBackground instead of gradient graphics
 
 ### December 27, 2024 - Visual Assets & Performance Fixes
 - **Visual Asset Integration:**

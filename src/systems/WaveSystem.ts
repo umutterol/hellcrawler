@@ -82,7 +82,7 @@ export class WaveSystem {
     this.gameState = getGameState();
 
     // Spawn position (right side of screen, same Y as tank ground level)
-    this.spawnY = GAME_CONFIG.HEIGHT - 100;
+    this.spawnY = GAME_CONFIG.HEIGHT - GAME_CONFIG.GROUND_HEIGHT;
     this.spawnXBase = GAME_CONFIG.WIDTH + 50;
 
     // Subscribe to enemy death events
@@ -419,6 +419,73 @@ export class WaveSystem {
     this.waveInProgress = false;
     this.isWavePaused = false;
     this.startWave(waveNumber);
+  }
+
+  /**
+   * Debug: Spawn a specific enemy type immediately (bypasses wave system)
+   * Only available in DEV mode
+   */
+  public debugSpawnEnemy(type: EnemyType): Enemy | null {
+    if (!import.meta.env.DEV) return null;
+
+    // Check max enemies
+    const activeCount = this.enemies.getChildren().filter(
+      (child) => (child as Enemy).active
+    ).length;
+
+    if (activeCount >= GAME_CONFIG.MAX_ENEMIES_ON_SCREEN) {
+      console.warn('[WaveSystem] Cannot spawn: max enemies on screen');
+      return null;
+    }
+
+    // Get an inactive enemy from the group
+    const enemy = this.enemies.getFirstDead(false) as Enemy | null;
+    if (!enemy) {
+      console.warn('[WaveSystem] No inactive enemies available in pool for debug spawn');
+      return null;
+    }
+
+    const config = ENEMY_CONFIGS[type];
+    if (!config) {
+      console.error(`[WaveSystem] No config found for enemy type: ${type}`);
+      return null;
+    }
+
+    // Spawn with X variation so multiple debug spawns don't overlap
+    const xOffset = Phaser.Math.Between(0, 200);
+    enemy.activate(this.spawnXBase + xOffset, this.spawnY, config);
+
+    if (import.meta.env.DEV) {
+      console.log(`[WaveSystem] Debug spawned: ${type} at x=${this.spawnXBase + xOffset}`);
+    }
+
+    return enemy;
+  }
+
+  /**
+   * Debug: Kill all active enemies immediately
+   * Returns the count of enemies killed
+   * Only available in DEV mode
+   */
+  public debugKillAllEnemies(): number {
+    if (!import.meta.env.DEV) return 0;
+
+    let killed = 0;
+    const enemies = this.enemies.getChildren() as Enemy[];
+
+    for (const enemy of enemies) {
+      if (enemy.active && enemy.isAlive()) {
+        // Deal massive damage to kill instantly
+        enemy.takeDamage(999999);
+        killed++;
+      }
+    }
+
+    if (import.meta.env.DEV) {
+      console.log(`[WaveSystem] Debug killed ${killed} enemies`);
+    }
+
+    return killed;
   }
 
   /**

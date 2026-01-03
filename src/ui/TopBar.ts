@@ -66,11 +66,8 @@ export class TopBar {
 
   private createBackground(): void {
     this.background = this.scene.add.graphics();
-    this.background.fillStyle(0x1a1a2e, 0.9);
-    this.background.fillRect(0, 0, GAME_CONFIG.WIDTH, this.HEIGHT);
-
-    // Bottom border
-    this.background.lineStyle(2, 0x3d3d5c, 1);
+    // Transparent background for desktop mode - just a subtle bottom border
+    this.background.lineStyle(1, 0x3d3d5c, 0.5);
     this.background.lineBetween(0, this.HEIGHT, GAME_CONFIG.WIDTH, this.HEIGHT);
 
     this.container.add(this.background);
