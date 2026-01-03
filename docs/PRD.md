@@ -1135,6 +1135,11 @@ function createWindow(): void {
 - Objects with `depth < 10` are treated as background (not interactive)
 - Proper event listener cleanup in `destroy()` prevents memory leaks
 
+**Settings Persistence:**
+- Desktop Mode settings (`alwaysOnTop`, `clickThroughEnabled`, layer visibility) persist in localStorage
+- On Electron startup, `ClickThroughManager.applyElectronSettings()` applies saved settings via IPC
+- Settings Panel toggles update both localStorage and Electron window state in real-time
+
 **IPC Channels:**
 | Channel | Direction | Purpose |
 |---------|-----------|---------|

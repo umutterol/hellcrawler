@@ -1,5 +1,5 @@
 # HELLCRAWLER - Master Plan
-## Last Updated: December 2024
+## Last Updated: January 2025
 
 > **THIS DOCUMENT MUST BE KEPT UP TO DATE.** Update after completing any phase, sprint, or major feature.
 
@@ -256,6 +256,18 @@ All must be true before moving to Vertical Slice:
 ---
 
 ## Changelog
+
+### January 3, 2025 - Debug Panel Fix & Electron Settings Persistence
+- **Debug Spawn Counter Fix:**
+  - Bug: Spawning multiple enemies via Debug Panel appeared to spawn only 1
+  - Root cause: All debug-spawned enemies had identical X position, stacking on top of each other
+  - Fix: Added random 0-200px X offset in `WaveSystem.debugSpawnEnemy()` so enemies spread out
+  - Debug log now shows spawn position: `Debug spawned: imp at x=2075`
+- **Always-On-Top Setting Persistence:**
+  - Bug: "Always On Top" toggle didn't persist across Electron restarts
+  - Root cause: Saved setting wasn't applied when Electron window initialized
+  - Fix: `ClickThroughManager.applyElectronSettings()` now applies saved `alwaysOnTop` setting on startup
+  - Setting properly persists in localStorage and is applied via IPC on window creation
 
 ### January 2, 2025 - Panel System Fixes & ClickThroughManager Cleanup
 - **Panel Scrolling Fix:**
