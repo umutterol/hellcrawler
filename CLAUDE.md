@@ -13,8 +13,45 @@
 - `docs/GDD.md` - Game Design Document (gameplay, systems, content)
 - `docs/PRD.md` - Product Requirements Document (technical specs, architecture)
 - `docs/QUICKREF.md` - Implementation cheatsheet
+- `docs/DesktopHeroesAnalysis.md` - Reference patterns from Desktop Heroes
+- `docs/Meeting/` - **REFERENCE IMPLEMENTATIONS** from Desktop Heroes (see below)
 
 **Always consult these documents before implementing new features.**
+
+---
+
+## 📚 DESKTOP HEROES REFERENCE (docs/Meeting/)
+
+**Before implementing ANY new feature, check the `docs/Meeting/` folder for reference patterns.**
+
+Desktop Heroes is a similar idle auto-battler built by friends. Their meeting notes contain battle-tested solutions for common problems. Use these as implementation references.
+
+### When to Check Meeting Docs
+
+| Feature Type | Reference Document |
+|--------------|-------------------|
+| Combat/Damage | [04-combat-system.md](docs/Meeting/04-combat-system.md) |
+| XP/Leveling | [05-progression.md](docs/Meeting/05-progression.md) |
+| Gold/Economy | [06-economy.md](docs/Meeting/06-economy.md) |
+| Inventory/Items | [07-inventory.md](docs/Meeting/07-inventory.md) |
+| Save/Load | [03-state-management.md](docs/Meeting/03-state-management.md) |
+| UI Components | [09-ui-system.md](docs/Meeting/09-ui-system.md) |
+| VFX/Shaders | [10-visual-effects.md](docs/Meeting/10-visual-effects.md) |
+| Audio | [11-audio.md](docs/Meeting/11-audio.md) |
+| Electron/Steam | [12-platform.md](docs/Meeting/12-platform.md) |
+| Asset Pipeline | [13-assets.md](docs/Meeting/13-assets.md) |
+
+### Quick Reference Files
+- `docs/Meeting/AI-SUMMARY.md` - Fast overview of all systems
+- `docs/Meeting/AI-QUICK-REF.json` - Data structures and patterns
+
+### How to Use
+1. **Before coding:** Check if Desktop Heroes solved similar problem
+2. **Study the pattern:** Understand WHY they made those choices
+3. **Adapt, don't copy:** Modify patterns to fit Hellcrawler's needs
+4. **Document differences:** Note any deviations in MasterPlan.md
+
+> **Note:** We learn from their architecture, not copy their code.
 
 ---
 
