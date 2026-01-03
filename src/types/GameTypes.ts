@@ -15,8 +15,6 @@ export interface TankStats {
   defense: number;
   /** HP regeneration per second */
   hpRegen: number;
-  /** Movement speed in pixels per second */
-  moveSpeed: number;
 }
 
 /**
@@ -49,14 +47,12 @@ export enum Rarity {
  * These are separate from module stats
  */
 export enum TankStatType {
-  /** +10 Max HP per level */
+  /** +25 Max HP per level */
   MaxHP = 'maxHP',
-  /** +0.5% Defense per level */
+  /** +1 Defense per level */
   Defense = 'defense',
-  /** +0.5 HP/s Regen per level */
+  /** +1 HP/s Regen per level */
   HPRegen = 'hpRegen',
-  /** +1% enemy slow per level (affects enemy approach speed) */
-  MoveSpeed = 'moveSpeed',
 }
 
 /**

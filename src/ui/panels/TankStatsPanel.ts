@@ -70,10 +70,9 @@ export class TankStatsPanel extends SlidingPanel {
 
   // Tank stat configs
   private static readonly TANK_STATS = [
-    { type: TankStatType.MaxHP, name: 'Vitality', desc: 'Max HP', color: 0xff4444, getValue: (l: number) => 100 + l * 10, suffix: '' },
-    { type: TankStatType.Defense, name: 'Barrier', desc: 'Defense', color: 0x4488ff, getValue: (l: number) => l * 0.5, suffix: '%' },
-    { type: TankStatType.HPRegen, name: 'Regeneration', desc: 'HP Regen', color: 0x44ff88, getValue: (l: number) => l * 0.5, suffix: '/s' },
-    { type: TankStatType.MoveSpeed, name: 'Suppression', desc: 'Enemy Slow', color: 0xffaa44, getValue: (l: number) => l, suffix: '%' },
+    { type: TankStatType.MaxHP, name: 'Vitality', desc: 'Max HP', color: 0xff4444, getValue: (l: number) => 200 + l * 25, suffix: '' },
+    { type: TankStatType.Defense, name: 'Barrier', desc: 'Defense', color: 0x4488ff, getValue: (l: number) => l * 1.0, suffix: '' },
+    { type: TankStatType.HPRegen, name: 'Regeneration', desc: 'HP Regen', color: 0x44ff88, getValue: (l: number) => l * 1.0, suffix: '/s' },
   ];
 
   // Slot stat configs

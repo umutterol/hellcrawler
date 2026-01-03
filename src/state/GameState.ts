@@ -78,7 +78,6 @@ export class GameState {
       [TankStatType.MaxHP, 0],
       [TankStatType.Defense, 0],
       [TankStatType.HPRegen, 0],
-      [TankStatType.MoveSpeed, 0],
     ]);
 
     this.gold = defaultState.economy.gold;
@@ -124,11 +123,10 @@ export class GameState {
         level: 1,
         xp: 0,
         stats: {
-          maxHP: BALANCE.TANK_MAX_HP_BASE,      // 200 base HP (was 100)
+          maxHP: BALANCE.TANK_MAX_HP_BASE,      // 200 base HP
           currentHP: BALANCE.TANK_MAX_HP_BASE,
           defense: 0,
           hpRegen: 0,
-          moveSpeed: 0,                          // 0 base slow (was 200 - which made no sense)
         },
         statLevels: {
           [StatType.Damage]: 0,
@@ -333,8 +331,6 @@ export class GameState {
         return this.tankStats.defense;
       case TankStatType.HPRegen:
         return this.tankStats.hpRegen;
-      case TankStatType.MoveSpeed:
-        return this.tankStats.moveSpeed;
       default:
         return 0;
     }
@@ -357,16 +353,12 @@ export class GameState {
         this.tankStats.maxHP = newMaxHP;
         break;
       case TankStatType.Defense:
-        // +1 defense per level (was 0.5, now more impactful)
+        // +1 defense per level
         this.tankStats.defense = level * BALANCE.TANK_DEFENSE_PER_LEVEL;
         break;
       case TankStatType.HPRegen:
-        // +1 HP/s per level (was 0.5, now more impactful)
+        // +1 HP/s per level
         this.tankStats.hpRegen = level * BALANCE.TANK_REGEN_PER_LEVEL;
-        break;
-      case TankStatType.MoveSpeed:
-        // +2% enemy slow per level (was 1%, now more impactful)
-        this.tankStats.moveSpeed = level * BALANCE.TANK_SUPPRESSION_PER_LEVEL;
         break;
     }
   }

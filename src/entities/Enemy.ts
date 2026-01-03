@@ -5,7 +5,6 @@ import { EventManager, getEventManager } from '../managers/EventManager';
 import { GameEvents } from '../types/GameEvents';
 import { getSettingsManager } from '../managers/SettingsManager';
 import { GAME_CONFIG, getEnemyStatMultiplier } from '../config/GameConfig';
-import { getGameState } from '../state/GameState';
 
 /**
  * Enemy - Base class for all enemy types
@@ -116,20 +115,9 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
       );
     }
 
-    // Get tank suppression value (enemy slow %)
-    // Suppression is stored as percentage (e.g., level 10 with 2% per level = 20)
-    const gameState = getGameState();
-    const suppressionPercent = gameState.getTankStats().moveSpeed;
-    const suppressionMultiplier = 1 - Math.min(suppressionPercent / 100, 0.8); // Cap at 80% slow
-
-    // Set velocity to move left toward tank with suppression applied
-    const finalSpeed = config.speed * suppressionMultiplier;
-    this.setVelocityX(-finalSpeed);
+    // Set velocity to move left toward tank
+    this.setVelocityX(-config.speed);
     this.setVelocityY(0);
-
-    if (import.meta.env.DEV && suppressionPercent > 0) {
-      console.log(`[Enemy] ${config.type} speed: ${config.speed} -> ${finalSpeed.toFixed(0)} (${suppressionPercent}% suppression)`);
-    }
 
     // Create health bar
     this.createHealthBar();

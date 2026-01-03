@@ -225,12 +225,11 @@ export const BALANCE = {
   // TANK STAT SCALING (per upgrade level)
   // ============================================
 
-  // Tank stat bonuses per level (more impactful than before)
+  // Tank stat bonuses per level
   TANK_MAX_HP_BASE: 200,          // Base tank HP
-  TANK_MAX_HP_PER_LEVEL: 25,      // +25 HP per Vitality level (was 10)
-  TANK_DEFENSE_PER_LEVEL: 1.0,    // +1 defense per Barrier level (was 0.5)
-  TANK_REGEN_PER_LEVEL: 1.0,      // +1 HP/s per Regen level (was 0.5)
-  TANK_SUPPRESSION_PER_LEVEL: 2,  // +2% enemy slow per level (was 1%)
+  TANK_MAX_HP_PER_LEVEL: 25,      // +25 HP per Vitality level
+  TANK_DEFENSE_PER_LEVEL: 1.0,    // +1 defense per Barrier level
+  TANK_REGEN_PER_LEVEL: 1.0,      // +1 HP/s per Regen level
 
   // ============================================
   // BUILT-IN CANNON
