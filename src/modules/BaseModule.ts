@@ -5,7 +5,7 @@ import { EventManager, getEventManager } from '../managers/EventManager';
 import { GameEvents } from '../types/GameEvents';
 import { Projectile } from '../entities/Projectile';
 import { Enemy } from '../entities/Enemy';
-import { GAME_CONFIG } from '../config/GameConfig';
+import { GAME_CONFIG, BALANCE } from '../config/GameConfig';
 
 /**
  * Skill runtime state
@@ -134,10 +134,12 @@ export abstract class BaseModule {
   /**
    * Get the fire rate considering attack speed bonuses
    * Includes both module stat bonus and slot attack speed bonus
+   * Uses BALANCE constants for meaningful scaling
    */
   protected getFireRate(): number {
     const moduleAttackSpeedBonus = this.getStat(StatType.AttackSpeed) / 100;
-    const slotAttackSpeedBonus = this.slotStats.attackSpeedLevel / 100;
+    // Use BALANCE constant: +3% per slot level (level 50 = 2.5x speed)
+    const slotAttackSpeedBonus = this.slotStats.attackSpeedLevel * BALANCE.SLOT_SPEED_PER_LEVEL;
     const totalBonus = moduleAttackSpeedBonus + slotAttackSpeedBonus;
     return this.baseFireRate / (1 + totalBonus);
   }
@@ -145,22 +147,24 @@ export abstract class BaseModule {
   /**
    * Get damage with all bonuses applied
    * Includes module stat bonus and slot damage bonus
+   * Uses BALANCE constants for meaningful scaling
    */
   protected calculateDamage(): { damage: number; isCrit: boolean } {
     const moduleDamageBonus = this.getStat(StatType.Damage) / 100;
-    const slotDamageBonus = this.slotStats.damageLevel / 100;
+    // Use BALANCE constant: +5% per slot level (level 50 = 3.5x damage)
+    const slotDamageBonus = this.slotStats.damageLevel * BALANCE.SLOT_DAMAGE_PER_LEVEL;
     const critChance = this.getStat(StatType.CritChance) / 100;
     const critDamageBonus = this.getStat(StatType.CritDamage) / 100;
 
     // Check for crit
     const isCrit = Math.random() < critChance;
 
-    // Calculate final damage
+    // Calculate final damage with meaningful multipliers
     let damage = this.baseDamage;
     damage *= 1 + moduleDamageBonus; // Module stat damage bonus
-    damage *= 1 + slotDamageBonus; // Slot damage bonus
+    damage *= 1 + slotDamageBonus;   // Slot damage bonus (now 5% per level!)
     if (isCrit) {
-      damage *= 2.0 + critDamageBonus; // Base 200% crit + bonus
+      damage *= GAME_CONFIG.BASE_CRIT_MULTIPLIER + critDamageBonus;
     }
 
     // Apply auto-mode penalty (10% reduction per GDD)

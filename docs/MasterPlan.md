@@ -17,7 +17,7 @@
 | MVP | ✅ Complete | None | Done |
 | Balance Guide | ✅ Complete | None | Done |
 | Vertical Slice (VFX) | 🟡 IN PROGRESS | None | This week |
-| Balance Implementation | ⏳ Ready | None | Can start now |
+| Balance Implementation | ✅ Complete | None | Done |
 | Vertical Slice (Audio) | ⏸️ PAUSED | Waiting for SFX/music | TBD |
 | Content Expansion | ⏳ Waiting | VFX + Balance complete | 2 weeks |
 
@@ -56,13 +56,16 @@ Nice-to-have visual polish. **Still no audio required.**
 | 2.2 | Near Death smoke + pulse | Medium | None | ⏳ |
 | 2.3 | Legendary drop glow effect | Low | None | ⏳ |
 | 2.4 | Onboarding tooltips (3-4) | Medium | None | ⏳ |
-| 2.5 | **Gore System: GoreManager + pools** | Medium | Gib assets | ⏳ |
+| 2.5 | **Gore System: GoreManager + pools** | Medium | None | ⏳ |
 | 2.6 | **Gore System: Fake ragdoll gibs** | Medium | 2.5 | ⏳ |
 | 2.7 | **Gore System: Blood particles + splatters** | Low | 2.5 | ⏳ |
 
 **Gore System Details:** Fake ragdoll deaths using tweens (no physics). Generic gib sprites tinted per-enemy. See full plan: `~/.claude/plans/purring-shimmying-leaf.md`
 
-**Asset Requirement:** Create 5 gib sprites (16-bit pixel art): `gib-head.png`, `gib-torso.png`, `gib-limb-upper.png`, `gib-limb-lower.png`, `gib-chunk.png` in `public/assets/effects/gore/`
+**✅ Assets Copied to `public/assets/effects/gore/`:**
+- **Gibs (10):** `gibs/arm-part.png`, `arm-back-part.png`, `forearm-front.png`, `forearm-back.png`, `torso1-3.png`, `lower-torso-1-3.png`
+- **Blood (9):** `blood/blood1-9.png` - large sprays/splatters
+- **Blood-small (6):** `blood/blood-small1-6.png` - droplet particles
 
 **Estimated Time:** 3-4 days (including gore system)
 
@@ -72,16 +75,16 @@ Nice-to-have visual polish. **Still no audio required.**
 
 Implement balance formulas from `docs/BalanceGuide.md`. **No audio needed.**
 
-| # | Task | Complexity | Dependency | Impact |
+| # | Task | Complexity | Dependency | Status |
 |---|------|------------|------------|--------|
-| 3.1 | Add BALANCE constants to GameConfig | Low | None | High - foundation for all scaling |
-| 3.2 | Implement per-act enemy scaling | Medium | 3.1 | High - proper difficulty curve |
-| 3.3 | Add base enemy stats (HP, damage, speed) | Low | 3.1 | High - combat feel |
-| 3.4 | Zone gold multipliers (+40%/zone) | Low | 3.1 | High - farming optimization |
-| 3.5 | Elite = 2× drop rate | Low | None | Medium - loot satisfaction |
-| 3.6 | Super Elite = guaranteed drop | Low | None | High - milestone reward |
-| 3.7 | Boss = guaranteed + higher rarity | Low | None | High - boss value |
-| 3.8 | Milestone rewards (5/10/25 levels) | Medium | None | High - dopamine hits |
+| 3.1 | Add BALANCE constants to GameConfig | Low | None | ✅ |
+| 3.2 | Implement per-act enemy scaling | Medium | 3.1 | ✅ |
+| 3.3 | Add base enemy stats (HP, damage, speed) | Low | 3.1 | ✅ |
+| 3.4 | Zone gold multipliers (+40%/zone) | Low | 3.1 | ✅ |
+| 3.5 | Elite = 2× drop rate | Low | None | ✅ |
+| 3.6 | Super Elite = guaranteed drop | Low | None | ✅ |
+| 3.7 | Boss = guaranteed + higher rarity | Low | None | ✅ |
+| 3.8 | Milestone rewards (5/10/25 levels) | Medium | None | ⏳ |
 
 **Reference:** `docs/BalanceGuide.md` - Complete formulas and base values
 **Estimated Time:** 2-3 days total
@@ -226,12 +229,12 @@ Zone multipliers, drop rates, milestone rewards
           ▼                           ▼                           ▼
 ┌─────────────────┐     ┌─────────────────────┐     ┌─────────────────┐
 │ 🟠 TIER 1: VFX   │     │ 🟡 TIER 2: Polish   │     │ 🔵 TIER 3:       │
-│ - Damage nums ✅ │     │ - Boss intro        │     │ BALANCE          │
-│ - Enemy death ✅ │     │ - Near Death VFX    │     │ (Can parallelize)│
-│ - Crit visual ✅ │     │ - Legendary glow    │     │ - BALANCE config │
-│ - Cannon recoil⏳│     │ - Onboarding        │     │ - Enemy scaling  │
-│ - Missile smoke⏳│     │                     │     │ - Drop rates     │
-│ - Hit sparks ✅  │     │                     │     │ - Milestones     │
+│ - Damage nums ✅ │     │ - Boss intro        │     │ BALANCE (7/8) ✅ │
+│ - Enemy death ✅ │     │ - Near Death VFX    │     │ - Config      ✅ │
+│ - Crit visual ✅ │     │ - Legendary glow    │     │ - Enemy scale ✅ │
+│ - Cannon recoil⏳│     │ - Onboarding        │     │ - Drop rates  ✅ │
+│ - Missile smoke⏳│     │                     │     │ - Milestones  ⏳ │
+│ - Hit sparks ✅  │     │                     │     │                  │
 └────────┬────────┘     └──────────┬──────────┘     └────────┬────────┘
          │                         │                          │
          └─────────────────────────┼──────────────────────────┘
@@ -669,6 +672,48 @@ All must be true before moving to Vertical Slice:
 
 ## Changelog
 
+### January 3, 2025 - Upgrade System Rebalance (Desktop Heroes Pattern)
+- **Problem:** Slot upgrades were scaling too slowly (+1% per level) compared to enemy scaling (1.8x HP per act)
+  - Level 50 slot only gave 1.5x damage, but Act 8 enemies have 61x HP
+  - Tank stats were also too weak (+10 HP per level, +0.5 defense per level)
+- **Solution:** Adopted Desktop Heroes scaling pattern with meaningful per-level growth:
+  - **Slot Damage:** +5% per level (was +1%) → Level 50 = 3.5x damage
+  - **Slot Attack Speed:** +3% per level (was +1%) → Level 50 = 2.5x speed
+  - **Slot CDR:** +2% per level (was +1%), capped at 75% (was 90%)
+  - **Tank Vitality:** Base 200 HP + 25 HP per level (was 100 + 10)
+  - **Tank Barrier:** +1 defense per level (was +0.5)
+  - **Tank Regen:** +1 HP/s per level (was +0.5)
+  - **Tank Suppression:** +2% enemy slow per level (was +1%)
+- **Fixed Suppression stat not affecting enemies:**
+  - Enemy.activate() now applies tank's suppression % to reduce enemy speed
+  - Capped at 80% max slow to prevent frozen enemies
+- **Added HP text above enemy health bars:**
+  - Shows "currentHP / maxHP" above each enemy
+  - Updates in real-time when enemies take damage
+  - Respects the showHealthBars setting
+- **Fixed MaxHP upgrade not increasing currentHP:**
+  - When Vitality is upgraded, currentHP now scales proportionally with maxHP
+- **Files modified:**
+  - `src/config/GameConfig.ts` - Updated BALANCE with new scaling constants
+  - `src/modules/BaseModule.ts` - Uses BALANCE constants for slot bonuses
+  - `src/state/GameState.ts` - Uses BALANCE constants for tank stats, fixed HP scaling
+  - `src/entities/Enemy.ts` - Added suppression application, added HP text display
+
+### January 3, 2025 - Gore System Assets Copied
+- **Copied assets from gamedevmarketassets to `public/assets/effects/gore/`:**
+  - **Gibs (10 files):** `gibs/` - arm-part, arm-back-part, forearm-front, forearm-back, torso1-3, lower-torso-1-3
+  - **Blood (15 files):** `blood/` - blood1-9 (large), blood-small1-6 (droplets)
+- Gore system is fully unblocked and ready for implementation
+
+### January 3, 2025 - Gore System Asset Discovery
+- **Found existing assets in gamedevmarketassets folder:**
+  - **Gibs:** Boss Body Parts (arm-part, forearm, torso1-3, lower-torso1-3)
+  - **Blood:** vfx pack Blood (9 frames) + Blood-small (6 frames)
+  - **Death FX:** Gothicvania enemy-death sprites (5 frames)
+- **No new sprite creation needed!** Assets can be tinted per-enemy type
+- Updated TIER 2 task 2.5 dependency from "Gib assets" to "None"
+- Gore system can now be implemented immediately when prioritized
+
 ### January 3, 2025 - Gore/Ragdoll Death System Planning
 - **Designed comprehensive gore system** (tasks 2.5-2.7):
   - Fake ragdoll physics via tweens (no Matter.js needed)
@@ -678,6 +723,33 @@ All must be true before moving to Vertical Slice:
 - **Full implementation plan:** `~/.claude/plans/purring-shimmying-leaf.md`
 - **Asset prompts included** for AI image generators (Midjourney/DALL-E)
 - **Key technique:** Parabolic motion calculated in tween `onUpdate`, not real physics
+
+### January 3, 2025 - TIER 3 Balance Implementation (7/8 Complete)
+- **Added BALANCE constants to GameConfig.ts:**
+  - Base enemy stats for all types (fodder, elite, super elite, boss)
+  - Per-act scaling multipliers (HP 1.8x, Damage 1.4x, Gold 1.6x, XP 1.5x)
+  - Per-zone scaling (Zone 2 = +25%)
+  - Per-wave scaling (+5% per wave)
+  - Module drop rates by enemy category
+  - Rarity thresholds with level scaling
+  - Helper functions: `getActMultiplier()`, `getZoneMultiplier()`, `getWaveMultiplier()`, `getEnemyStatMultiplier()`
+- **Updated ENEMY_CONFIGS in Enemy.ts:**
+  - Aligned all base stats with BalanceGuide.md
+  - Added `getScaledEnemyConfig()` function for dynamic scaling
+- **Updated WaveSystem.ts:**
+  - Now uses `getScaledEnemyConfig()` for all enemy spawns
+  - Enemies scale based on current act/zone/wave
+- **Updated LootSystem.ts:**
+  - Uses BALANCE constants for drop rates
+  - Super Elite and Boss now have guaranteed drops
+  - Bosses get minimum rare rarity
+  - Elite enemies get 1.5x rarity boost
+  - Level-based drop chance and rarity scaling
+- **Files modified:**
+  - `src/config/GameConfig.ts` - Added BALANCE object and helper functions
+  - `src/entities/Enemy.ts` - Updated configs, added getScaledEnemyConfig()
+  - `src/systems/WaveSystem.ts` - Uses scaling for spawns
+  - `src/systems/LootSystem.ts` - Uses BALANCE for drops
 
 ### January 3, 2025 - Balance Guide Creation
 - **Created `docs/BalanceGuide.md`:**

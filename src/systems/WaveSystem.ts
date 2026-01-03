@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { Enemy, ENEMY_CONFIGS } from '../entities/Enemy';
+import { Enemy, getScaledEnemyConfig } from '../entities/Enemy';
 import { EnemyType } from '../types/EnemyTypes';
 import { EventManager, getEventManager } from '../managers/EventManager';
 import { GameState, getGameState } from '../state/GameState';
@@ -285,10 +285,19 @@ export class WaveSystem {
       return null;
     }
 
-    const config = ENEMY_CONFIGS[type];
+    // Get scaled config based on current act/zone/wave
+    const act = this.gameState.getCurrentAct();
+    const zone = this.gameState.getCurrentZone();
+    const wave = this.currentWave;
+    const config = getScaledEnemyConfig(type, act, zone, wave);
+
     if (!config) {
       console.error(`[WaveSystem] No config found for enemy type: ${type}`);
       return null;
+    }
+
+    if (import.meta.env.DEV) {
+      console.log(`[WaveSystem] Spawning ${type} (Act ${act}, Zone ${zone}, Wave ${wave}) HP=${config.hp} DMG=${config.damage}`);
     }
 
     // Spawn at consistent Y position (ground level)
@@ -445,7 +454,12 @@ export class WaveSystem {
       return null;
     }
 
-    const config = ENEMY_CONFIGS[type];
+    // Get scaled config based on current act/zone/wave
+    const act = this.gameState.getCurrentAct();
+    const zone = this.gameState.getCurrentZone();
+    const wave = this.currentWave;
+    const config = getScaledEnemyConfig(type, act, zone, wave);
+
     if (!config) {
       console.error(`[WaveSystem] No config found for enemy type: ${type}`);
       return null;
@@ -456,7 +470,7 @@ export class WaveSystem {
     enemy.activate(this.spawnXBase + xOffset, this.spawnY, config);
 
     if (import.meta.env.DEV) {
-      console.log(`[WaveSystem] Debug spawned: ${type} at x=${this.spawnXBase + xOffset}`);
+      console.log(`[WaveSystem] Debug spawned: ${type} (Act ${act}) at x=${this.spawnXBase + xOffset}, HP=${config.hp}`);
     }
 
     return enemy;

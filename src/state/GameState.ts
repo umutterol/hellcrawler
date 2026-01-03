@@ -21,7 +21,7 @@ import { MODULE_SELL_VALUES } from '../modules/ModuleItem';
 import { SaveData } from '../types/SaveTypes';
 import { GameEvents } from '../types/GameEvents';
 import { EventManager } from '../managers/EventManager';
-import { GAME_CONFIG } from '../config/GameConfig';
+import { GAME_CONFIG, BALANCE } from '../config/GameConfig';
 import { calculateXPRequired, calculateUpgradeCost } from '../config/Constants';
 
 /**
@@ -114,6 +114,7 @@ export class GameState {
 
   /**
    * Get default initial game state
+   * Uses BALANCE constants for base tank stats
    */
   public static getDefaultState(): SaveData {
     return {
@@ -123,11 +124,11 @@ export class GameState {
         level: 1,
         xp: 0,
         stats: {
-          maxHP: 100,
-          currentHP: 100,
+          maxHP: BALANCE.TANK_MAX_HP_BASE,      // 200 base HP (was 100)
+          currentHP: BALANCE.TANK_MAX_HP_BASE,
           defense: 0,
           hpRegen: 0,
-          moveSpeed: 200,
+          moveSpeed: 0,                          // 0 base slow (was 200 - which made no sense)
         },
         statLevels: {
           [StatType.Damage]: 0,
@@ -341,24 +342,31 @@ export class GameState {
 
   /**
    * Apply tank stat bonus based on level
+   * Uses BALANCE constants for meaningful scaling (Desktop Heroes pattern)
    */
   private applyTankStatBonus(stat: TankStatType, level: number): void {
     switch (stat) {
       case TankStatType.MaxHP:
-        // +10 HP per level
-        this.tankStats.maxHP = 100 + level * 10;
+        // Base + bonus per level (now 25 HP per level instead of 10)
+        const newMaxHP = BALANCE.TANK_MAX_HP_BASE + level * BALANCE.TANK_MAX_HP_PER_LEVEL;
+        // Increase current HP proportionally when max HP increases
+        if (this.tankStats.maxHP > 0) {
+          const hpRatio = this.tankStats.currentHP / this.tankStats.maxHP;
+          this.tankStats.currentHP = Math.floor(newMaxHP * hpRatio);
+        }
+        this.tankStats.maxHP = newMaxHP;
         break;
       case TankStatType.Defense:
-        // +0.5% defense per level (stored as flat value for formula)
-        this.tankStats.defense = level * 0.5;
+        // +1 defense per level (was 0.5, now more impactful)
+        this.tankStats.defense = level * BALANCE.TANK_DEFENSE_PER_LEVEL;
         break;
       case TankStatType.HPRegen:
-        // +0.5 HP/s per level
-        this.tankStats.hpRegen = level * 0.5;
+        // +1 HP/s per level (was 0.5, now more impactful)
+        this.tankStats.hpRegen = level * BALANCE.TANK_REGEN_PER_LEVEL;
         break;
       case TankStatType.MoveSpeed:
-        // +1% enemy slow per level (stored as percentage)
-        this.tankStats.moveSpeed = level;
+        // +2% enemy slow per level (was 1%, now more impactful)
+        this.tankStats.moveSpeed = level * BALANCE.TANK_SUPPRESSION_PER_LEVEL;
         break;
     }
   }

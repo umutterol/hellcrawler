@@ -6,33 +6,7 @@ import { EventManager, getEventManager } from '../managers/EventManager';
 import { GameEvents, EnemyDiedPayload } from '../types/GameEvents';
 import { EnemyCategory } from '../types/EnemyTypes';
 import { getGameState } from '../state/GameState';
-
-/**
- * Drop rate configuration
- * Base % + Per 10 Levels bonus (up to level 160)
- */
-interface DropRate {
-  base: number;
-  perTenLevels: number;
-  max: number;
-}
-
-const DROP_RATES: Record<Rarity, DropRate> = {
-  [Rarity.Uncommon]: { base: 10, perTenLevels: 1, max: 26 },
-  [Rarity.Rare]: { base: 3, perTenLevels: 0.5, max: 11 },
-  [Rarity.Epic]: { base: 0.5, perTenLevels: 0.2, max: 3.7 },
-  [Rarity.Legendary]: { base: 0.05, perTenLevels: 0.05, max: 0.85 },
-};
-
-/**
- * Drop chance modifiers by enemy category
- */
-const CATEGORY_DROP_MODIFIERS: Record<EnemyCategory, number> = {
-  [EnemyCategory.Fodder]: 0.3, // 30% of base drop chance
-  [EnemyCategory.Elite]: 1.5, // 150% of base
-  [EnemyCategory.SuperElite]: 3.0, // 300% of base
-  [EnemyCategory.Boss]: 1.0, // Bosses have guaranteed drops handled separately
-};
+import { BALANCE } from '../config/GameConfig';
 
 /**
  * Available module types for random drops
@@ -150,38 +124,86 @@ export class LootSystem {
 
   /**
    * Roll for a module drop based on enemy category
+   * Uses BALANCE constants for drop rates
    */
   private rollForDrop(category: EnemyCategory): ModuleItem | null {
     const tankLevel = this.gameState.getTankLevel();
-    const categoryModifier = CATEGORY_DROP_MODIFIERS[category];
 
-    // Roll from highest rarity to lowest
-    const rarities: Rarity[] = [
-      Rarity.Legendary,
-      Rarity.Epic,
-      Rarity.Rare,
-      Rarity.Uncommon,
-    ];
+    // Get base drop chance for this category from BALANCE
+    const categoryKey = category as keyof typeof BALANCE.MODULE_DROP_CHANCE;
+    const baseDropChance = BALANCE.MODULE_DROP_CHANCE[categoryKey] || BALANCE.MODULE_DROP_CHANCE.fodder;
 
-    for (const rarity of rarities) {
-      const dropChance = this.calculateDropChance(rarity, tankLevel) * categoryModifier;
+    // Add level bonus: +0.1% per 10 levels
+    const levelBonus = Math.floor(tankLevel / 10) * BALANCE.DROP_LEVEL_BONUS_PER_10;
+    const finalDropChance = Math.min(baseDropChance + levelBonus, BALANCE.DROP_CHANCE_CAP);
 
-      if (Math.random() * 100 < dropChance) {
-        const moduleType = this.getRandomModuleType();
-        return ModuleItem.generate(moduleType, rarity);
-      }
+    // Super Elite and Boss have guaranteed drops
+    const isGuaranteed = category === EnemyCategory.SuperElite || category === EnemyCategory.Boss;
+
+    // First check if we get a drop at all
+    if (!isGuaranteed && Math.random() > finalDropChance) {
+      return null; // No drop
     }
 
-    return null;
+    // We're getting a drop - now roll for rarity
+    const rarity = this.rollRarity(tankLevel, category);
+    const moduleType = this.getRandomModuleType();
+
+    if (import.meta.env.DEV) {
+      console.log(`[LootSystem] Drop rolled: ${category} -> ${rarity} (chance was ${(finalDropChance * 100).toFixed(2)}%)`);
+    }
+
+    return ModuleItem.generate(moduleType, rarity);
   }
 
   /**
-   * Calculate drop chance for a rarity at a given tank level
+   * Roll for rarity using BALANCE thresholds
+   * Elite enemies get a rarity boost
+   * Bosses have a minimum rarity floor
    */
-  private calculateDropChance(rarity: Rarity, tankLevel: number): number {
-    const rate = DROP_RATES[rarity];
-    const levelBonus = Math.floor(tankLevel / 10) * rate.perTenLevels;
-    return Math.min(rate.base + levelBonus, rate.max);
+  private rollRarity(tankLevel: number, category: EnemyCategory): Rarity {
+    const roll = Math.random() * 100;
+
+    // Calculate level-scaled thresholds
+    const levelTens = Math.floor(tankLevel / 10);
+
+    const legendaryChance = BALANCE.RARITY_THRESHOLDS.legendary +
+      levelTens * BALANCE.RARITY_LEVEL_SCALE.legendary;
+    const epicChance = BALANCE.RARITY_THRESHOLDS.epic +
+      levelTens * BALANCE.RARITY_LEVEL_SCALE.epic;
+    const rareChance = BALANCE.RARITY_THRESHOLDS.rare +
+      levelTens * BALANCE.RARITY_LEVEL_SCALE.rare;
+    const uncommonChance = BALANCE.RARITY_THRESHOLDS.uncommon +
+      levelTens * BALANCE.RARITY_LEVEL_SCALE.uncommon;
+
+    // Apply elite rarity boost (multiply thresholds)
+    const rarityBoost = category === EnemyCategory.Elite ? BALANCE.ELITE_RARITY_BOOST : 1.0;
+
+    // Determine rarity (cumulative)
+    let rarity: Rarity;
+    if (roll < legendaryChance * rarityBoost) {
+      rarity = Rarity.Legendary;
+    } else if (roll < (legendaryChance + epicChance) * rarityBoost) {
+      rarity = Rarity.Epic;
+    } else if (roll < (legendaryChance + epicChance + rareChance) * rarityBoost) {
+      rarity = Rarity.Rare;
+    } else if (roll < (legendaryChance + epicChance + rareChance + uncommonChance) * rarityBoost) {
+      rarity = Rarity.Uncommon;
+    } else {
+      rarity = Rarity.Uncommon; // Default to uncommon
+    }
+
+    // Apply boss minimum rarity floor (at least rare)
+    if (category === EnemyCategory.Boss && rarity === Rarity.Uncommon) {
+      rarity = Rarity.Rare;
+    }
+
+    // Super elite gets at least rare
+    if (category === EnemyCategory.SuperElite && rarity === Rarity.Uncommon) {
+      rarity = Rarity.Rare;
+    }
+
+    return rarity;
   }
 
   /**
@@ -201,7 +223,7 @@ export class LootSystem {
     const fodderTypes = ['imp', 'hellhound', 'possessedSoldier', 'fireSkull'];
     const eliteTypes = ['demon', 'necromancer', 'shadowFiend', 'infernalWarrior'];
     const superEliteTypes = ['archDemon', 'voidReaver'];
-    const bossTypes = ['infernalWarlord', 'lordOfFlames'];
+    const bossTypes = ['corruptedSentinel', 'infernalWarlord', 'lordOfFlames'];
 
     if (fodderTypes.includes(enemyType)) return EnemyCategory.Fodder;
     if (eliteTypes.includes(enemyType)) return EnemyCategory.Elite;

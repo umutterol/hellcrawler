@@ -4,7 +4,8 @@ import { EnemyConfig, EnemyType, EnemyCategory } from '../types/EnemyTypes';
 import { EventManager, getEventManager } from '../managers/EventManager';
 import { GameEvents } from '../types/GameEvents';
 import { getSettingsManager } from '../managers/SettingsManager';
-import { GAME_CONFIG } from '../config/GameConfig';
+import { GAME_CONFIG, getEnemyStatMultiplier } from '../config/GameConfig';
+import { getGameState } from '../state/GameState';
 
 /**
  * Enemy - Base class for all enemy types
@@ -34,12 +35,14 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
 
   // Visual
   protected healthBar: Phaser.GameObjects.Graphics | null = null;
+  protected healthText: Phaser.GameObjects.Text | null = null;
   protected lastHealthPercent: number = 1; // Track for redraw optimization
 
   // Constants
   private static readonly HEALTH_BAR_WIDTH = 30;
   private static readonly HEALTH_BAR_HEIGHT = 4;
   private static readonly HEALTH_BAR_OFFSET_Y = -40;
+  private static readonly HEALTH_TEXT_OFFSET_Y = -52; // Above the health bar
   private static readonly STOP_X_POSITION = 400; // Stop 200px from tank (tank is at x=200)
   private static idCounter: number = 0;
 
@@ -113,9 +116,20 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
       );
     }
 
-    // Set velocity to move left toward tank (after body reset)
-    this.setVelocityX(-config.speed);
+    // Get tank suppression value (enemy slow %)
+    // Suppression is stored as percentage (e.g., level 10 with 2% per level = 20)
+    const gameState = getGameState();
+    const suppressionPercent = gameState.getTankStats().moveSpeed;
+    const suppressionMultiplier = 1 - Math.min(suppressionPercent / 100, 0.8); // Cap at 80% slow
+
+    // Set velocity to move left toward tank with suppression applied
+    const finalSpeed = config.speed * suppressionMultiplier;
+    this.setVelocityX(-finalSpeed);
     this.setVelocityY(0);
+
+    if (import.meta.env.DEV && suppressionPercent > 0) {
+      console.log(`[Enemy] ${config.type} speed: ${config.speed} -> ${finalSpeed.toFixed(0)} (${suppressionPercent}% suppression)`);
+    }
 
     // Create health bar
     this.createHealthBar();
@@ -132,10 +146,14 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
     // Disable physics body
     (this.body as Phaser.Physics.Arcade.Body)?.setEnable(false);
 
-    // Destroy health bar
+    // Destroy health bar and text
     if (this.healthBar) {
       this.healthBar.destroy();
       this.healthBar = null;
+    }
+    if (this.healthText) {
+      this.healthText.destroy();
+      this.healthText = null;
     }
 
     this.config = null;
@@ -275,8 +293,23 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
     if (this.healthBar) {
       this.healthBar.destroy();
     }
+    if (this.healthText) {
+      this.healthText.destroy();
+    }
 
     this.healthBar = this.scene.add.graphics();
+
+    // Create HP text above the health bar
+    this.healthText = this.scene.add.text(this.x, this.y + Enemy.HEALTH_TEXT_OFFSET_Y, '', {
+      fontFamily: 'monospace',
+      fontSize: '10px',
+      color: '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 2,
+      align: 'center',
+    });
+    this.healthText.setOrigin(0.5, 1); // Center horizontally, bottom aligned
+
     this.updateHealthBar();
   }
 
@@ -284,19 +317,27 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
    * Update health bar position only (called every frame - cheap operation)
    */
   private updateHealthBarPosition(): void {
-    if (!this.healthBar || !this.active) return;
+    if (!this.active) return;
 
-    // Just update the graphics object position - no redraw needed
-    const barWidth = Enemy.HEALTH_BAR_WIDTH;
-    this.healthBar.x = this.x - barWidth / 2;
-    this.healthBar.y = this.y + Enemy.HEALTH_BAR_OFFSET_Y;
+    // Update health bar graphics position
+    if (this.healthBar) {
+      const barWidth = Enemy.HEALTH_BAR_WIDTH;
+      this.healthBar.x = this.x - barWidth / 2;
+      this.healthBar.y = this.y + Enemy.HEALTH_BAR_OFFSET_Y;
+    }
+
+    // Update HP text position
+    if (this.healthText) {
+      this.healthText.x = this.x;
+      this.healthText.y = this.y + Enemy.HEALTH_TEXT_OFFSET_Y;
+    }
   }
 
   /**
    * Redraw health bar (only called when health changes)
    */
   private redrawHealthBar(): void {
-    if (!this.healthBar || !this.active) return;
+    if (!this.active) return;
 
     const healthPercent = this.currentHP / this.maxHP;
 
@@ -304,27 +345,35 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
     if (Math.abs(healthPercent - this.lastHealthPercent) < 0.01) return;
     this.lastHealthPercent = healthPercent;
 
-    const barWidth = Enemy.HEALTH_BAR_WIDTH;
-    const barHeight = Enemy.HEALTH_BAR_HEIGHT;
+    // Update health bar graphics
+    if (this.healthBar) {
+      const barWidth = Enemy.HEALTH_BAR_WIDTH;
+      const barHeight = Enemy.HEALTH_BAR_HEIGHT;
 
-    this.healthBar.clear();
+      this.healthBar.clear();
 
-    // Draw at local origin (0,0) - position is set by graphics object x,y
-    // Background
-    this.healthBar.fillStyle(0x333333, 1);
-    this.healthBar.fillRect(0, 0, barWidth, barHeight);
+      // Draw at local origin (0,0) - position is set by graphics object x,y
+      // Background
+      this.healthBar.fillStyle(0x333333, 1);
+      this.healthBar.fillRect(0, 0, barWidth, barHeight);
 
-    // Health bar color
-    let color = 0x00ff00;
-    if (healthPercent <= 0.3) {
-      color = 0xff0000;
-    } else if (healthPercent <= 0.6) {
-      color = 0xffff00;
+      // Health bar color
+      let color = 0x00ff00;
+      if (healthPercent <= 0.3) {
+        color = 0xff0000;
+      } else if (healthPercent <= 0.6) {
+        color = 0xffff00;
+      }
+
+      // Health fill
+      this.healthBar.fillStyle(color, 1);
+      this.healthBar.fillRect(1, 1, (barWidth - 2) * healthPercent, barHeight - 2);
     }
 
-    // Health fill
-    this.healthBar.fillStyle(color, 1);
-    this.healthBar.fillRect(1, 1, (barWidth - 2) * healthPercent, barHeight - 2);
+    // Update HP text
+    if (this.healthText) {
+      this.healthText.setText(`${Math.max(0, Math.floor(this.currentHP))}/${this.maxHP}`);
+    }
   }
 
   /**
@@ -337,7 +386,15 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
       if (this.healthBar) {
         this.healthBar.clear();
       }
+      if (this.healthText) {
+        this.healthText.setVisible(false);
+      }
       return;
+    }
+
+    // Make sure text is visible when enabled
+    if (this.healthText) {
+      this.healthText.setVisible(true);
     }
 
     // Initial draw
@@ -438,9 +495,12 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
     this.stop();
     this.setVelocity(0, 0);
 
-    // Hide health bar immediately
+    // Hide health bar and text immediately
     if (this.healthBar) {
       this.healthBar.setVisible(false);
+    }
+    if (this.healthText) {
+      this.healthText.setVisible(false);
     }
 
     // Store original scale for death animation
@@ -589,132 +649,171 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
 }
 
 /**
- * Enemy configurations for Act 1
- * These define the base stats for each enemy type
+ * Enemy configurations for Act 1 (BASE STATS)
+ * These are the unscaled base values - actual stats are calculated
+ * using getScaledEnemyConfig() which applies act/zone/wave multipliers
+ *
+ * Stats based on docs/BalanceGuide.md
  */
 export const ENEMY_CONFIGS: Record<EnemyType, EnemyConfig> = {
-  // Fodder enemies
+  // ============================================
+  // FODDER ENEMIES (common spawns)
+  // ============================================
   [EnemyType.Imp]: {
     type: EnemyType.Imp,
     category: EnemyCategory.Fodder,
-    hp: 50,
-    damage: 5,
-    speed: 80,
-    xpReward: 10,
-    goldReward: 5,
+    hp: 50,       // Low HP, balanced
+    damage: 5,    // Low damage
+    speed: 80,    // Medium speed
+    xpReward: 5,  // Base XP per BalanceGuide
+    goldReward: 2, // Base gold per BalanceGuide
   },
   [EnemyType.Hellhound]: {
     type: EnemyType.Hellhound,
     category: EnemyCategory.Fodder,
-    hp: 40,
-    damage: 8,
-    speed: 120,
-    xpReward: 12,
-    goldReward: 6,
+    hp: 40,        // Lower HP (glass cannon)
+    damage: 8,     // Higher damage
+    speed: 120,    // Fast
+    xpReward: 7,
+    goldReward: 3,
   },
   [EnemyType.PossessedSoldier]: {
     type: EnemyType.PossessedSoldier,
     category: EnemyCategory.Fodder,
-    hp: 70,
-    damage: 6,
-    speed: 60,
-    xpReward: 15,
-    goldReward: 8,
+    hp: 60,        // Tankier
+    damage: 10,    // Ranged damage
+    speed: 60,     // Slow (ranged)
+    xpReward: 8,
+    goldReward: 4,
   },
   [EnemyType.FireSkull]: {
     type: EnemyType.FireSkull,
     category: EnemyCategory.Fodder,
-    hp: 30,
-    damage: 10,
-    speed: 100,
-    xpReward: 14,
-    goldReward: 7,
+    hp: 35,        // Very fragile
+    damage: 12,    // High damage (explodes)
+    speed: 100,    // Fast flying
+    xpReward: 10,
+    goldReward: 5,
   },
 
-  // Elite enemies
+  // ============================================
+  // ELITE ENEMIES (special spawns, harder)
+  // ============================================
   [EnemyType.Demon]: {
     type: EnemyType.Demon,
     category: EnemyCategory.Elite,
-    hp: 200,
+    hp: 300,       // Tanky
     damage: 15,
     speed: 70,
-    xpReward: 50,
-    goldReward: 25,
+    xpReward: 35,  // Elite XP per BalanceGuide
+    goldReward: 25, // Elite gold per BalanceGuide
   },
   [EnemyType.Necromancer]: {
     type: EnemyType.Necromancer,
     category: EnemyCategory.Elite,
-    hp: 150,
+    hp: 200,       // Ranged support, less HP
     damage: 12,
-    speed: 50,
-    xpReward: 60,
-    goldReward: 30,
+    speed: 50,     // Slow caster
+    xpReward: 40,
+    goldReward: 28,
   },
   [EnemyType.ShadowFiend]: {
     type: EnemyType.ShadowFiend,
     category: EnemyCategory.Elite,
-    hp: 120,
-    damage: 20,
-    speed: 130,
-    xpReward: 55,
-    goldReward: 28,
+    hp: 180,       // Glass cannon assassin
+    damage: 25,    // High burst
+    speed: 130,    // Very fast
+    xpReward: 38,
+    goldReward: 26,
   },
   [EnemyType.InfernalWarrior]: {
     type: EnemyType.InfernalWarrior,
     category: EnemyCategory.Elite,
-    hp: 180,
+    hp: 350,       // Heavy tank
     damage: 18,
     speed: 60,
-    xpReward: 65,
-    goldReward: 35,
+    xpReward: 45,
+    goldReward: 30,
   },
 
-  // Super Elite enemies
+  // ============================================
+  // SUPER ELITE ENEMIES (rare, zone 1 wave 7)
+  // ============================================
   [EnemyType.ArchDemon]: {
     type: EnemyType.ArchDemon,
     category: EnemyCategory.SuperElite,
-    hp: 500,
+    hp: 1500,      // Per BalanceGuide
     damage: 25,
     speed: 50,
     xpReward: 150,
-    goldReward: 80,
+    goldReward: 300,
   },
   [EnemyType.VoidReaver]: {
     type: EnemyType.VoidReaver,
     category: EnemyCategory.SuperElite,
-    hp: 400,
-    damage: 35,
+    hp: 1200,      // Faster but less HP
+    damage: 35,    // High damage teleporter
     speed: 90,
-    xpReward: 180,
-    goldReward: 100,
+    xpReward: 175,
+    goldReward: 350,
   },
 
-  // Bosses
+  // ============================================
+  // BOSSES (zone 2 wave 7)
+  // ============================================
   [EnemyType.CorruptedSentinel]: {
     type: EnemyType.CorruptedSentinel,
     category: EnemyCategory.Boss,
-    hp: 2500,
-    damage: 25,
+    hp: 10000,     // Per BalanceGuide
+    damage: 40,
     speed: 45,
-    xpReward: 600,
-    goldReward: 400,
+    xpReward: 500,
+    goldReward: 5000, // Per BalanceGuide
   },
   [EnemyType.InfernalWarlord]: {
     type: EnemyType.InfernalWarlord,
     category: EnemyCategory.Boss,
-    hp: 2000,
-    damage: 30,
-    speed: 40,
-    xpReward: 500,
-    goldReward: 300,
+    hp: 8000,      // Slightly less HP, more mobile
+    damage: 45,
+    speed: 55,
+    xpReward: 450,
+    goldReward: 4500,
   },
   [EnemyType.LordOfFlames]: {
     type: EnemyType.LordOfFlames,
     category: EnemyCategory.Boss,
-    hp: 3000,
-    damage: 40,
-    speed: 35,
-    xpReward: 750,
-    goldReward: 500,
+    hp: 12000,     // Tankiest boss
+    damage: 35,    // Lower damage but more HP
+    speed: 35,     // Very slow
+    xpReward: 600,
+    goldReward: 6000,
   },
 };
+
+/**
+ * Get scaled enemy config for a specific act/zone/wave
+ * Applies multipliers from BALANCE constants
+ *
+ * @param type - The enemy type
+ * @param act - Current act (1-8)
+ * @param zone - Current zone (1-2)
+ * @param wave - Current wave (1-7)
+ * @returns Scaled enemy config with adjusted HP, damage, XP, and gold
+ */
+export function getScaledEnemyConfig(
+  type: EnemyType,
+  act: number,
+  zone: number,
+  wave: number
+): EnemyConfig {
+  const baseConfig = ENEMY_CONFIGS[type];
+
+  // Speed doesn't scale with act/zone/wave per BalanceGuide
+  return {
+    ...baseConfig,
+    hp: Math.floor(baseConfig.hp * getEnemyStatMultiplier(act, zone, wave, 'hp')),
+    damage: Math.floor(baseConfig.damage * getEnemyStatMultiplier(act, zone, wave, 'damage')),
+    xpReward: Math.floor(baseConfig.xpReward * getEnemyStatMultiplier(act, zone, wave, 'xp')),
+    goldReward: Math.floor(baseConfig.goldReward * getEnemyStatMultiplier(act, zone, wave, 'gold')),
+  };
+}
