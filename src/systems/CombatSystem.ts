@@ -4,6 +4,7 @@ import { Enemy } from '../entities/Enemy';
 import { Projectile, ProjectileType, ProjectileConfig } from '../entities/Projectile';
 import { getGameState } from '../state/GameState';
 import { getSettingsManager } from '../managers/SettingsManager';
+import { GAME_CONFIG } from '../config/GameConfig';
 
 /**
  * CombatSystem - Handles all combat interactions
@@ -214,7 +215,7 @@ export class CombatSystem {
   }
 
   /**
-   * Spawn a floating damage number
+   * Spawn a floating damage number with pop animation
    */
   private spawnDamageNumber(
     x: number,
@@ -227,52 +228,81 @@ export class CombatSystem {
     const settings = getSettingsManager();
     if (!settings.showDamageNumbers) return;
 
-    if (import.meta.env.DEV) {
-      console.log(`[CombatSystem] Spawning damage number: ${damage} at (${x}, ${y}), crit=${isCrit}`);
-    }
+    const timing = GAME_CONFIG.EFFECT_TIMING;
+    const depth = GAME_CONFIG.DEPTH;
 
-    // Create text for damage number
+    // Add random horizontal offset to prevent stacking
+    const offsetX = Phaser.Math.Between(-timing.DAMAGE_NUMBER_RANDOM_OFFSET_X, timing.DAMAGE_NUMBER_RANDOM_OFFSET_X);
+    const spawnX = x + offsetX;
+
+    // Configure appearance based on damage type
     let color = '#ffffff';
-    let fontSize = '20px';
+    let fontSize = 20;
+    let displayText = damage.toString();
 
     if (isTankDamage) {
       color = '#ff4444';
-      fontSize = '24px';
+      fontSize = 24;
     } else if (isCrit) {
       color = '#ffff00';
-      fontSize = '28px';
+      fontSize = 32;
+      displayText = `CRIT!\n${damage}`;
     }
 
-    const text = this.scene.add.text(x, y, damage.toString(), {
-      fontSize,
+    // Create the damage number text
+    const text = this.scene.add.text(spawnX, y, displayText, {
+      fontSize: `${fontSize}px`,
+      fontFamily: 'Arial Black, Arial, sans-serif',
       color,
-      fontStyle: isCrit ? 'bold' : 'normal',
+      fontStyle: 'bold',
       stroke: '#000000',
-      strokeThickness: 2,
+      strokeThickness: 3,
+      align: 'center',
     });
     text.setOrigin(0.5);
-    text.setDepth(1000);
+    text.setDepth(depth.DAMAGE_NUMBERS);
+    text.setScale(0); // Start at scale 0 for pop-in effect
 
-    // Animate floating up and fading
+    // Pop-in animation (scale 0 → peak → settle)
+    const peakScale = isCrit ? timing.CRIT_SCALE_PEAK : 1.2;
+    const settleScale = isCrit ? timing.CRIT_SCALE_SETTLE : 1.0;
+
+    // Phase 1: Pop in (scale 0 → peak)
     this.scene.tweens.add({
       targets: text,
-      y: y - 50,
+      scale: peakScale,
+      duration: timing.DAMAGE_NUMBER_POP_DURATION * 0.6,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        // Phase 2: Settle (peak → settle)
+        this.scene.tweens.add({
+          targets: text,
+          scale: settleScale,
+          duration: timing.DAMAGE_NUMBER_POP_DURATION * 0.4,
+          ease: 'Sine.easeInOut',
+        });
+      },
+    });
+
+    // Float up and fade out
+    this.scene.tweens.add({
+      targets: text,
+      y: y - timing.DAMAGE_NUMBER_FLOAT_DISTANCE,
       alpha: 0,
-      duration: 800,
-      ease: 'Power2',
+      duration: timing.DAMAGE_NUMBER_FLOAT_DURATION,
+      ease: 'Cubic.easeOut',
+      delay: timing.DAMAGE_NUMBER_POP_DURATION, // Wait for pop animation
       onComplete: () => text.destroy(),
     });
 
-    // Scale pop for crits
-    if (isCrit) {
-      this.scene.tweens.add({
-        targets: text,
-        scale: 1.3,
-        duration: 100,
-        yoyo: true,
-        ease: 'Power2',
-      });
-    }
+    // Add slight horizontal drift for visual interest
+    this.scene.tweens.add({
+      targets: text,
+      x: spawnX + Phaser.Math.Between(-10, 10),
+      duration: timing.DAMAGE_NUMBER_FLOAT_DURATION,
+      ease: 'Sine.easeInOut',
+      delay: timing.DAMAGE_NUMBER_POP_DURATION,
+    });
   }
 
   /**

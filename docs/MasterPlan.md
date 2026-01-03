@@ -15,126 +15,121 @@
 | Milestone | Status | Blocking Issues | ETA |
 |-----------|--------|-----------------|-----|
 | MVP | ✅ Complete | None | Done |
-| Vertical Slice | 🔴 BLOCKED | No AudioManager | 1 week after unblock |
-| Content Expansion | ⏳ Waiting | Vertical Slice | 2 weeks |
-| Architecture Refactor | ⏳ Planned | None (can parallelize) | 2-3 weeks |
+| Vertical Slice (VFX) | 🟡 IN PROGRESS | Audio assets not ready | This week |
+| Vertical Slice (Audio) | ⏸️ PAUSED | Waiting for SFX/music | TBD |
+| Content Expansion | ⏳ Waiting | VFX complete | 2 weeks |
 
-**Critical Finding:** Vertical Slice is BLOCKED by missing AudioManager. This was scheduled for Phase 4 but must be pulled forward immediately.
+**Note:** Audio deprioritized - no SFX/music assets ready. Focus on VFX and game feel improvements that don't require audio.
 
 ---
 
 ## Priority Tiers
 
-### 🔴 TIER 0: BLOCKERS (Do First)
+### 🟠 TIER 1: VFX & GAME FEEL (Do Now - No Audio Needed)
 
-These block Vertical Slice completion. **Must resolve before any other work.**
-
-| # | Task | Complexity | Dependency | Why Blocking |
-|---|------|------------|------------|--------------|
-| 0.1 | Create AudioManager | Medium | None | ALL audio tasks blocked |
-| 0.2 | Create SFXPool | Low | 0.1 | Audio pooling for performance |
-| 0.3 | Add event-driven audio hooks | Low | 0.1, 0.2 | Decoupled audio triggers |
-
-**Files to Create:**
-- `src/managers/AudioManager.ts`
-- `src/audio/SFXPool.ts`
-
-**Reference:** [11-audio.md](Meeting/11-audio.md)
-
-**Estimated Time:** 1-2 days
-
----
-
-### 🟠 TIER 1: VERTICAL SLICE CORE (High Priority)
-
-Core feedback that makes combat feel impactful. **Required for "would put in Steam trailer" exit criteria.**
+Visual feedback that makes combat feel impactful. **Can complete without audio assets.**
 
 | # | Task | Complexity | Dependency | Status |
 |---|------|------------|------------|--------|
-| 1.1 | Cannon boom SFX | Low | 0.1 | ⏳ |
-| 1.2 | Machine gun rattle SFX | Low | 0.1 | ⏳ |
-| 1.3 | Missile whoosh SFX | Low | 0.1 | ⏳ |
-| 1.4 | Hit impact SFX | Low | 0.1 | ⏳ |
-| 1.5 | UI click SFX | Low | 0.1 | ⏳ |
-| 1.6 | Damage numbers pop animation | Low | None | ⏳ |
-| 1.7 | Enemy death flash + fade | Low | None | ⏳ |
-| 1.8 | Crit hit visual ("CRIT!" + bigger) | Low | 1.6 | ⏳ |
+| 1.1 | Damage numbers pop animation | Low | None | ⏳ |
+| 1.2 | Enemy death flash + fade | Low | None | ⏳ |
+| 1.3 | Crit hit visual ("CRIT!" + bigger) | Low | 1.1 | ⏳ |
+| 1.4 | Cannon muzzle flash + recoil | Low | None | ⏳ |
+| 1.5 | Missile smoke puff + wobble | Low | None | ⏳ |
+| 1.6 | Hit spark/flash at impact point | Low | None | ⏳ |
+| 1.7 | DEPTH constants in GameConfig | Low | None | ⏳ |
+| 1.8 | EFFECT_TIMING constants | Low | None | ⏳ |
 
 **Estimated Time:** 2-3 days
 
 ---
 
-### 🟡 TIER 2: VERTICAL SLICE POLISH (Medium Priority)
+### 🟡 TIER 2: POLISH VFX (Medium Priority - No Audio)
 
-Nice-to-have polish that elevates quality. **Helps but not strictly required.**
+Nice-to-have visual polish. **Still no audio required.**
 
 | # | Task | Complexity | Dependency | Status |
 |---|------|------------|------------|--------|
-| 2.1 | Cannon muzzle flash + recoil | Low | None | ⏳ |
-| 2.2 | Missile smoke puff + wobble | Low | None | ⏳ |
-| 2.3 | Hit spark/flash at impact point | Low | None | ⏳ |
-| 2.4 | Skill activation flash + sound | Low | 0.1 | ⏳ |
-| 2.5 | Boss spawn intro (darken + animation) | Medium | None | ⏳ |
-| 2.6 | Boss death celebration | Medium | 0.1 | ⏳ |
-| 2.7 | Legendary drop glow + sound | Low | 0.1 | ⏳ |
-| 2.8 | Near Death smoke + pulse | Medium | None | ⏳ |
-| 2.9 | Onboarding tooltips (3-4) | Medium | None | ⏳ |
-| 2.10 | DEPTH constants in GameConfig | Low | None | ⏳ |
-| 2.11 | EFFECT_TIMING constants | Low | None | ⏳ |
+| 2.1 | Boss spawn intro (darken + animation) | Medium | None | ⏳ |
+| 2.2 | Near Death smoke + pulse | Medium | None | ⏳ |
+| 2.3 | Legendary drop glow effect | Low | None | ⏳ |
+| 2.4 | Onboarding tooltips (3-4) | Medium | None | ⏳ |
 
-**Estimated Time:** 3-4 days
+**Estimated Time:** 2-3 days
 
 ---
 
-### 🟢 TIER 3: CONTENT EXPANSION (After Vertical Slice)
+### 🔵 TIER 3: QUICK DESIGN WINS (Can Parallelize)
 
-New content. **Only start after Vertical Slice exit criteria met.**
+Low-effort, high-impact design improvements. **No audio needed.**
+
+| # | Task | Complexity | Dependency | Impact |
+|---|------|------------|------------|--------|
+| 3.1 | Zone gold multipliers (+40%/zone) | Low | None | High - farming optimization |
+| 3.2 | Elite = 2× drop rate | Low | None | Medium - loot satisfaction |
+| 3.3 | Super Elite = guaranteed drop | Low | None | High - milestone reward |
+| 3.4 | Boss = guaranteed + higher rarity | Low | None | High - boss value |
+| 3.5 | Milestone rewards (5/10/25 levels) | Medium | None | High - dopamine hits |
+
+**Estimated Time:** 1-2 days total
+
+---
+
+### ⏸️ TIER 4: AUDIO (Paused - Waiting for Assets)
+
+**Status: PAUSED** - Resume when SFX/music assets are ready.
 
 | # | Task | Complexity | Dependency | Status |
 |---|------|------------|------------|--------|
-| 3.1 | Zone 2 polish (Super Elite focus) | Medium | VS Complete | ⏳ |
-| 3.2 | Act 2 Zone 1 enemies (4 types) | Medium | 3.1 | ⏳ |
-| 3.3 | Act 2 Zone 1 waves | Low | 3.2 | ⏳ |
-| 3.4 | Act 2 background art | Medium | None | ⏳ |
-| 3.5 | Act 2 Zone 2 + Gargoyle boss | High | 3.2, 3.3 | ⏳ |
-| 3.6 | Zone selection UI | Medium | 3.1 | ⏳ |
-| 3.7 | Act/Zone progression tracking | Low | 3.6 | ⏳ |
-| 3.8 | Auto-sell toggle for rarities | Low | None | ⏳ |
+| 4.1 | Create AudioManager | Medium | Assets | ⏸️ |
+| 4.2 | Create SFXPool | Low | 4.1 | ⏸️ |
+| 4.3 | Cannon boom SFX | Low | 4.1 | ⏸️ |
+| 4.4 | Machine gun rattle SFX | Low | 4.1 | ⏸️ |
+| 4.5 | Missile whoosh SFX | Low | 4.1 | ⏸️ |
+| 4.6 | Hit impact SFX | Low | 4.1 | ⏸️ |
+| 4.7 | UI click SFX | Low | 4.1 | ⏸️ |
+| 4.8 | Skill activation sound | Low | 4.1 | ⏸️ |
+| 4.9 | Boss death celebration sound | Low | 4.1 | ⏸️ |
+| 4.10 | Legendary drop sound | Low | 4.1 | ⏸️ |
+
+**Files to Create (when ready):**
+- `src/managers/AudioManager.ts`
+- `src/audio/SFXPool.ts`
+
+**Estimated Time:** 1-2 days (once assets ready)
+
+---
+
+### 🟢 TIER 5: CONTENT EXPANSION (After VFX Complete)
+
+New content. **Only start after VFX polish done.**
+
+| # | Task | Complexity | Dependency | Status |
+|---|------|------------|------------|--------|
+| 5.1 | Zone 2 polish (Super Elite focus) | Medium | VFX Complete | ⏳ |
+| 5.2 | Act 2 Zone 1 enemies (4 types) | Medium | 5.1 | ⏳ |
+| 5.3 | Act 2 Zone 1 waves | Low | 5.2 | ⏳ |
+| 5.4 | Act 2 background art | Medium | None | ⏳ |
+| 5.5 | Act 2 Zone 2 + Gargoyle boss | High | 5.2, 5.3 | ⏳ |
+| 5.6 | Zone selection UI | Medium | 5.1 | ⏳ |
+| 5.7 | Act/Zone progression tracking | Low | 5.6 | ⏳ |
+| 5.8 | Auto-sell toggle for rarities | Low | None | ⏳ |
 
 **Estimated Time:** 2 weeks
 
 ---
 
-### 🔵 TIER 4: QUICK DESIGN WINS (Can Parallelize)
-
-Low-effort, high-impact design improvements. **Can be done alongside Tier 3.**
-
-| # | Task | Complexity | Dependency | Impact |
-|---|------|------------|------------|--------|
-| 4.1 | Zone gold multipliers (+40%/zone) | Low | None | High - farming optimization |
-| 4.2 | Elite = 2× drop rate | Low | None | Medium - loot satisfaction |
-| 4.3 | Super Elite = guaranteed drop | Low | None | High - milestone reward |
-| 4.4 | Boss = guaranteed + higher rarity | Low | None | High - boss value |
-| 4.5 | Milestone rewards (5/10/25 levels) | Medium | None | High - dopamine hits |
-
-**Estimated Time:** 1-2 days total
-
-**Reference:** [06-economy.md](Meeting/06-economy.md), [05-progression.md](Meeting/05-progression.md)
-
----
-
-### ⚪ TIER 5: ARCHITECTURE REFACTOR (Low Priority)
+### ⚪ TIER 6: ARCHITECTURE REFACTOR (Low Priority)
 
 Large refactors that improve maintainability. **Do after Content Expansion or during downtime.**
 
 | # | Task | Complexity | Dependency | Risk |
 |---|------|------------|------------|------|
-| 5.1 | 4-store state architecture | High | None | Medium - breaking change |
-| 5.2 | Debounced auto-save (5s) | Medium | 5.1 | Low |
-| 5.3 | Save file versioning | Low | 5.2 | Low |
-| 5.4 | GLSL damage flash shader | Medium | None | Low |
-| 5.5 | Near Death visual shader | Medium | 5.4 | Low |
-| 5.6 | Music controller + crossfade | Medium | 0.1 | Low |
+| 6.1 | 4-store state architecture | High | None | Medium - breaking change |
+| 6.2 | Debounced auto-save (5s) | Medium | 6.1 | Low |
+| 6.3 | Save file versioning | Low | 6.2 | Low |
+| 6.4 | GLSL damage flash shader | Medium | None | Low |
+| 6.5 | Near Death visual shader | Medium | 6.4 | Low |
 
 **Estimated Time:** 1-2 weeks
 
@@ -142,7 +137,7 @@ Large refactors that improve maintainability. **Do after Content Expansion or du
 
 ---
 
-### ⬜ TIER 6: FUTURE SYSTEMS (Post-Release Backlog)
+### ⬜ TIER 7: FUTURE SYSTEMS (Post-Release Backlog)
 
 New systems for long-term engagement. **Plan after Steam release.**
 

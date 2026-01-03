@@ -71,6 +71,50 @@ export const GAME_CONFIG = {
     { x: 50, y: -60 },   // Slot 3: Top rear turret
     { x: 35, y: -35 },   // Slot 4: Lower rear turret
   ] as const,
+
+  // Depth layers for rendering order (higher = on top)
+  DEPTH: {
+    BACKGROUND: 0,
+    PARALLAX_FAR: 10,
+    PARALLAX_MID: 20,
+    PARALLAX_NEAR: 30,
+    GROUND: 50,
+    LOOT: 100,
+    ENEMIES: 200,
+    TANK: 300,
+    PROJECTILES: 400,
+    EFFECTS: 500,
+    DAMAGE_NUMBERS: 600,
+    UI_WORLD: 700,        // World-space UI (health bars, etc.)
+    UI_OVERLAY: 800,      // Screen-space UI
+    PANELS: 900,
+    DEBUG: 1000,
+  },
+
+  // Effect timing constants (in milliseconds)
+  EFFECT_TIMING: {
+    // Damage numbers
+    DAMAGE_NUMBER_POP_DURATION: 150,      // Initial pop-in scale
+    DAMAGE_NUMBER_FLOAT_DURATION: 800,    // Float up and fade
+    DAMAGE_NUMBER_FLOAT_DISTANCE: 60,     // Pixels to float up
+    DAMAGE_NUMBER_RANDOM_OFFSET_X: 20,    // Random horizontal spread
+
+    // Hit effects
+    HIT_FLASH_DURATION: 100,              // White flash on hit
+    HIT_SHAKE_DURATION: 50,               // Micro-shake on hit
+
+    // Death effects
+    DEATH_FLASH_DURATION: 150,            // Flash before fade
+    DEATH_FADE_DURATION: 300,             // Fade out after flash
+
+    // Crit effects
+    CRIT_SCALE_PEAK: 1.5,                 // Max scale for crit pop
+    CRIT_SCALE_SETTLE: 1.2,               // Final scale for crit
+
+    // General
+    SCREEN_SHAKE_DURATION: 100,
+    BOSS_INTRO_DURATION: 1500,
+  },
 } as const;
 
 /**
