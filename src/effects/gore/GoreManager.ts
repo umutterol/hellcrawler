@@ -208,6 +208,7 @@ export class GoreManager {
    * Handle enemy death event
    */
   private onEnemyDied(payload: EnemyDiedPayload): void {
+
     // Check if gore data is included in payload
     const goreData = (payload as EnemyDiedPayload & {
       x?: number;
@@ -223,7 +224,6 @@ export class GoreManager {
     if (goreData.x === undefined || goreData.y === undefined) {
       return;
     }
-
     this.spawnGoreEffect({
       x: goreData.x,
       y: goreData.y,
@@ -239,7 +239,9 @@ export class GoreManager {
    * Spawn a complete gore effect (gibs + blood + splatters)
    */
   spawnGoreEffect(config: GoreEffectConfig): void {
-    if (!this.scene || this.intensity === GoreIntensity.Off) return;
+    if (!this.scene || this.intensity === GoreIntensity.Off) {
+      return;
+    }
 
     const spawnCounts = GORE_SPAWN_COUNTS[this.intensity];
     const enemyType = config.isBoss ? 'boss' : 'normal';

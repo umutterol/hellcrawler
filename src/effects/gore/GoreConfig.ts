@@ -23,8 +23,8 @@ export const GORE_POOL_SIZES = {
 export const GORE_PHYSICS = {
   /** Gravity acceleration in pixels per second squared */
   GRAVITY: 800,
-  /** Ground Y position (where gibs settle) */
-  GROUND_Y: 550,
+  /** Ground Y position (where gibs settle) - must be within viewport (game height is 350) */
+  GROUND_Y: 320,
   /** Velocity dampening on bounce (0-1, lower = more energy loss) */
   BOUNCE_DAMPING: 0.4,
   /** Minimum velocity to trigger bounce (below this, gib settles) */
@@ -154,14 +154,16 @@ export const SPLATTER = {
 
 /**
  * Depth values for gore elements
+ * Must be coordinated with GAME_CONFIG.DEPTH:
+ *   GROUND: 50, LOOT: 100, ENEMIES: 200, TANK: 300, PROJECTILES: 400, EFFECTS: 500
  */
 export const GORE_DEPTH = {
-  /** Ground splatters (behind everything) */
-  SPLATTER: 5,
-  /** Blood particles */
-  BLOOD: 95,
-  /** Gibs (above most things, below UI) */
-  GIB: 100,
+  /** Ground splatters (on ground, below loot) */
+  SPLATTER: 60,
+  /** Blood particles (above enemies, below tank) */
+  BLOOD: 250,
+  /** Gibs (above enemies, below tank) */
+  GIB: 250,
 } as const;
 
 /**

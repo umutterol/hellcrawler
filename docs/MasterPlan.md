@@ -16,7 +16,7 @@
 |-----------|--------|-----------------|----------|
 | MVP (Core Systems) | ✅ Complete | None | Done |
 | VFX Polish (Weapon Effects) | 🟡 In Progress | None | P0 |
-| **VFX Polish (Gore System)** | ⏳ Planned | None | P0 |
+| **VFX Polish (Gore System)** | ✅ Complete | None | P0 |
 | **Center Tank Redesign** | ⏳ Planned | VFX Complete | P1 |
 | **Center Tank UI Refactor** | ⏳ Planned | Part of P1 | P1 |
 | Cinematic Module Effects | ⏳ Planned | Center Tank | P2 |
@@ -371,10 +371,10 @@ Final polish and platform integration.
                     │     - Enemy death ✅                     │
                     │     - Hit sparks ✅                      │
                     │     - Muzzle flash ⏳                    │
-                    │     Phase 0B: Gore System ⏳             │
-                    │     - Gibs + fake ragdoll                │
-                    │     - Blood particles                    │
-                    │     - Ground splatters                   │
+                    │     Phase 0B: Gore System ✅             │
+                    │     - Gibs + fake ragdoll ✅             │
+                    │     - Blood particles ✅                 │
+                    │     - Ground splatters ✅                │
                     └─────────────────┬───────────────────────┘
                                       │
                     ┌─────────────────▼───────────────────────┐
@@ -700,8 +700,8 @@ TIER 4 (Audio) can run in parallel with ANY tier (waiting for assets)
 | VFX Polish | 🟡 In Progress | Jan 4, 2025 |
 | Center Tank | ⏳ Next | - |
 
-**Current Phase:** VFX Polish - Gore System implemented (6/7 tasks complete)
-**Next Phase:** Complete Task 0.15 (UI setting), then Center Tank Redesign
+**Current Phase:** VFX Polish - Gore System Complete ✅
+**Next Phase:** Center Tank Redesign (TIER 1) or remaining weapon VFX (0.7, 0.8)
 **Audio Status:** ⏸️ Paused (waiting for assets)
 
 ---
@@ -879,6 +879,26 @@ GameState (current) → Split into:
 ---
 
 ## Changelog
+
+### January 4, 2025 - Gore System Bug Fixes & Complete
+
+**Fixed Gore Visibility Issues:**
+- Fixed GROUND_Y from 550 → 320 (game viewport is only 350px, gibs were falling off-screen)
+- Fixed GORE_DEPTH values to render above enemies (depth 200):
+  - GORE_DEPTH.SPLATTER: 5 → 60 (above ground layer)
+  - GORE_DEPTH.BLOOD: 95 → 250 (above enemies)
+  - GORE_DEPTH.GIB: 100 → 250 (above enemies)
+- Removed debug logging after verification
+
+**Files Modified:**
+- `src/effects/gore/GoreConfig.ts` - GROUND_Y and GORE_DEPTH fixes
+- `src/effects/gore/GoreManager.ts` - Cleaned up debug logging
+- `src/effects/gore/Gib.ts` - Cleaned up debug logging
+- `src/effects/gore/BloodParticle.ts` - Cleaned up debug logging
+
+**Gore System Status:** ✅ Complete and visually verified
+
+---
 
 ### January 4, 2025 - Gore System Implementation Complete
 
