@@ -116,34 +116,25 @@
 
 ## 3.1 Tank Overview
 
-The player controls a stationary military battle tank. The tank does not move; instead, "movement speed" stat affects how fast enemies approach (creating illusion of tank speed).
+The player controls a **center-positioned** military battle tank. The tank is stationary while the background scrolls via parallax, creating the illusion of forward movement. Enemies approach from **both left and right sides**, creating bidirectional combat.
 
 ### Visual Design
 - Military olive drab camouflage
-- Large main cannon (built-in weapon)
-- Top-mounted machine gun (visual for Slot 1)
+- 5 module mount points (2 front, 2 back, 1 center)
 - Orange hazard stripes
 - Red sensor light (pulses on damage)
 - Exhaust pipes with smoke
 - Radio antenna
 
+### Bidirectional Combat
+- **Tank Position**: Center of screen
+- **Right-side enemies**: Approach head-on (standard combat)
+- **Left-side enemies**: Chase from behind (tank is "moving right")
+- **Visual effect**: Parallax background scrolls left, creating forward motion
+
 ## 3.2 Built-in Cannon
 
-The main cannon is a **permanent weapon** that fires independently of module slots.
-
-| Attribute | Value |
-|-----------|-------|
-| Fire Rate | 1 shot every 2.5 seconds |
-| Damage | High (scales with Tank Level) |
-| Range | Maximum (hits any enemy on screen) |
-| Upgradeable | No |
-| Special | Always active, cannot be disabled |
-
-**Behavior:**
-- Targets highest HP enemy
-- Single target damage
-- Creates large explosion effect on hit
-- Pierces through fodder enemies (hits up to 3)
+**REMOVED** - The built-in cannon has been removed from the game. All damage comes from equipped modules, making module loadout and slot positioning more strategic.
 
 ## 3.3 Tank Stats
 
@@ -199,15 +190,42 @@ Level 160: 127,189,534 XP
 
 ## 3.5 Module Slots
 
-Slots are permanent sockets where module items are equipped.
+Slots are permanent sockets where module items are equipped. Each slot has a **physical position** on the tank and a **targeting direction**.
+
+### Slot Layout (Top View)
+```
+          ← REAR (LEFT)              FRONT (RIGHT) →
+
+              [Slot 4]                  [Slot 3]
+                        [Slot 5]
+              [Slot 2]                  [Slot 1]
+
+                   ═══[TANK BODY]═══════►
+
+          ↑                                    ↑
+    Attacks LEFT                         Attacks RIGHT
+    (chasing enemies)                    (approaching enemies)
+```
+
+### Slot Targeting Directions
+
+| Slot | Position | Target Direction | Notes |
+|------|----------|------------------|-------|
+| Slot 1 | Front-Right Lower | Right only | Starting slot |
+| Slot 2 | Back-Left Lower | Left only | Starting slot |
+| Slot 3 | Front-Right Upper | Right only | First unlock |
+| Slot 4 | Back-Left Upper | Left only | Second unlock |
+| Slot 5 | Center Middle | **Both sides** | Most valuable, attacks closest from either side |
+
+### Slot Unlock Progression
 
 | Slot | Unlock Condition | Gold Cost |
 |------|------------------|-----------|
 | Slot 1 | Free (game start) | 0 |
-| Slot 2 | Available from start | 10,000 |
-| Slot 3 | Available from start | 50,000 |
-| Slot 4 | Defeat Act 8 (Diaboros) | 500,000 |
-| Slot 5 | Defeat all 8 Uber Bosses | 2,000,000 |
+| Slot 2 | Free (game start) | 0 |
+| Slot 3 | Available from start | 10,000 |
+| Slot 4 | Available from start | 20,000 |
+| Slot 5 | Complete Act 6 | 75,000 |
 
 ### Slot Upgrades (Per-Stat System)
 Each slot has **3 individual stats** that can be upgraded separately. Stats only affect the module equipped in that specific slot.
@@ -381,15 +399,72 @@ Each module type has **2 active skills** that can be manually activated or auto-
 
 Enemies must be within range to be targeted. Enemies "out of range" continue approaching until targetable.
 
+## 4.6 Cinematic Module Effects
+
+Modules are designed to feel **impactful and epic**. Each module has distinct visual feedback for launch, travel, and impact phases.
+
+### Module Independence
+
+Modules are **independent entities** with their own:
+- **Position**: Each module has its own world position on the tank
+- **Firing Origin**: Projectiles spawn from module sprite, not tank center
+- **Targeting Animation**: Modules rotate/wiggle toward their target
+- **Visual Identity**: Distinct sprites per module type
+
+### Module Animations
+
+| Animation | Description | Trigger |
+|-----------|-------------|---------|
+| Idle Wobble | Slight random rotation/bob | Always when equipped |
+| Target Tracking | Rotate toward current target | When target acquired |
+| Fire Recoil | Small kickback on firing | On each shot |
+| Cooldown Pulse | Subtle glow when skill ready | Skill off cooldown |
+
+### Cinematic Effect Specifications
+
+| Module | Launch Phase | Travel Phase | Impact Phase |
+|--------|--------------|--------------|--------------|
+| **Machine Gun** | Barrel spin-up, muzzle flash, shell casings | Tracer effect | Spark burst, dust puff |
+| **Missile Pod** | Vertical launch with smoke puff | High parabolic arc, smoke trail | Fire ring, shockwave, debris |
+| **Tesla Coil** | Charge-up glow (200ms) | Branching lightning arc | Enemy skeleton flash |
+| **Mortar** | Tube recoil, shell rises to sky | Above screen, target indicator | Large explosion radius |
+| **Repair Drone** | Drone hover animation | Green particle beam | +HP numbers float |
+| **Flamethrower** | Rolling animated flames | Heat distortion | Enemies catch fire |
+| **Laser Cutter** | Lens focus, power-up | Wobbling beam, heat shimmer | Burn marks, smoke |
+| **EMP Emitter** | Electrical arcs | Expanding blue ring | Enemies flash blue |
+| **Shield Generator** | Energy field shimmer | Hexagonal pattern | Shield ripple |
+
+### Missile Pod Behavior (Example)
+
+The Missile Pod demonstrates the full cinematic approach:
+
+```
+                    ↑ Peak (100-150px above launch)
+                   / \
+                  /   \
+    [Module] → ↗       ↘ → [Enemy]
+           Launch      Dive
+```
+
+- **Launch**: Missile fires **vertically upward** with smoke puff
+- **Travel**: Smooth parabolic arc (no pause), persistent smoke trail
+- **Impact**: Fire ring, shockwave, debris particles
+- **Barrage Skill**: Staggered launches (5 missiles, 150ms apart) like real MLRS systems
+
 ---
 
 # 5. COMBAT SYSTEM
 
 ## 5.1 Combat Flow
 
-1. **Enemies spawn** from right side of screen
-2. **Enemies walk left** toward tank (speed affected by Movement Speed stat)
-3. **Tank + Modules auto-fire** at enemies in range
+1. **Enemies spawn** from **both sides** of screen (50/50 split)
+   - Right-side: Approach head-on toward tank
+   - Left-side: Chase from behind (tank is "moving right")
+2. **Enemies walk toward tank** (speed affected by Movement Speed stat)
+3. **Modules auto-fire based on slot direction**:
+   - Front modules (Slots 1, 3) → Target right-side enemies only
+   - Back modules (Slots 2, 4) → Target left-side enemies only
+   - Center module (Slot 5) → Targets closest enemy from either side
 4. **Player activates skills** (or auto-mode triggers them)
 5. **Enemies die** → Drop Gold, XP, potential Module
 6. **Wave clears** → Brief pause → Next wave
@@ -490,36 +565,82 @@ Modules use the following targeting priority:
 | Beat Diaboros | Slot 4 purchasable (500k) |
 | Beat All Ubers | Slot 5 purchasable (2M) |
 
-## 6.3 Paragon System
+## 6.3 Faction Allegiance System
 
-Unlocked after defeating Diaboros (Act 8 Boss).
+Unlocked after defeating **all 8 Uber Bosses**. Replaces the traditional prestige system with a narrative-driven faction choice.
 
-### Prestige Reset
+### The Throne of Ascension
+
+After defeating all Uber Bosses, a portal to the **Throne of Ascension** appears. The player must choose to align with one of three factions:
+
+| Faction | Theme | Visual Style |
+|---------|-------|--------------|
+| **Angels** | Holy/Light | White, gold, divine glow |
+| **Demons** | Fire/Chaos | Red, black, hellfire |
+| **Military** | Tech/Order | Green, steel, tactical |
+
+**Choice is permanent for that run.**
+
+### Module Infusions
+
+Choosing a faction **infuses all modules** with that faction's theme. Infusions add visual effects and stat bonuses.
+
+| Original Module | + Angels | + Demons | + Military |
+|-----------------|----------|----------|------------|
+| Machine Gun | Holy Bolts (pierce) | Hellfire Rounds (burn) | Armor-Piercing (ignore def) |
+| Missile Pod | Seraphim Missiles (homing+) | Brimstone Rockets (AoE+) | Tactical Missiles (faster) |
+| Tesla Coil | Divine Lightning (chain+) | Chaos Arc (random) | EMP Shock (stun+) |
+| Repair Drone | Guardian Angel (overheal) | Blood Pact (lifesteal) | Nano Repair (faster) |
+| Flamethrower | Holy Fire (purify) | Hellfire (DoT+) | Napalm (ground fire) |
+
+**Infusions are cumulative across runs.** After 3 runs, all modules have all 3 infusions active simultaneously.
+
+### Faction Run Progression
+
+| Run | Choice | Result |
+|-----|--------|--------|
+| 1 | Pick first faction | Get that faction's infusions, fight other 2 factions |
+| 2 | Pick second faction | Infusions stack, fight remaining factions |
+| 3 | Pick third faction | All 3 infusions active |
+| 4+ | **The Void unlocks** | Infinite scaling endgame |
+
+### Enemy Changes Per Faction
+
+After picking a faction, you fight the other two factions as enemies:
+
+| Your Faction | Enemies You Fight |
+|--------------|-------------------|
+| Angels | Demons + Military (in separate waves) |
+| Demons | Angels + Military (in separate waves) |
+| Military | Angels + Demons (in separate waves) |
+
+Enemy changes:
+- **Stronger versions** of existing enemy types
+- **Slight recoloring** to match faction theme
+- Same mechanics, higher stats
+
+### What Resets Between Runs
+
 | Resets | Keeps |
 |--------|-------|
 | Tank Level → 1 | Unlocked Module Slots |
-| All Stat Levels → 0 | Paragon Points/Upgrades |
+| All Stat Levels → 0 | Faction Infusions (permanent) |
 | Gold → 0 | Module Collection (inventory) |
 | Zone Progress → Act 1 | Bestiary Progress |
 
-### Paragon Stats
+### The Void (Endgame)
 
-Upgraded with **Infernal Cores** (dropped by Uber Bosses only).
+After completing 3 full runs (one per faction), **The Void** unlocks:
 
-| Stat | Effect per Point | Max Points |
-|------|------------------|------------|
-| Global Damage | +1% | 100 |
-| Global Attack Speed | +1% | 100 |
-| Max HP | +2% | 100 |
-| Defense | +1% | 100 |
-| Gold Find | +2% | 50 |
-| Essence Drop Rate | +2% | 50 |
+| Content Type | Description |
+|--------------|-------------|
+| **Void Zone** | New Act 9 with void-themed environment |
+| **Void Enemies** | Corrupted versions of ALL faction enemies |
+| **Void Bosses** | 8 new void-corrupted Uber bosses |
+| **Infinite Scaling** | After beating Void Ubers, difficulty scales infinitely |
 
-### Infernal Core Drops
-| Uber Boss | Cores Dropped |
-|-----------|---------------|
-| Any Uber | 3-5 Cores |
-| First Kill Bonus | +10 Cores |
+**True Ending**: Beat all Void Uber Bosses
+**Endgame Loop**: Infinite scaling with ever-increasing rewards
 
 ---
 
