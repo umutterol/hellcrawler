@@ -398,6 +398,221 @@ Final polish and platform integration.
 
 ---
 
+## Parallelization Guide (Multi-Instance Work)
+
+This section identifies tasks that can be delegated to separate Claude instances working in parallel.
+
+### Legend
+- 🔀 **PARALLEL** - Can run simultaneously with other marked tasks
+- 🔗 **SEQUENTIAL** - Must complete before dependent tasks
+- 👤 **SINGLE OWNER** - Related tasks that should stay with one instance
+- ⚡ **INDEPENDENT** - No dependencies, can start anytime
+
+---
+
+### TIER 0: VFX Polish - Parallelization
+
+| Task | Parallelization | Notes |
+|------|-----------------|-------|
+| 0.7 Cannon muzzle flash | 🔀 PARALLEL | Independent of 0.8 |
+| 0.8 Missile smoke puff | 🔀 PARALLEL | Independent of 0.7 |
+
+**Recommended:** 2 instances can work on 0.7 and 0.8 simultaneously.
+
+---
+
+### TIER 1: Center Tank - Parallelization
+
+#### Phase 1A: Core Mechanics (3 Parallel Streams)
+
+```
+STREAM A (Position/Spawn)     STREAM B (Targeting)      STREAM C (Config)
+═══════════════════════       ════════════════════      ═════════════════
+1.1 Tank position ────┐       1.4 targetDirection ─┐    1.7 Remove cannon
+         │            │              │              │    1.8 Slot costs
+         ▼            │              ▼              │    1.9 Act 6 req
+1.2 Left spawn ──────┤       1.5 Module targeting ─┤
+         │            │                             │
+         ▼            │                             │
+1.3 Slot positions ──┤                             │
+         │            │                             │
+1.6 Wave spawning ───┴─────────────────────────────┘
+                              │
+                              ▼
+                        1.10 Testing (ALL COMPLETE)
+```
+
+| Stream | Tasks | Owner |
+|--------|-------|-------|
+| **Stream A** | 1.1 → 1.2 → 1.3 → 1.6 | 👤 Instance 1 |
+| **Stream B** | 1.4 → 1.5 | 👤 Instance 2 (🔀 parallel with A) |
+| **Stream C** | 1.7, 1.8, 1.9 | 👤 Instance 3 (🔀 parallel with A, B) |
+| **Final** | 1.10 | Any instance after merge |
+
+**Recommended:** 3 instances for Phase 1A, merge for testing.
+
+---
+
+#### Phase 1B: UI Refactoring (4 Parallel Streams)
+
+```
+STREAM D (BottomBar)     STREAM E (Panels)          STREAM F (Shop)       STREAM G (Config)
+════════════════════     ═════════════════          ═══════════════       ════════════════
+1.11 Slot layout         1.14 Stats direction       1.16 Costs display    1.19 UIConfig
+1.12 Direction icons     1.15 Stats content         1.17 Requirements     1.20 UISpec.md
+1.13 Slot reorder        1.18 Inventory labels
+```
+
+| Stream | Tasks | Owner | Dependencies |
+|--------|-------|-------|--------------|
+| **Stream D** | 1.11, 1.12, 1.13 | 👤 Instance 1 | Needs 1.19 (UIConfig) |
+| **Stream E** | 1.14, 1.15, 1.18 | 👤 Instance 2 | Needs 1.19 |
+| **Stream F** | 1.16, 1.17 | 👤 Instance 3 | Needs 1.19 |
+| **Stream G** | 1.19, 1.20 | 👤 Instance 4 | 🔗 FIRST - others depend on this |
+
+**Recommended:** Start Stream G first, then 3 parallel UI instances.
+
+---
+
+### TIER 2: Module Effects - Parallelization
+
+#### Phase 2A: Module Independence
+
+| Task | Parallelization | Notes |
+|------|-----------------|-------|
+| 2.1 ModuleSprite class | 🔗 SEQUENTIAL | Must be first |
+| 2.2 Idle wobble | 🔗 SEQUENTIAL | Needs 2.1 |
+| 2.3 Target rotation | 🔗 SEQUENTIAL | Needs 2.2 |
+| 2.4 Fire recoil | 🔗 SEQUENTIAL | Needs 2.3 |
+| 2.5 Projectile spawn | 🔗 SEQUENTIAL | Needs 2.4 |
+
+**Recommended:** Single instance for Phase 2A (tight dependencies).
+
+---
+
+#### Phase 2B: Cinematic Effects (5 Parallel Streams!)
+
+```
+Each module effect is INDEPENDENT - maximum parallelization possible!
+
+Instance 1: 2.6 Missile Pod (arc + dive)
+Instance 2: 2.7 Machine Gun (tracers + casings)
+Instance 3: 2.8 Tesla Coil (lightning)
+Instance 4: 2.9 Mortar (sky trajectory)
+Instance 5: 2.10 Other modules
+```
+
+| Task | Parallelization | Notes |
+|------|-----------------|-------|
+| 2.6 Missile Pod | ⚡ INDEPENDENT | 🔀 Parallel |
+| 2.7 Machine Gun | ⚡ INDEPENDENT | 🔀 Parallel |
+| 2.8 Tesla Coil | ⚡ INDEPENDENT | 🔀 Parallel |
+| 2.9 Mortar | ⚡ INDEPENDENT | 🔀 Parallel |
+| 2.10 Others | ⚡ INDEPENDENT | 🔀 Parallel |
+
+**Recommended:** Up to 5 instances for cinematic effects!
+
+---
+
+### TIER 2.5: UI Polish - Parallelization
+
+#### Phase 2.5A: Essential Features (3 Parallel Streams)
+
+| Stream | Tasks | Notes |
+|--------|-------|-------|
+| **Drag & Drop** | 2.51 | ⚡ INDEPENDENT - Complex, dedicated instance |
+| **Tooltips** | 2.52 | ⚡ INDEPENDENT - New system, dedicated instance |
+| **Inventory Features** | 2.53, 2.54, 2.55 | 👤 SINGLE OWNER - All in InventoryPanel |
+
+---
+
+#### Phase 2.5B & 2.5C: All Independent
+
+| Task | Parallelization |
+|------|-----------------|
+| 2.56 Context menus | ⚡ INDEPENDENT |
+| 2.57 Module compare | ⚡ INDEPENDENT |
+| 2.58 Double-click | ⚡ INDEPENDENT |
+| 2.59 Zone select UI | ⚡ INDEPENDENT |
+| 2.60 Zone summary | ⚡ INDEPENDENT |
+| 2.61 Main Menu scene | ⚡ INDEPENDENT |
+| 2.62 Near Death overlay | ⚡ INDEPENDENT |
+| 2.63 Gold rate display | ⚡ INDEPENDENT |
+| 2.64 Flee button | ⚡ INDEPENDENT |
+| 2.65 Wave pause | ⚡ INDEPENDENT |
+
+**Recommended:** Each UI feature can be a separate instance.
+
+---
+
+### TIER 3: Content Expansion - Parallelization
+
+#### Maximum Parallelization: 8 Acts
+
+```
+Each Act is INDEPENDENT - can be developed in parallel!
+
+Instance 1: Act 2 (3.1-3.4) - Demon, Bat, Ghost, Firebat, Gargoyle boss
+Instance 2: Act 3 (3.5) - Military Base, Siege Beast
+Instance 3: Act 4 (3.6) - Underground, Tunnel Wyrm
+Instance 4: Act 5 (3.7) - Hell Outskirts, Hell Beast
+Instance 5: Act 6 (3.8) - Burning Hells, The Infernal
+Instance 6: Act 7 (3.9) - Chaos Realm, Void Dragon
+Instance 7: Act 8 (3.10) - Throne, Diaboros
+Instance 8: Systems (3.11-3.15) - Zone UI, progression, modules
+```
+
+| Task Group | Parallelization | Notes |
+|------------|-----------------|-------|
+| Each Act (3.1-3.10) | ⚡ INDEPENDENT | 🔀 All parallel |
+| Systems (3.11-3.15) | 🔀 PARALLEL | Can run alongside Acts |
+
+**Recommended:** Scale to as many instances as needed for content.
+
+---
+
+### TIER 4-7: Later Phases
+
+| Tier | Parallelization Strategy |
+|------|--------------------------|
+| **TIER 4: Audio** | Single instance (cohesive audio design) |
+| **TIER 5: Faction** | 3 factions can be parallel after base system |
+| **TIER 6: The Void** | Single instance (unique endgame content) |
+| **TIER 7: Steam** | Single instance (platform integration) |
+
+---
+
+### Summary: Maximum Parallel Instances by Phase
+
+| Phase | Max Instances | Work Streams |
+|-------|---------------|--------------|
+| TIER 0 | 2 | Muzzle flash, Smoke puff |
+| TIER 1A | 3 | Position, Targeting, Config |
+| TIER 1B | 4 | BottomBar, Panels, Shop, Config |
+| TIER 2A | 1 | Sequential dependencies |
+| TIER 2B | 5 | Each module effect |
+| TIER 2.5 | 10+ | Each UI feature |
+| TIER 3 | 8 | Each Act + Systems |
+
+**Peak Parallelization:** TIER 2.5 and TIER 3 offer the most parallel work.
+
+---
+
+### Cross-Tier Parallelization
+
+Some tiers can run in parallel with others:
+
+```
+After TIER 1 completes:
+├── TIER 2 (Module Effects) ──────┐
+├── TIER 2.5 (UI Polish) ─────────┼── All can run in PARALLEL
+└── TIER 3 (Content) ─────────────┘
+
+TIER 4 (Audio) can run in parallel with ANY tier (waiting for assets)
+```
+
+---
+
 ## Current Status
 
 | Milestone | Status | Last Updated |
@@ -587,6 +802,29 @@ GameState (current) → Split into:
 ---
 
 ## Changelog
+
+### January 4, 2025 - Parallelization Guide Added
+
+**Multi-Instance Work Planning:**
+- Added comprehensive "Parallelization Guide (Multi-Instance Work)" section
+- Analyzed all tiers for parallel work opportunities
+- Created stream diagrams showing dependency chains
+- Identified maximum parallel instances per phase:
+  - TIER 0: 2 instances (VFX effects)
+  - TIER 1A: 3 instances (Position, Targeting, Config streams)
+  - TIER 1B: 4 instances (BottomBar, Panels, Shop, Config)
+  - TIER 2A: 1 instance (sequential dependencies)
+  - TIER 2B: 5 instances (each module effect)
+  - TIER 2.5: 10+ instances (each UI feature)
+  - TIER 3: 8 instances (each Act)
+
+**Key Findings:**
+- Peak parallelization in TIER 2.5 and TIER 3
+- TIER 2, 2.5, and 3 can all run in parallel after TIER 1 completes
+- TIER 4 (Audio) can run alongside any tier while waiting for assets
+- Created legend: 🔀 PARALLEL, 🔗 SEQUENTIAL, 👤 SINGLE OWNER, ⚡ INDEPENDENT
+
+---
 
 ### January 4, 2025 - Technical Alignment Analysis
 
