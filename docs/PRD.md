@@ -46,7 +46,10 @@
 ### Full Release Success
 - [ ] All 8 Acts complete
 - [ ] All 10 modules implemented
-- [ ] Paragon system functional
+- [ ] Center tank with bidirectional combat
+- [ ] Cinematic module effects (missiles arc, etc.)
+- [ ] Faction Allegiance system (replaces Paragon)
+- [ ] The Void endgame content
 - [ ] Boss summoning system
 - [ ] Steam integration (achievements, cloud save)
 - [ ] 60 FPS on minimum spec hardware
@@ -607,40 +610,50 @@ Acceptance Criteria:
 
 ## 4.2 Module System
 
-### F-MODULE-001: Module Slots
+### F-MODULE-001: Module Slots (Bidirectional)
 ```
 Priority: P1 (MVP)
-Description: Container for module items with per-stat upgrades
+Description: Container for module items with per-stat upgrades and directional targeting
 
 Properties:
   - index: 0-4
   - stats: { damageLevel, attackSpeedLevel, cdrLevel }
   - equipped: ModuleItem | null
   - unlocked: boolean
+  - targetDirection: 'left' | 'right' | 'both'
+  - position: { x, y } offset from tank center
 
 Per-Stat Properties:
   - Each stat: level 0-160 (capped by tank level)
   - Cost per upgrade: (currentLevel + 1) × 50 Gold
 
-Unlock Conditions:
-  - Slot 0: Free
-  - Slot 1: 10,000 Gold
-  - Slot 2: 50,000 Gold
-  - Slot 3: Beat Diaboros + 500,000 Gold
-  - Slot 4: Beat all Ubers + 2,000,000 Gold
+Slot Layout (Top View):
+          ← REAR (LEFT)              FRONT (RIGHT) →
+              [Slot 4]                  [Slot 3]
+                        [Slot 5]
+              [Slot 2]                  [Slot 1]
 
-Per-Stat Upgrade Effects:
-  - Damage: +1% module damage per level
-  - Attack Speed: +1% module fire rate per level
-  - CDR: +1% cooldown reduction per level (capped at 90%)
+Targeting Directions:
+  - Slot 1 (Front-Right Lower): Right only - attacks approaching enemies
+  - Slot 2 (Back-Left Lower): Left only - attacks chasing enemies
+  - Slot 3 (Front-Right Upper): Right only
+  - Slot 4 (Back-Left Upper): Left only
+  - Slot 5 (Center): Both sides - targets closest from either direction
+
+Unlock Conditions:
+  - Slot 1: Free (starting slot)
+  - Slot 2: Free (starting slot)
+  - Slot 3: 10,000 Gold
+  - Slot 4: 20,000 Gold
+  - Slot 5: Complete Act 6 + 75,000 Gold
 
 Acceptance Criteria:
   - Slots display correctly in UI with 3 stats each
   - TankStatsPanel shows tabs: Tank, Slot 1-5
   - Each stat upgrades independently
-  - Upgrade costs scale correctly: (level + 1) × 50
-  - Level cap enforced per stat (tank level)
-  - Stat bonuses apply only to module in that slot
+  - Modules only target enemies on their designated side
+  - Slot 5 targets closest enemy from either side
+  - Projectiles spawn from module position (not tank center)
 ```
 
 ### F-MODULE-002: Module Items
@@ -719,37 +732,54 @@ Acceptance Criteria:
   - Caps enforced
 ```
 
-### F-PROG-002: Paragon System
+### F-PROG-002: Faction Allegiance System
 ```
 Priority: P4
-Description: Prestige system after beating Act 8
+Description: Narrative-driven endgame system after beating all Uber Bosses
 
-Trigger: Defeat Diaboros
+Trigger: Defeat all 8 Uber Bosses → Throne of Ascension portal appears
 
-Resets:
+Faction Choice (permanent per run):
+  - Angels: Holy/Light theme (white, gold, divine glow)
+  - Demons: Fire/Chaos theme (red, black, hellfire)
+  - Military: Tech/Order theme (green, steel, tactical)
+
+Module Infusions:
+  - Each faction adds visual effects + stat bonuses to ALL modules
+  - Infusions are CUMULATIVE across runs
+  - After 3 runs, all modules have all 3 faction infusions
+
+Enemy Changes:
+  - Side with Angels → Fight Demons + Military
+  - Side with Demons → Fight Angels + Military
+  - Side with Military → Fight Angels + Demons
+  - Enemies are stronger versions with faction-themed recoloring
+
+Resets Per Run:
   - Tank Level → 1
   - All Stat Levels → 0
   - Gold → 0
   - Zone Progress → Act 1
 
-Keeps:
+Keeps Per Run:
   - Unlocked Module Slots
   - Module Inventory
-  - Paragon Points/Upgrades
-  - Bosses Defeated (for essence access)
+  - Faction Infusions (permanent)
+  - Bosses Defeated
 
-Paragon Stats (upgraded with Infernal Cores):
-  - Global Damage: +1% per point (max 100)
-  - Global Attack Speed: +1% (max 100)
-  - Max HP: +2% (max 100)
-  - Defense: +1% (max 100)
-  - Gold Find: +2% (max 50)
-  - Essence Drop Rate: +2% (max 50)
+The Void (after 3 runs):
+  - New Act 9 with void-themed content
+  - Corrupted versions of ALL faction enemies
+  - 8 Void Uber Bosses
+  - Infinite scaling endgame after Void Ubers defeated
 
 Acceptance Criteria:
-  - Correct data preserved/reset
-  - Paragon bonuses apply globally
-  - Infernal Cores only from Ubers
+  - Throne of Ascension appears after all Ubers defeated
+  - Faction choice UI with 3 options
+  - Module visuals change based on infusions
+  - Enemy waves contain correct faction enemies
+  - Infusions persist across saves/loads
+  - The Void unlocks after 3 faction runs
 ```
 
 ## 4.4 Wave System
@@ -1353,8 +1383,8 @@ export const GAME_CONFIG = {
   XP_BASE: 100,
   XP_EXPONENT: 1.15,
   
-  // Economy
-  SLOT_COSTS: [0, 10000, 50000, 500000, 2000000],
+  // Economy (both starting slots free, Slot 5 requires Act 6)
+  SLOT_COSTS: [0, 0, 10000, 20000, 75000],
   STAT_UPGRADE_BASE_COST: 100,
   
   // Modules
