@@ -7,14 +7,19 @@ import { getSettingsManager } from '../managers/SettingsManager';
 import { GAME_CONFIG, getEnemyStatMultiplier } from '../config/GameConfig';
 
 /**
+ * Spawn side type for bidirectional combat
+ */
+export type SpawnSide = 'left' | 'right';
+
+/**
  * Enemy - Base class for all enemy types
  *
  * Implements IPoolable for object pooling.
- * Enemies move from right to left toward the tank.
+ * Enemies spawn from both sides and move toward the center tank.
  *
  * Features:
  * - Poolable (activate/deactivate lifecycle)
- * - Movement toward tank
+ * - Bidirectional movement (left→tank or right→tank)
  * - Health management
  * - Attack logic
  * - Death handling with loot emission
@@ -25,6 +30,9 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
   // Configuration (set on activation)
   protected config: EnemyConfig | null = null;
   protected enemyId: string = '';
+
+  // Spawn side - which direction this enemy came from
+  protected spawnSide: SpawnSide = 'right';
 
   // State
   protected currentHP: number = 0;
@@ -40,7 +48,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
   private static readonly HEALTH_BAR_WIDTH = 50;
   private static readonly HEALTH_BAR_HEIGHT = 6;
   private static readonly HEALTH_BAR_PADDING = 8; // Pixels above sprite top
-  private static readonly STOP_X_POSITION = 400; // Stop 200px from tank (tank is at x=200)
+  // Stop distance from tank center (not using GAME_CONFIG to avoid circular dependency)
+  private static readonly STOP_DISTANCE_FROM_TANK = 80;
   private static idCounter: number = 0;
 
   constructor(scene: Phaser.Scene, x: number = 0, y: number = 0) {
@@ -59,14 +68,20 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
 
   /**
    * Activate this enemy from the pool
-   * Resets all state and starts movement
+   * Resets all state and starts movement toward center tank
+   *
+   * @param x - Spawn X position
+   * @param y - Spawn Y position
+   * @param config - Enemy configuration
+   * @param side - Which side enemy spawns from ('left' or 'right')
    */
-  public activate(x: number, y: number, config: EnemyConfig): void {
+  public activate(x: number, y: number, config: EnemyConfig, side: SpawnSide = 'right'): void {
     this.config = config;
     this.enemyId = `enemy_${config.type}_${++Enemy.idCounter}`;
+    this.spawnSide = side;
 
     if (import.meta.env.DEV) {
-      console.log(`[Enemy] Activated ${this.enemyId} at (${x}, ${y})`);
+      console.log(`[Enemy] Activated ${this.enemyId} at (${x}, ${y}) from ${side}`);
     }
 
     // Set origin at bottom center so enemy stands on ground
@@ -89,6 +104,10 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
 
     // Apply visual FIRST so we have correct texture dimensions
     this.applyVisualsByCategory(config.category);
+
+    // Flip sprite based on spawn side (enemies should face the tank)
+    // Sprites face right by default, so flip if coming from right
+    this.setFlipX(side === 'right');
 
     // Enable physics body and set hitbox AFTER texture is set
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -113,8 +132,10 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
       );
     }
 
-    // Set velocity to move left toward tank
-    this.setVelocityX(-config.speed);
+    // Set velocity to move toward tank center
+    // Left side enemies move right (positive X), right side enemies move left (negative X)
+    const velocityX = side === 'left' ? config.speed : -config.speed;
+    this.setVelocityX(velocityX);
     this.setVelocityY(0);
 
     // Create health bar
@@ -529,11 +550,13 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
   }
 
   private animateAttack(): void {
-    // Quick lunge animation
+    // Quick lunge animation toward the tank
     const originalX = this.x;
+    // Lunge toward tank: left-side enemies lunge right (+), right-side enemies lunge left (-)
+    const lungeDirection = this.spawnSide === 'left' ? 10 : -10;
     this.scene.tweens.add({
       targets: this,
-      x: originalX - 10,
+      x: originalX + lungeDirection,
       duration: 50,
       yoyo: true,
       ease: 'Power2',
@@ -577,24 +600,45 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
   }
 
   /**
+   * Get which side this enemy spawned from
+   */
+  public getSpawnSide(): SpawnSide {
+    return this.spawnSide;
+  }
+
+  /**
    * Update loop
+   * Handles bidirectional movement and stop positions
    */
   public preUpdate(time: number, delta: number): void {
     super.preUpdate(time, delta);
 
     if (!this.active) return;
 
-    // Stop at tank position
-    if (this.x <= Enemy.STOP_X_POSITION) {
-      this.setVelocityX(0);
-      this.x = Enemy.STOP_X_POSITION;
+    // Calculate stop positions dynamically (tank is at TANK_X, enemies stop STOP_DISTANCE away)
+    const stopXFromRight = GAME_CONFIG.TANK_X + Enemy.STOP_DISTANCE_FROM_TANK;
+    const stopXFromLeft = GAME_CONFIG.TANK_X - Enemy.STOP_DISTANCE_FROM_TANK;
+
+    // Stop at tank position based on spawn side
+    if (this.spawnSide === 'right') {
+      // Enemy from right moves left, stops when reaching tank's right side
+      if (this.x <= stopXFromRight) {
+        this.setVelocityX(0);
+        this.x = stopXFromRight;
+      }
+    } else {
+      // Enemy from left moves right, stops when reaching tank's left side
+      if (this.x >= stopXFromLeft) {
+        this.setVelocityX(0);
+        this.x = stopXFromLeft;
+      }
     }
 
     // Only update health bar position (cheap), not redraw
     this.updateHealthBarPosition();
 
-    // Deactivate if somehow off screen
-    if (this.x < -50) {
+    // Deactivate if somehow off screen (either side)
+    if (this.x < -100 || this.x > GAME_CONFIG.WIDTH + 100) {
       this.deactivate();
     }
   }

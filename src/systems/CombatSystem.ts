@@ -25,7 +25,8 @@ export class CombatSystem {
 
   // Collision overlaps
   private projectileEnemyOverlap: Phaser.Physics.Arcade.Collider | null = null;
-  private enemyTankOverlap: Phaser.Physics.Arcade.Collider | null = null;
+  private enemyTankOverlapRight: Phaser.Physics.Arcade.Collider | null = null;
+  private enemyTankOverlapLeft: Phaser.Physics.Arcade.Collider | null = null;
 
   constructor(
     scene: Phaser.Scene,
@@ -52,19 +53,33 @@ export class CombatSystem {
       this
     );
 
-    // Enemy vs Tank hitbox (melee range)
-    // Use the tank's physics hitbox, not the container
-    const hitbox = this.tank.getHitbox();
-    this.enemyTankOverlap = this.scene.physics.add.overlap(
+    // Enemy vs Tank hitboxes (melee range) - bidirectional combat
+    // Use both left and right hitboxes for enemies from both sides
+    const hitboxes = this.tank.getHitboxes();
+
+    // Right hitbox - enemies from right side
+    this.enemyTankOverlapRight = this.scene.physics.add.overlap(
       this.enemies,
-      hitbox,
+      hitboxes.right,
+      this.onEnemyReachTank as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
+      undefined,
+      this
+    );
+
+    // Left hitbox - enemies from left side
+    this.enemyTankOverlapLeft = this.scene.physics.add.overlap(
+      this.enemies,
+      hitboxes.left,
       this.onEnemyReachTank as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
       undefined,
       this
     );
 
     if (import.meta.env.DEV) {
-      console.log('[CombatSystem] Enemy-tank overlap registered:', this.enemyTankOverlap ? 'success' : 'failed');
+      console.log('[CombatSystem] Enemy-tank overlaps registered:',
+        `right=${this.enemyTankOverlapRight ? 'success' : 'failed'}`,
+        `left=${this.enemyTankOverlapLeft ? 'success' : 'failed'}`
+      );
     }
   }
 
@@ -306,77 +321,6 @@ export class CombatSystem {
   }
 
   /**
-   * Fire the tank's built-in cannon at the closest enemy
-   */
-  public fireCannonAt(time: number): void {
-    const fireData = this.tank.fireCannon(time);
-    if (!fireData) return;
-
-    // Find closest alive enemy to target
-    const enemyCount = this.enemies.getChildren().filter(e => (e as Enemy).active && (e as Enemy).isAlive()).length;
-    const target = this.findClosestEnemy(fireData.x, fireData.y);
-
-    if (import.meta.env.DEV) {
-      console.log(`[CombatSystem] fireCannonAt: ${enemyCount} enemies, target=${target ? 'found at ' + target.x.toFixed(0) : 'none'}`);
-    }
-
-    if (!target) {
-      // No enemies to target, don't waste ammo
-      return;
-    }
-
-    const projectile = this.projectiles.getFirstDead(false) as Projectile | null;
-    if (!projectile) {
-      if (import.meta.env.DEV) {
-        console.warn('[CombatSystem] No inactive projectiles available!');
-      }
-      return;
-    }
-
-    const speed = 600;
-    const config: ProjectileConfig = {
-      type: ProjectileType.CannonShell,
-      damage: fireData.damage,
-      speed,
-      isCrit: false, // Cannon handles crit in damage calc
-      aoeRadius: 30,
-    };
-
-    projectile.activate(fireData.x, fireData.y, config);
-
-    // Calculate angle to target and set velocity toward it
-    const angle = Phaser.Math.Angle.Between(fireData.x, fireData.y, target.x, target.y);
-    const velX = Math.cos(angle) * speed;
-    const velY = Math.sin(angle) * speed;
-    projectile.setVelocity(velX, velY);
-
-    if (import.meta.env.DEV) {
-      console.log(`[CombatSystem] Cannon fired: vel=(${velX.toFixed(0)}, ${velY.toFixed(0)}), angle=${(angle * 180 / Math.PI).toFixed(1)}°`);
-    }
-  }
-
-  /**
-   * Find the closest alive enemy to a position
-   */
-  private findClosestEnemy(fromX: number, fromY: number): Enemy | null {
-    let closest: Enemy | null = null;
-    let closestDist = Infinity;
-
-    const enemies = this.enemies.getChildren() as Enemy[];
-    for (const enemy of enemies) {
-      if (!enemy.active || !enemy.isAlive()) continue;
-
-      const dist = Phaser.Math.Distance.Between(fromX, fromY, enemy.x, enemy.y);
-      if (dist < closestDist) {
-        closestDist = dist;
-        closest = enemy;
-      }
-    }
-
-    return closest;
-  }
-
-  /**
    * Spawn a projectile from a module
    */
   public spawnProjectile(
@@ -442,11 +386,9 @@ export class CombatSystem {
 
   /**
    * Update loop
+   * Note: Cannon removed - all damage now comes from equipped modules
    */
   public update(time: number, _delta: number): void {
-    // Fire cannon if ready
-    this.fireCannonAt(time);
-
     // Debug: Log active counts periodically (every 5 seconds to reduce spam)
     if (import.meta.env.DEV && Math.floor(time / 5000) !== Math.floor((time - _delta) / 5000)) {
       const activeProjectiles = this.projectiles.getChildren().filter(p => p.active).length;
@@ -462,8 +404,11 @@ export class CombatSystem {
     if (this.projectileEnemyOverlap) {
       this.projectileEnemyOverlap.destroy();
     }
-    if (this.enemyTankOverlap) {
-      this.enemyTankOverlap.destroy();
+    if (this.enemyTankOverlapRight) {
+      this.enemyTankOverlapRight.destroy();
+    }
+    if (this.enemyTankOverlapLeft) {
+      this.enemyTankOverlapLeft.destroy();
     }
   }
 }

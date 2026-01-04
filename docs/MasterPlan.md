@@ -17,8 +17,8 @@
 | MVP (Core Systems) | ✅ Complete | None | Done |
 | VFX Polish (Weapon Effects) | 🟡 In Progress | None | P0 |
 | **VFX Polish (Gore System)** | ✅ Complete | None | P0 |
-| **Center Tank Redesign** | ⏳ Planned | VFX Complete | P1 |
-| **Center Tank UI Refactor** | ⏳ Planned | Part of P1 | P1 |
+| **Center Tank Redesign (Phase 1A)** | ✅ Complete | None | P1 |
+| **Center Tank UI Refactor (Phase 1B)** | ⏳ Planned | Phase 1A Complete | P1 |
 | Cinematic Module Effects | ⏳ Planned | Center Tank | P2 |
 | **UI Polish & Missing Features** | ⏳ Planned | Center Tank UI | P2.5 |
 | Content Expansion (Acts 2-8) | ⏳ Planned | Center Tank | P3 |
@@ -97,16 +97,16 @@ See `docs/GorePlan.md` for detailed implementation plan.
 
 | # | Task | Complexity | Status |
 |---|------|------------|--------|
-| 1.1 | Move tank position to screen center | Low | ⏳ |
-| 1.2 | Add left-side enemy spawn system | Medium | ⏳ |
-| 1.3 | Update MODULE_SLOT_POSITIONS config | Low | ⏳ |
-| 1.4 | Add `targetDirection` property to slots | Medium | ⏳ |
-| 1.5 | Update module targeting logic (left/right/both) | Medium | ⏳ |
-| 1.6 | Adjust wave spawning for 50/50 split | Low | ⏳ |
-| 1.7 | Remove built-in cannon | Low | ⏳ |
-| 1.8 | Update slot costs: [0, 0, 10K, 20K, 75K] | Low | ⏳ |
-| 1.9 | Add Act 6 requirement for Slot 5 | Low | ⏳ |
-| 1.10 | Test bidirectional combat balance | Medium | ⏳ |
+| 1.1 | Move tank position to screen center | Low | ✅ |
+| 1.2 | Add left-side enemy spawn system | Medium | ✅ |
+| 1.3 | Update MODULE_SLOT_POSITIONS config | Low | ✅ |
+| 1.4 | Add `targetDirection` property to slots | Medium | ✅ |
+| 1.5 | Update module targeting logic (left/right/both) | Medium | ✅ |
+| 1.6 | Adjust wave spawning for 50/50 split | Low | ✅ |
+| 1.7 | Remove built-in cannon | Low | ✅ |
+| 1.8 | Update slot costs: [0, 0, 10K, 20K, 75K] | Low | ✅ |
+| 1.9 | Add Act 6 requirement for Slot 5 | Low | ✅ |
+| 1.10 | Test bidirectional combat balance | Medium | ✅ |
 
 #### Phase 1B: UI Refactoring for Center Tank
 
@@ -879,6 +879,58 @@ GameState (current) → Split into:
 ---
 
 ## Changelog
+
+### January 4, 2025 - Center Tank Redesign (Phase 1A) Complete
+
+**Implemented Bidirectional Combat System:**
+- Tank positioned at screen center (x=960)
+- Enemies spawn from both left and right sides (50/50 distribution)
+- Front slots (0, 2) attack right-side enemies
+- Back slots (1, 3) attack left-side enemies
+- Center slot (4) attacks enemies from both sides
+- Removed built-in cannon (all damage from modules)
+
+**Key Changes:**
+
+*src/config/GameConfig.ts:*
+- Added `SlotDirection` enum (Left, Right, Both)
+- Added `TANK_X = 960` constant
+- Updated `SLOT_COSTS` to [0, 0, 10K, 20K, 75K]
+- Added `SLOT_5_ACT_REQUIREMENT = 6`
+- Updated `MODULE_SLOT_POSITIONS` for bidirectional layout
+- Added `SLOT_DIRECTIONS` array for slot targeting
+
+*src/entities/Tank.ts:*
+- Removed cannon-related code (sprite, firing, animation)
+- Added dual hitboxes (left/right) for collision detection
+- Added `getHitboxes()`, `getLeftHitbox()` methods
+
+*src/entities/Enemy.ts:*
+- Added `SpawnSide` type and `spawnSide` property
+- Updated `activate()` to accept spawn side parameter
+- Enemies now move toward tank center from both directions
+- Sprite flipping based on spawn side
+- Attack animation lunges toward tank
+
+*src/systems/WaveSystem.ts:*
+- Added `SpawnSide` type and bidirectional spawn positions
+- Updated `buildSpawnQueue()` for 50/50 left/right distribution
+- Updated `spawnEnemy()` to pass side to Enemy
+- Boss always spawns from right (dramatic entrance)
+
+*src/systems/CombatSystem.ts:*
+- Dual enemy-tank overlaps (left + right hitboxes)
+- Removed `fireCannonAt()` method
+- Updated `destroy()` for both overlaps
+
+*src/modules/ModuleManager.ts:*
+- Added `filterEnemiesBySlotDirection()` method
+- Modules only target enemies on their designated side
+- Skills also respect slot direction
+
+**Status:** Phase 1A complete. Phase 1B (UI Refactoring) next.
+
+---
 
 ### January 4, 2025 - Gore System Bug Fixes & Complete
 

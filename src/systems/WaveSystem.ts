@@ -17,12 +17,18 @@ interface WaveComposition {
 }
 
 /**
+ * Spawn side for bidirectional combat
+ */
+type SpawnSide = 'left' | 'right';
+
+/**
  * Spawn event for delayed enemy spawning
  */
 interface SpawnEvent {
   type: EnemyType;
   delay: number;
   spawned: boolean;
+  side: SpawnSide; // Which side of screen to spawn from
 }
 
 /**
@@ -49,9 +55,10 @@ export class WaveSystem {
   private enemiesKilled: number = 0;
   private totalEnemiesInWave: number = 0;
 
-  // Spawn configuration
+  // Spawn configuration - bidirectional (enemies from both sides)
   private spawnY: number;
-  private spawnXBase: number;
+  private spawnXRight: number; // Right side spawn (off-screen right)
+  private spawnXLeft: number;  // Left side spawn (off-screen left)
 
   // Wave pause
   private isWavePaused: boolean = false;
@@ -81,9 +88,10 @@ export class WaveSystem {
     this.eventManager = getEventManager();
     this.gameState = getGameState();
 
-    // Spawn position (right side of screen, same Y as tank ground level)
+    // Spawn positions - bidirectional (tank is centered, enemies from both sides)
     this.spawnY = GAME_CONFIG.HEIGHT - GAME_CONFIG.GROUND_HEIGHT;
-    this.spawnXBase = GAME_CONFIG.WIDTH + 50;
+    this.spawnXRight = GAME_CONFIG.WIDTH + 50;  // Off-screen right
+    this.spawnXLeft = -50;                       // Off-screen left
 
     // Subscribe to enemy death events
     this.eventManager.on(GameEvents.ENEMY_DIED, this.onEnemyDied, this);
@@ -208,25 +216,41 @@ export class WaveSystem {
   }
 
   /**
+   * Get alternating spawn side (50/50 distribution)
+   * Uses a simple counter to alternate left/right
+   */
+  private spawnSideCounter: number = 0;
+
+  private getNextSpawnSide(): SpawnSide {
+    this.spawnSideCounter++;
+    return this.spawnSideCounter % 2 === 0 ? 'left' : 'right';
+  }
+
+  /**
    * Build the spawn queue from wave composition
+   * Distributes enemies 50/50 between left and right sides
    */
   private buildSpawnQueue(composition: WaveComposition): void {
     let delay = 0;
     const spawnInterval = 500; // ms between spawns
 
-    // Add fodder enemies
+    // Reset spawn side counter for each wave
+    this.spawnSideCounter = Phaser.Math.Between(0, 1); // Random start side
+
+    // Add fodder enemies - alternating sides
     for (const group of composition.fodder) {
       for (let i = 0; i < group.count; i++) {
         this.spawnQueue.push({
           type: group.type,
           delay: delay,
           spawned: false,
+          side: this.getNextSpawnSide(),
         });
         delay += spawnInterval;
       }
     }
 
-    // Add elite enemies (spawn after a pause)
+    // Add elite enemies (spawn after a pause) - alternating sides
     if (composition.elites.length > 0) {
       delay += 1000; // Extra pause before elites
       for (const group of composition.elites) {
@@ -235,39 +259,48 @@ export class WaveSystem {
             type: group.type,
             delay: delay,
             spawned: false,
+            side: this.getNextSpawnSide(),
           });
           delay += spawnInterval * 2; // Elites spawn slower
         }
       }
     }
 
-    // Add super elite
+    // Add super elite - random side
     if (composition.superElite) {
       delay += 1000;
       this.spawnQueue.push({
         type: composition.superElite,
         delay: delay,
         spawned: false,
+        side: Math.random() > 0.5 ? 'left' : 'right',
       });
     }
 
-    // Add boss
+    // Add boss - always spawns from the right (dramatic entrance)
     if (composition.boss) {
       delay += 1500;
       this.spawnQueue.push({
         type: composition.boss,
         delay: delay,
         spawned: false,
+        side: 'right',
       });
     }
 
     this.totalEnemiesInWave = this.spawnQueue.length;
+
+    if (import.meta.env.DEV) {
+      const leftCount = this.spawnQueue.filter(s => s.side === 'left').length;
+      const rightCount = this.spawnQueue.filter(s => s.side === 'right').length;
+      console.log(`[WaveSystem] Spawn distribution: ${leftCount} left, ${rightCount} right`);
+    }
   }
 
   /**
-   * Spawn an enemy of the given type
+   * Spawn an enemy of the given type on the specified side
    */
-  private spawnEnemy(type: EnemyType): Enemy | null {
+  private spawnEnemy(type: EnemyType, side: SpawnSide): Enemy | null {
     // Check max enemies
     const activeCount = this.enemies.getChildren().filter(
       (child) => (child as Enemy).active
@@ -296,12 +329,16 @@ export class WaveSystem {
       return null;
     }
 
+    // Determine spawn X based on side
+    const spawnX = side === 'left' ? this.spawnXLeft : this.spawnXRight;
+
     if (import.meta.env.DEV) {
-      console.log(`[WaveSystem] Spawning ${type} (Act ${act}, Zone ${zone}, Wave ${wave}) HP=${config.hp} DMG=${config.damage}`);
+      console.log(`[WaveSystem] Spawning ${type} from ${side} (Act ${act}, Zone ${zone}, Wave ${wave}) HP=${config.hp}`);
     }
 
-    // Spawn at consistent Y position (ground level)
-    enemy.activate(this.spawnXBase, this.spawnY, config);
+    // Spawn at correct position for side
+    // Enemy needs to know which side to move from (direction)
+    enemy.activate(spawnX, this.spawnY, config, side);
     this.enemiesSpawned++;
 
     return enemy;
@@ -411,7 +448,7 @@ export class WaveSystem {
     // Process spawn queue
     for (const spawn of this.spawnQueue) {
       if (!spawn.spawned && elapsed >= spawn.delay) {
-        const enemy = this.spawnEnemy(spawn.type);
+        const enemy = this.spawnEnemy(spawn.type, spawn.side);
         if (enemy) {
           spawn.spawned = true;
         }
@@ -433,8 +470,10 @@ export class WaveSystem {
   /**
    * Debug: Spawn a specific enemy type immediately (bypasses wave system)
    * Only available in DEV mode
+   * @param type - Enemy type to spawn
+   * @param side - Optional spawn side (random if not specified)
    */
-  public debugSpawnEnemy(type: EnemyType): Enemy | null {
+  public debugSpawnEnemy(type: EnemyType, side?: SpawnSide): Enemy | null {
     if (!import.meta.env.DEV) return null;
 
     // Check max enemies
@@ -465,12 +504,16 @@ export class WaveSystem {
       return null;
     }
 
+    // Use provided side or random
+    const spawnSide: SpawnSide = side ?? (Math.random() > 0.5 ? 'left' : 'right');
+    const baseX = spawnSide === 'left' ? this.spawnXLeft : this.spawnXRight;
+
     // Spawn with X variation so multiple debug spawns don't overlap
-    const xOffset = Phaser.Math.Between(0, 200);
-    enemy.activate(this.spawnXBase + xOffset, this.spawnY, config);
+    const xOffset = spawnSide === 'left' ? -Phaser.Math.Between(0, 200) : Phaser.Math.Between(0, 200);
+    enemy.activate(baseX + xOffset, this.spawnY, config, spawnSide);
 
     if (import.meta.env.DEV) {
-      console.log(`[WaveSystem] Debug spawned: ${type} (Act ${act}) at x=${this.spawnXBase + xOffset}, HP=${config.hp}`);
+      console.log(`[WaveSystem] Debug spawned: ${type} from ${spawnSide} (Act ${act}) HP=${config.hp}`);
     }
 
     return enemy;

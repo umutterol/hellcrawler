@@ -14,6 +14,7 @@ import {
   ModuleUnequippedPayload,
   SlotStatUpgradedPayload,
 } from '../types/GameEvents';
+import { GAME_CONFIG, SlotDirection } from '../config/GameConfig';
 
 /**
  * ModuleManager - Manages the module slot system
@@ -400,26 +401,57 @@ export class ModuleManager {
   }
 
   /**
+   * Filter enemies based on slot direction for bidirectional combat
+   * - Right-facing slots only target enemies from the right (moving left)
+   * - Left-facing slots only target enemies from the left (moving right)
+   * - Center slots target enemies from both sides
+   */
+  private filterEnemiesBySlotDirection(slotIndex: number, enemies: Enemy[]): Enemy[] {
+    const direction = GAME_CONFIG.SLOT_DIRECTIONS[slotIndex];
+
+    if (direction === SlotDirection.Both) {
+      return enemies;
+    }
+
+    return enemies.filter(enemy => {
+      const spawnSide = enemy.getSpawnSide();
+      // Slot targets right → only enemies from right (spawn side 'right')
+      // Slot targets left → only enemies from left (spawn side 'left')
+      return direction === SlotDirection.Right
+        ? spawnSide === 'right'
+        : spawnSide === 'left';
+    });
+  }
+
+  /**
    * Update all active modules
+   * Modules only fire at enemies on their designated side (bidirectional combat)
    */
   public update(time: number, delta: number, enemies: Enemy[]): void {
-    for (const [_slotIndex, module] of this.activeModules) {
+    for (const [slotIndex, module] of this.activeModules) {
       // Update module state
       module.update(time, delta);
 
-      // Fire at enemies
-      module.fire(time, enemies);
+      // Filter enemies based on slot direction
+      const targetableEnemies = this.filterEnemiesBySlotDirection(slotIndex, enemies);
+
+      // Fire at enemies on this slot's side
+      module.fire(time, targetableEnemies);
     }
   }
 
   /**
    * Activate a skill on a module
+   * Filters enemies based on slot direction
    */
   public activateSkill(slotIndex: number, skillIndex: number, enemies: Enemy[]): boolean {
     const module = this.activeModules.get(slotIndex);
     if (!module) return false;
 
-    return module.activateSkill(skillIndex, enemies);
+    // Filter enemies based on slot direction
+    const targetableEnemies = this.filterEnemiesBySlotDirection(slotIndex, enemies);
+
+    return module.activateSkill(skillIndex, targetableEnemies);
   }
 
   /**

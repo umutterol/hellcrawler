@@ -27,7 +27,7 @@ import { getGoreManager } from '../effects/gore/GoreManager';
  * Main Game Scene - Core gameplay loop
  *
  * Phase 3 Implementation:
- * - Tank entity with auto-firing cannon
+ * - Tank entity at screen center (all damage from modules)
  * - Enemy spawning with wave system
  * - Combat system with damage and collisions
  * - Object pooling for enemies and projectiles
@@ -193,8 +193,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   private createTank(): void {
-    // Position tank on the ground
-    const tankX = 200;
+    // Position tank at screen center for bidirectional combat
+    const tankX = GAME_CONFIG.TANK_X;
     const tankY = GAME_CONFIG.HEIGHT - GAME_CONFIG.GROUND_HEIGHT; // Ground level
 
     this.tank = new Tank(this, tankX, tankY);
@@ -336,7 +336,7 @@ export class GameScene extends Phaser.Scene {
     // Update tank
     this.tank.update(time, delta);
 
-    // Update combat system (handles cannon firing)
+    // Update combat system (handles collisions)
     this.combatSystem.update(time, delta);
 
     // Update wave system (handles enemy spawning)

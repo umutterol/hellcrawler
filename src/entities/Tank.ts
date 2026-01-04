@@ -1,22 +1,22 @@
 import Phaser from 'phaser';
-import { StatType } from '../types/GameTypes';
 import { GameState, getGameState } from '../state/GameState';
 import { EventManager, getEventManager } from '../managers/EventManager';
 import { GameEvents } from '../types/GameEvents';
 import { GAME_CONFIG } from '../config/GameConfig';
-import { CANNON_CONFIG, calculateDamage } from '../config/Constants';
 
 /**
  * Tank - Main player entity
  *
- * The tank is stationary and cannot die. When HP reaches 0, it enters
- * Near Death state with reduced attack speed until revived.
+ * The tank is stationary at screen center and cannot die. When HP reaches 0,
+ * it enters Near Death state with reduced attack speed until revived.
  *
  * Features:
+ * - Centered position for bidirectional combat
  * - Health management with near-death system
- * - Built-in cannon with auto-fire
  * - HP regeneration
- * - Module slot container
+ * - Module slot container (all damage comes from modules)
+ *
+ * Note: Built-in cannon removed - all damage now comes from equipped modules
  */
 export class Tank extends Phaser.GameObjects.Container {
   private gameState: GameState;
@@ -24,16 +24,14 @@ export class Tank extends Phaser.GameObjects.Container {
 
   // Visual components
   private bodySprite!: Phaser.GameObjects.Sprite;
-  private cannonSprite!: Phaser.GameObjects.Sprite;
 
-  // Physics hitbox for enemy collision
-  private hitbox!: Phaser.Physics.Arcade.Sprite;
+  // Physics hitbox for enemy collision (both sides for bidirectional combat)
+  private hitboxLeft!: Phaser.Physics.Arcade.Sprite;
+  private hitboxRight!: Phaser.Physics.Arcade.Sprite;
 
   // Combat state
   private isNearDeath: boolean = false;
   private nearDeathTimer: number = 0;
-  private lastCannonFireTime: number = 0;
-  private cannonCooldown: number;
 
   // Constants
   private static readonly NEAR_DEATH_THRESHOLD = 0.2;
@@ -43,7 +41,6 @@ export class Tank extends Phaser.GameObjects.Container {
 
     this.gameState = getGameState();
     this.eventManager = getEventManager();
-    this.cannonCooldown = CANNON_CONFIG.FIRE_RATE * 1000; // Convert to ms
 
     // Create visual components
     this.createSprites();
@@ -60,49 +57,65 @@ export class Tank extends Phaser.GameObjects.Container {
   }
 
   private createSprites(): void {
-    // Tank body - using new tank sprite
+    // Tank body - using tank sprite
     this.bodySprite = this.scene.add.sprite(0, 0, 'tank-1');
     this.bodySprite.setOrigin(0.5, 1);
     this.bodySprite.setScale(2); // Scale up the 16-bit sprite
     this.add(this.bodySprite);
 
-    // Cannon (part of the tank texture for now)
-    this.cannonSprite = this.scene.add.sprite(40, -32, 'bullet-1');
-    this.cannonSprite.setScale(2);
-    this.cannonSprite.setVisible(false); // Hidden, part of main sprite
-    this.add(this.cannonSprite);
-
-    // Create physics hitbox for enemy collision detection
-    // Enemies stop at x=400, tank is at x=200, ground level is y (passed from GameScene)
-    // Hitbox needs to cover where enemies stop to detect collision
-    const hitboxWidth = 150;
+    // Create physics hitboxes for enemy collision detection (both sides for center tank)
+    // Tank is at screen center, enemies approach from both left and right
+    const hitboxWidth = 120;
     const hitboxHeight = 100;
+    const hitboxOffsetX = 100; // Distance from tank center to hitbox center
 
-    // Position hitbox between tank and enemy stop position
-    // Tank at x=200, enemies stop at x=400, so center hitbox around x=350
-    const hitboxX = 350;
-    const hitboxY = this.y;  // Use tank's actual Y position (ground level)
+    // Right hitbox - enemies from right stop here
+    this.hitboxRight = this.scene.physics.add.sprite(
+      this.x + hitboxOffsetX,
+      this.y,
+      'tank-placeholder'
+    );
+    this.hitboxRight.setVisible(import.meta.env.DEV);
+    this.hitboxRight.setAlpha(0.3);
+    this.hitboxRight.setTint(0x00ff00); // Green for right
+    this.hitboxRight.setImmovable(true);
+    this.hitboxRight.setOrigin(0.5, 0.5);
+    this.hitboxRight.setData('tank', this);
+    this.hitboxRight.setData('side', 'right');
 
-    this.hitbox = this.scene.physics.add.sprite(hitboxX, hitboxY, 'tank-placeholder');
-    this.hitbox.setVisible(import.meta.env.DEV); // Visible in dev for debugging
-    this.hitbox.setAlpha(0.3);
-    this.hitbox.setImmovable(true);
-    this.hitbox.setOrigin(0.5, 0.5); // Center origin for simpler body alignment
-
-    // Set body size - offset to center body on sprite position
-    const body = this.hitbox.body as Phaser.Physics.Arcade.Body;
-    if (body) {
-      body.setSize(hitboxWidth, hitboxHeight);
-      // Center the body on the sprite: offset = -(size/2) + (textureSize/2)
-      // Assuming 32x32 texture placeholder
+    const bodyRight = this.hitboxRight.body as Phaser.Physics.Arcade.Body;
+    if (bodyRight) {
+      bodyRight.setSize(hitboxWidth, hitboxHeight);
       const textureHalf = 16;
-      body.setOffset(-hitboxWidth / 2 + textureHalf, -hitboxHeight / 2 + textureHalf);
+      bodyRight.setOffset(-hitboxWidth / 2 + textureHalf, -hitboxHeight / 2 + textureHalf);
     }
-    this.hitbox.setData('tank', this); // Reference back to tank
+
+    // Left hitbox - enemies from left stop here
+    this.hitboxLeft = this.scene.physics.add.sprite(
+      this.x - hitboxOffsetX,
+      this.y,
+      'tank-placeholder'
+    );
+    this.hitboxLeft.setVisible(import.meta.env.DEV);
+    this.hitboxLeft.setAlpha(0.3);
+    this.hitboxLeft.setTint(0xff0000); // Red for left
+    this.hitboxLeft.setImmovable(true);
+    this.hitboxLeft.setOrigin(0.5, 0.5);
+    this.hitboxLeft.setData('tank', this);
+    this.hitboxLeft.setData('side', 'left');
+
+    const bodyLeft = this.hitboxLeft.body as Phaser.Physics.Arcade.Body;
+    if (bodyLeft) {
+      bodyLeft.setSize(hitboxWidth, hitboxHeight);
+      const textureHalf = 16;
+      bodyLeft.setOffset(-hitboxWidth / 2 + textureHalf, -hitboxHeight / 2 + textureHalf);
+    }
 
     if (import.meta.env.DEV) {
-      const b = this.hitbox.body as Phaser.Physics.Arcade.Body;
-      console.log(`[Tank] Combat hitbox covers x=${b.x}-${b.right}, y=${b.y}-${b.bottom}`);
+      const bRight = this.hitboxRight.body as Phaser.Physics.Arcade.Body;
+      const bLeft = this.hitboxLeft.body as Phaser.Physics.Arcade.Body;
+      console.log(`[Tank] Right hitbox covers x=${bRight.x}-${bRight.right}, y=${bRight.y}-${bRight.bottom}`);
+      console.log(`[Tank] Left hitbox covers x=${bLeft.x}-${bLeft.right}, y=${bLeft.y}-${bLeft.bottom}`);
     }
   }
 
@@ -205,62 +218,6 @@ export class Tank extends Phaser.GameObjects.Container {
   }
 
   /**
-   * Check if cannon can fire
-   */
-  public canFireCannon(currentTime: number): boolean {
-    const cooldown = this.cannonCooldown / this.getAttackSpeedMultiplier();
-    return currentTime - this.lastCannonFireTime >= cooldown;
-  }
-
-  /**
-   * Fire the built-in cannon
-   * Returns the firing position for projectile spawning
-   */
-  public fireCannon(currentTime: number): { x: number; y: number; damage: number } | null {
-    if (!this.canFireCannon(currentTime)) {
-      return null;
-    }
-
-    this.lastCannonFireTime = currentTime;
-
-    // Calculate cannon damage
-    // Built-in cannon uses tank level as slot level, no module stats
-    const baseDamage = 25; // Base cannon damage
-    const tankLevel = this.gameState.getTankLevel();
-    const statBonus = this.gameState.getStatLevel(StatType.Damage) * 0.02;
-    const critChance = this.gameState.getStatLevel(StatType.CritChance) * 0.5;
-    const critBonus = this.gameState.getStatLevel(StatType.CritDamage) * 0.05;
-    const isCrit = Math.random() * 100 < critChance;
-
-    const damage = calculateDamage(baseDamage, tankLevel, statBonus, isCrit, critBonus);
-
-    // Cannon muzzle position - fire at enemy center height
-    // Tank is at ground level (Y = HEIGHT - GROUND_HEIGHT)
-    const muzzleX = this.x + 70;
-    const muzzleY = this.y - 65; // Fire from cannon barrel
-
-    // Visual feedback
-    this.animateCannonFire();
-
-    if (import.meta.env.DEV) {
-      console.log(`[Tank] Cannon fired at (${muzzleX}, ${muzzleY}), damage=${damage}`);
-    }
-
-    return { x: muzzleX, y: muzzleY, damage };
-  }
-
-  private animateCannonFire(): void {
-    // Brief recoil animation
-    this.scene.tweens.add({
-      targets: this.bodySprite,
-      x: -5,
-      duration: 50,
-      yoyo: true,
-      ease: 'Power2',
-    });
-  }
-
-  /**
    * Update loop - handles HP regen, near-death timer
    */
   public update(_time: number, delta: number): void {
@@ -304,10 +261,24 @@ export class Tank extends Phaser.GameObjects.Container {
   }
 
   /**
-   * Get the physics hitbox for collision detection
+   * Get both physics hitboxes for collision detection (bidirectional combat)
+   */
+  public getHitboxes(): { left: Phaser.Physics.Arcade.Sprite; right: Phaser.Physics.Arcade.Sprite } {
+    return { left: this.hitboxLeft, right: this.hitboxRight };
+  }
+
+  /**
+   * Get the right hitbox (for backwards compatibility and right-side enemies)
    */
   public getHitbox(): Phaser.Physics.Arcade.Sprite {
-    return this.hitbox;
+    return this.hitboxRight;
+  }
+
+  /**
+   * Get the left hitbox (for left-side enemies)
+   */
+  public getLeftHitbox(): Phaser.Physics.Arcade.Sprite {
+    return this.hitboxLeft;
   }
 
   /**
@@ -317,8 +288,11 @@ export class Tank extends Phaser.GameObjects.Container {
     this.eventManager.off(GameEvents.DAMAGE_TAKEN, this.onDamageTaken, this);
     this.eventManager.off(GameEvents.TANK_REVIVED, this.onRevived, this);
     this.eventManager.off(GameEvents.TANK_HEALED, this.onHealed, this);
-    if (this.hitbox) {
-      this.hitbox.destroy();
+    if (this.hitboxLeft) {
+      this.hitboxLeft.destroy();
+    }
+    if (this.hitboxRight) {
+      this.hitboxRight.destroy();
     }
     super.destroy();
   }

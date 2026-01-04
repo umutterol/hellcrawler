@@ -6,12 +6,27 @@ import { GameScene } from '../scenes/GameScene';
  * Core game configuration constants
  * Based on GDD specifications
  */
+/**
+ * Slot firing directions for bidirectional combat
+ * Front slots attack right (enemies from right)
+ * Back slots attack left (enemies from left)
+ * Center slot attacks closest from either side
+ */
+export enum SlotDirection {
+  Left = 'left',
+  Right = 'right',
+  Both = 'both',
+}
+
 export const GAME_CONFIG = {
   // Display - Desktop Heroes style (short strip at bottom of screen)
   WIDTH: 1920,
   HEIGHT: 350,
   GROUND_HEIGHT: 60, // Height of ground area from bottom
   FPS: 60,
+
+  // Tank position - centered for bidirectional combat
+  TANK_X: 960, // Screen center (1920 / 2)
 
   // Combat
   BASE_CRIT_MULTIPLIER: 2.0,
@@ -24,8 +39,10 @@ export const GAME_CONFIG = {
   XP_BASE: 100,
   XP_EXPONENT: 1.15,
 
-  // Economy
-  SLOT_COSTS: [0, 10_000, 50_000, 500_000, 2_000_000],
+  // Economy - New slot costs for center tank design
+  // Slots 0-1 free, Slot 2: 10K, Slot 3: 20K, Slot 4: 75K (requires Act 6)
+  SLOT_COSTS: [0, 0, 10_000, 20_000, 75_000],
+  SLOT_5_ACT_REQUIREMENT: 6, // Slot 5 (index 4) requires Act 6
   STAT_UPGRADE_BASE_COST: 100,
 
   // Modules
@@ -63,13 +80,28 @@ export const GAME_CONFIG = {
   // Module slot firing positions (offset from tank position)
   // Each slot has a specific mount point on the tank
   // Format: { x: horizontal offset, y: vertical offset from tank.y }
-  // Positive X = forward (right), Negative Y = up
+  // Positive X = forward (right), Negative X = backward (left), Negative Y = up
+  //
+  // Center Tank Layout:
+  // - Slots 0, 2 (indices 0, 2): Front turrets - attack RIGHT
+  // - Slots 1, 3 (indices 1, 3): Back turrets - attack LEFT
+  // - Slot 4 (index 4): Center turret - attacks BOTH sides
   MODULE_SLOT_POSITIONS: [
-    { x: 60, y: -70 },   // Slot 0: Top front turret
-    { x: 45, y: -45 },   // Slot 1: Upper mid turret
-    { x: 30, y: -25 },   // Slot 2: Lower mid turret
-    { x: 50, y: -60 },   // Slot 3: Top rear turret
-    { x: 35, y: -35 },   // Slot 4: Lower rear turret
+    { x: 70, y: -65 },   // Slot 0: Front upper turret (attacks RIGHT)
+    { x: -70, y: -65 },  // Slot 1: Back upper turret (attacks LEFT)
+    { x: 55, y: -40 },   // Slot 2: Front lower turret (attacks RIGHT)
+    { x: -55, y: -40 },  // Slot 3: Back lower turret (attacks LEFT)
+    { x: 0, y: -80 },    // Slot 4: Center top turret (attacks BOTH)
+  ] as const,
+
+  // Slot firing directions - which side each slot targets
+  // Front slots (0, 2) attack right, Back slots (1, 3) attack left, Center (4) attacks both
+  SLOT_DIRECTIONS: [
+    SlotDirection.Right,  // Slot 0: Front - attacks right
+    SlotDirection.Left,   // Slot 1: Back - attacks left
+    SlotDirection.Right,  // Slot 2: Front - attacks right
+    SlotDirection.Left,   // Slot 3: Back - attacks left
+    SlotDirection.Both,   // Slot 4: Center - attacks both
   ] as const,
 
   // Depth layers for rendering order (higher = on top)
