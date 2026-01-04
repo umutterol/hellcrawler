@@ -472,7 +472,144 @@ Final polish and platform integration.
 
 ---
 
+## Technical Differences: Desktop Heroes vs Hellcrawler
+
+This section documents architectural differences between Desktop Heroes (Meeting Notes) and our Hellcrawler implementation, for alignment decisions.
+
+### 1. UI System
+
+| Aspect | Desktop Heroes | Hellcrawler | Alignment Action |
+|--------|---------------|-------------|------------------|
+| **UI Layer** | DOM overlay with `@telazer/game-ui-kit` | Pure Phaser GameObjects | Keep Phaser - simpler, no DOM sync issues |
+| **Buttons** | DOM `Button.create()` with cooldown overlay | Phaser Rectangle + Text | Consider adding cooldown sweep animation |
+| **Sliders** | DOM `Slider.create()` | Phaser Graphics + Rectangle | Works well, keep current |
+| **Tooltips** | DOM-based with CSS | NOT IMPLEMENTED | Add Phaser-based Tooltip.ts |
+| **Modals** | DOM `Modal.create()` | NOT IMPLEMENTED | Add for confirms (sell Rare+) |
+| **Nine-Slice** | `@telazer/phaser-image-helper` | NOT USED | Consider for panel backgrounds |
+| **Custom Cursors** | CSS cursor files | NOT IMPLEMENTED | Low priority |
+
+**Recommendation:** Our Phaser-only approach is cleaner for a single-dev project. Add tooltips and modals as Phaser components.
+
+---
+
+### 2. State Management
+
+| Aspect | Desktop Heroes | Hellcrawler | Alignment Action |
+|--------|---------------|-------------|------------------|
+| **Structure** | 4 separate stores (game, inventory, progress, settings) | 1 monolithic GameState | SPLIT into 4 stores (P2 debt) |
+| **Save Format** | Base64-encoded `.pxt` files | JSON in localStorage | Add Electron file save later |
+| **Auto-Save** | Debounced (5s after any change) | Zone-complete only | ADD debounced auto-save |
+| **Save Slots** | Multiple slots (save-data-32.pxt, etc.) | Single save | Add slots for Steam (TIER 7) |
+| **Version Migration** | Explicit migration functions | Version field only | Add migrations as needed |
+| **Offline Progress** | Calculates earnings while closed | NOT IMPLEMENTED | Add for idle game feel |
+
+**Recommended Store Split:**
+```
+GameState (current) → Split into:
+├── tankStore      (level, stats, HP)
+├── inventoryStore (modules, equipment)
+├── progressStore  (act, zone, wave, bosses)
+└── settingsStore  (audio, display, controls)
+```
+
+---
+
+### 3. Combat System
+
+| Aspect | Desktop Heroes | Hellcrawler | Alignment Action |
+|--------|---------------|-------------|------------------|
+| **Movement** | Character walks right, stops to attack | Tank stationary | Intentional design difference |
+| **Damage Formula** | `base * stat * skill * crit - defense` | `base * slot * stats * crit * variance` | Similar, our variance adds feel |
+| **Status Effects** | Poison, Burning, Slow, Shock, Disarm | NOT IMPLEMENTED | Add in TIER 3 with Act 2+ |
+| **Vampiric/Lifesteal** | Stat-based % of damage | Implemented | Already aligned |
+| **Critical Hits** | Based on Agility stat | Based on CritChance stat | Already aligned |
+| **AOE** | `aoe_range` stat multiplier | Flat radius from module | Consider stat-based scaling |
+| **Defense** | Linear subtraction | Diminishing returns formula | Our formula is better balanced |
+
+**Status Effects to Add (TIER 3):**
+- Burning (Fire DoT)
+- Poison (% HP DoT)
+- Slow (enemy speed reduction)
+- Shock (stun)
+- Bleed (physical DoT, stacks)
+
+---
+
+### 4. Inventory System
+
+| Aspect | Desktop Heroes | Hellcrawler | Alignment Action |
+|--------|---------------|-------------|------------------|
+| **Structure** | 21 chest categories | Single inventory array | Keep simple, add categories if needed |
+| **Item Classes** | stackable, consumable, equippable, etc. | Modules only (no consumables) | Keep modules-only for now |
+| **Skill Bar** | 3 slots per class, auto-use toggle | Module skills (1-10 keys) | Similar concept |
+| **Drag & Drop** | Full drag/drop for equip/sell | Click-based only | Add drag/drop (TIER 2.5) |
+| **Auto-Equip** | Compare power, equip if better | Manual only | Add auto-equip option |
+| **Crafting** | Recipe system with materials | NOT APPLICABLE | Not needed for Hellcrawler |
+
+---
+
+### 5. Visual Effects
+
+| Aspect | Desktop Heroes | Hellcrawler | Alignment Action |
+|--------|---------------|-------------|------------------|
+| **Damage Flash** | GLSL shader (damageEffect.frag) | Phaser tint flash | Consider shader for smoother effect |
+| **Status VFX** | Hue shift shader | NOT IMPLEMENTED | Add with status effects |
+| **Damage Numbers** | Unknown | Implemented with pop animation | Already complete |
+| **Hit Sparks** | Unknown | Implemented | Already complete |
+| **Particles** | Phaser emitters | Limited use | Expand for missiles, explosions |
+
+---
+
+### 6. Audio System
+
+| Aspect | Desktop Heroes | Hellcrawler | Alignment Action |
+|--------|---------------|-------------|------------------|
+| **Architecture** | AudioHelper with SFX pool | NOT IMPLEMENTED | Create AudioManager (TIER 4) |
+| **Volume Controls** | Per-category (master, music, SFX) | Settings exist, no audio | Settings ready |
+| **Music Transitions** | Boss music swap | NOT IMPLEMENTED | Add with audio assets |
+
+---
+
+### Priority Actions from Alignment
+
+| Priority | Action | Effort | Tier |
+|----------|--------|--------|------|
+| P1 | Add debounced auto-save | Low | Standalone |
+| P1 | Add tooltips system | Medium | 2.5 |
+| P2 | Split GameState into 4 stores | Medium | After Center Tank |
+| P2 | Add status effects system | Medium | 3 |
+| P2 | Add drag & drop for modules | Medium | 2.5 |
+| P3 | Add confirmation modals | Low | 2.5 |
+| P3 | Add offline progress calculation | Medium | Content |
+| P4 | Consider GLSL shaders for VFX | Low | Polish |
+| P4 | Add save slots for Steam | Low | 7 |
+
+---
+
 ## Changelog
+
+### January 4, 2025 - Technical Alignment Analysis
+
+**Desktop Heroes vs Hellcrawler Comparison:**
+- Added comprehensive technical differences section
+- Analyzed 6 major systems: UI, State, Combat, Inventory, VFX, Audio
+- Identified key architectural divergences and alignment actions
+
+**Key Findings:**
+- UI: Keep Phaser-only approach (simpler than DOM overlay)
+- State: Need to split GameState into 4 stores (P2)
+- Combat: Status effects needed for Act 2+ content
+- Inventory: Add drag & drop for better UX
+- VFX: Consider GLSL shaders for smoother damage flash
+- Audio: Settings ready, awaiting assets
+
+**Priority Actions Identified:**
+- P1: Debounced auto-save, tooltips system
+- P2: GameState split, status effects, drag & drop
+- P3: Confirmation modals, offline progress
+- P4: GLSL shaders, save slots
+
+---
 
 ### January 4, 2025 - UI Refactoring Plan Added
 
