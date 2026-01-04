@@ -21,6 +21,7 @@ import { getSaveManager, SaveManager } from '../managers/SaveManager';
 import { InputManager } from '../managers/InputManager';
 import { getPanelManager, PanelManager } from '../managers/PanelManager';
 import { ClickThroughManager } from '../managers/ClickThroughManager';
+import { getGoreManager } from '../effects/gore/GoreManager';
 
 /**
  * Main Game Scene - Core gameplay loop
@@ -221,6 +222,9 @@ export class GameScene extends Phaser.Scene {
     // Loot system handles module drops
     this.lootSystem = new LootSystem(this);
 
+    // Gore system handles death effects (gibs, blood, splatters)
+    getGoreManager().init(this);
+
     // Equip starting module (1× Uncommon Machine Gun per GDD)
     this.equipStartingModule();
 
@@ -386,6 +390,7 @@ export class GameScene extends Phaser.Scene {
     this.lootSystem.destroy();
     this.moduleManager.destroy();
     this.inputManager.destroy();
+    getGoreManager().destroy();
 
     // Cleanup Desktop Mode (Electron)
     if (this._clickThroughManager) {

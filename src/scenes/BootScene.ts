@@ -120,6 +120,28 @@ export class BootScene extends Phaser.Scene {
       this.load.image(`smoke-${i}`, `assets/effects/smoke/SmokeColumn${i}.png`);
     }
 
+    // === GORE EFFECTS ===
+    // Blood splatters (large)
+    for (let i = 1; i <= 9; i++) {
+      this.load.image(`blood${i}`, `assets/effects/gore/blood/blood${i}.png`);
+    }
+    // Blood splatters (small)
+    for (let i = 1; i <= 6; i++) {
+      this.load.image(`blood-small${i}`, `assets/effects/gore/blood/blood-small${i}.png`);
+    }
+    // Gib sprites - torso pieces
+    this.load.image('gib-torso1', 'assets/effects/gore/gibs/torso1.png');
+    this.load.image('gib-torso2', 'assets/effects/gore/gibs/torso2.png');
+    this.load.image('gib-torso3', 'assets/effects/gore/gibs/torso3.png');
+    this.load.image('gib-lower-torso-1', 'assets/effects/gore/gibs/lower-torso-1.png');
+    this.load.image('gib-lower-torso-2', 'assets/effects/gore/gibs/lower-torso-2.png');
+    this.load.image('gib-lower-torso-3', 'assets/effects/gore/gibs/lower-torso-3.png');
+    // Gib sprites - limb pieces
+    this.load.image('gib-arm-part', 'assets/effects/gore/gibs/arm-part.png');
+    this.load.image('gib-arm-back-part', 'assets/effects/gore/gibs/arm-back-part.png');
+    this.load.image('gib-forearm-front', 'assets/effects/gore/gibs/forearm-front.png');
+    this.load.image('gib-forearm-back', 'assets/effects/gore/gibs/forearm-back.png');
+
     // === BACKGROUNDS - ACT 1 ===
     this.load.image('bg-sky', 'assets/backgrounds/act1/sky.png');
     this.load.image('bg-clouds', 'assets/backgrounds/act1/clouds.png');

@@ -15,7 +15,8 @@
 | Milestone | Status | Blocking Issues | Priority |
 |-----------|--------|-----------------|----------|
 | MVP (Core Systems) | ✅ Complete | None | Done |
-| VFX Polish | 🟡 In Progress | None | P0 |
+| VFX Polish (Weapon Effects) | 🟡 In Progress | None | P0 |
+| **VFX Polish (Gore System)** | ⏳ Planned | None | P0 |
 | **Center Tank Redesign** | ⏳ Planned | VFX Complete | P1 |
 | **Center Tank UI Refactor** | ⏳ Planned | Part of P1 | P1 |
 | Cinematic Module Effects | ⏳ Planned | Center Tank | P2 |
@@ -52,6 +53,37 @@ Finish current VFX work before starting major architectural changes.
 | 0.6 | EFFECT_TIMING constants | ✅ | Complete |
 | 0.7 | Cannon muzzle flash + recoil | ⏳ | Reverted, revisit |
 | 0.8 | Missile smoke puff + wobble | ⏳ | Reverted, revisit |
+
+#### Phase 0B: Gore/Ragdoll Death System
+
+See `docs/GorePlan.md` for detailed implementation plan.
+
+| # | Task | Complexity | Status |
+|---|------|------------|--------|
+| 0.9 | Create GoreTypes.ts + GoreConfig.ts | Low | ✅ |
+| 0.10 | Create Gib.ts (poolable with fake ragdoll physics) | Medium | ✅ |
+| 0.11 | Create BloodParticle.ts (gravity-affected droplets) | Low | ✅ |
+| 0.12 | Create GoreManager.ts (singleton orchestrator) | Medium | ✅ |
+| 0.13 | Integrate with Enemy.ts death + event payload | Low | ✅ |
+| 0.14 | Load gib sprites in BootScene.ts | Low | ✅ |
+| 0.15 | Add gore intensity setting (Off/Low/High) | Low | ⏳ |
+
+**Files to Create:**
+- `src/effects/gore/GoreTypes.ts`
+- `src/effects/gore/GoreConfig.ts`
+- `src/effects/gore/Gib.ts`
+- `src/effects/gore/BloodParticle.ts`
+- `src/effects/gore/GoreManager.ts`
+
+**Files to Modify:**
+- `src/entities/Enemy.ts` - Add position data to ENEMY_DIED event
+- `src/types/GameEvents.ts` - Extend EnemyDiedPayload
+- `src/scenes/BootScene.ts` - Load gib sprites
+- `src/scenes/GameScene.ts` - Initialize GoreManager
+
+**Assets Required:** (already copied to `public/assets/effects/gore/`)
+- Blood splatter sprites (blood1-9.png, blood-small1-6.png)
+- Gib sprites (need to create: gib-head, gib-torso, gib-limb-upper, gib-limb-lower, gib-chunk)
 
 **Exit Criteria:** Combat feels impactful, ready for architectural work.
 
@@ -334,10 +366,15 @@ Final polish and platform integration.
                                       │
                     ┌─────────────────▼───────────────────────┐
                     │  🔴 TIER 0: VFX Polish (In Progress)     │
+                    │     Phase 0A: Weapon Effects             │
                     │     - Damage numbers ✅                  │
                     │     - Enemy death ✅                     │
                     │     - Hit sparks ✅                      │
                     │     - Muzzle flash ⏳                    │
+                    │     Phase 0B: Gore System ⏳             │
+                    │     - Gibs + fake ragdoll                │
+                    │     - Blood particles                    │
+                    │     - Ground splatters                   │
                     └─────────────────┬───────────────────────┘
                                       │
                     ┌─────────────────▼───────────────────────┐
@@ -412,12 +449,50 @@ This section identifies tasks that can be delegated to separate Claude instances
 
 ### TIER 0: VFX Polish - Parallelization
 
+#### Phase 0A: Weapon Effects (2 Parallel Streams)
+
 | Task | Parallelization | Notes |
 |------|-----------------|-------|
 | 0.7 Cannon muzzle flash | 🔀 PARALLEL | Independent of 0.8 |
 | 0.8 Missile smoke puff | 🔀 PARALLEL | Independent of 0.7 |
 
 **Recommended:** 2 instances can work on 0.7 and 0.8 simultaneously.
+
+#### Phase 0B: Gore System (3 Parallel Streams)
+
+```
+STREAM A (Core)           STREAM B (Particles)      STREAM C (Integration)
+══════════════════        ════════════════════      ═══════════════════════
+0.9 Types + Config ──┐
+        │            │
+        ▼            │
+0.10 Gib.ts ────────┤     0.11 BloodParticle.ts ──┐
+        │            │            │                │
+        └────────────┴────────────┴────────────────┘
+                              │
+                              ▼
+                     0.12 GoreManager.ts
+                              │
+                              ▼
+                     0.13 Enemy.ts integration
+                     0.14 BootScene loading
+                     0.15 Gore settings
+```
+
+| Stream | Tasks | Owner | Dependencies |
+|--------|-------|-------|--------------|
+| **Stream A** | 0.9 → 0.10 | 👤 Instance 1 | 0.9 first, then 0.10 |
+| **Stream B** | 0.9 → 0.11 | 👤 Instance 2 | 🔀 Parallel with Stream A after 0.9 |
+| **Stream C** | 0.12, 0.13, 0.14, 0.15 | 👤 Instance 3 | Needs 0.10 + 0.11 complete |
+
+**Recommended:**
+- Start with 0.9 (shared dependency)
+- Then 2 instances for Gib.ts and BloodParticle.ts in parallel
+- Final instance for integration (0.12-0.15)
+
+**Cross-Phase Parallelization:**
+- Phase 0A (0.7, 0.8) can run in PARALLEL with Phase 0B (gore system)
+- Maximum 4 instances: 2 for weapon effects + 2 for gore system
 
 ---
 
@@ -586,7 +661,9 @@ Instance 8: Systems (3.11-3.15) - Zone UI, progression, modules
 
 | Phase | Max Instances | Work Streams |
 |-------|---------------|--------------|
-| TIER 0 | 2 | Muzzle flash, Smoke puff |
+| TIER 0A | 2 | Muzzle flash, Smoke puff |
+| TIER 0B | 3 | Gore core, Blood particles, Integration |
+| **TIER 0 Total** | **4** | Phase 0A + 0B can run in parallel |
 | TIER 1A | 3 | Position, Targeting, Config |
 | TIER 1B | 4 | BottomBar, Panels, Shop, Config |
 | TIER 2A | 1 | Sequential dependencies |
@@ -623,8 +700,8 @@ TIER 4 (Audio) can run in parallel with ANY tier (waiting for assets)
 | VFX Polish | 🟡 In Progress | Jan 4, 2025 |
 | Center Tank | ⏳ Next | - |
 
-**Current Phase:** VFX Polish completion
-**Next Phase:** Center Tank Redesign
+**Current Phase:** VFX Polish - Gore System implemented (6/7 tasks complete)
+**Next Phase:** Complete Task 0.15 (UI setting), then Center Tank Redesign
 **Audio Status:** ⏸️ Paused (waiting for assets)
 
 ---
@@ -802,6 +879,54 @@ GameState (current) → Split into:
 ---
 
 ## Changelog
+
+### January 4, 2025 - Gore System Implementation Complete
+
+**Core Gore System Implemented (Tasks 0.9-0.14):**
+- Created `src/effects/gore/GoreTypes.ts` - GibType enum, BloodSplatterType, config interfaces
+- Created `src/effects/gore/GoreConfig.ts` - Pool sizes, physics constants, timing, spawn counts
+- Created `src/effects/gore/Gib.ts` - Poolable gib with fake ragdoll physics via tweens
+- Created `src/effects/gore/BloodParticle.ts` - Gravity-affected blood droplets
+- Created `src/effects/gore/GoreManager.ts` - Singleton orchestrator with object pools
+
+**Integration Completed:**
+- Modified `src/entities/Enemy.ts` - Added position/scale/tint data to ENEMY_DIED event
+- Updated `src/types/GameEvents.ts` - Extended EnemyDiedPayload with gore data fields
+- Updated `src/scenes/BootScene.ts` - Added loading for all gib and blood sprites
+- Updated `src/scenes/GameScene.ts` - Initialize and destroy GoreManager
+
+**Features:**
+- Object pooling (150 gibs, 300 blood particles, 50 splatters)
+- Fake ragdoll physics with gravity, bouncing, and settling
+- Blood particle spray with ground splatter creation
+- Configurable spawn counts by intensity (Off/Low/High) and enemy type (normal/boss)
+- Tint inheritance from enemy sprites for visual consistency
+
+**Remaining:** Task 0.15 (Gore intensity UI setting) deferred to TIER 2.5 UI Polish
+
+---
+
+### January 4, 2025 - Gore System Added to Roadmap
+
+**Gore/Ragdoll Death System Integration:**
+- Added Phase 0B: Gore/Ragdoll Death System to TIER 0
+- Added 7 new tasks (0.9-0.15) for gore implementation
+- Integrated with parallelization guide (3 parallel streams)
+- Updated dependency graph to show gore system
+- Updated summary table (TIER 0 now supports 4 parallel instances)
+
+**Tasks Added:**
+- 0.9: GoreTypes.ts + GoreConfig.ts
+- 0.10: Gib.ts (poolable with fake ragdoll physics)
+- 0.11: BloodParticle.ts (gravity-affected droplets)
+- 0.12: GoreManager.ts (singleton orchestrator)
+- 0.13: Enemy.ts integration + event payload
+- 0.14: BootScene.ts gib sprite loading
+- 0.15: Gore intensity setting (Off/Low/High)
+
+**Reference Document:** `docs/GorePlan.md` contains detailed implementation specs.
+
+---
 
 ### January 4, 2025 - Parallelization Guide Added
 

@@ -433,19 +433,28 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
   /**
    * Handle enemy death
    * Visual effect: Flash white → hold → fade out
+   * Also emits gore data for the GoreManager
    */
   protected die(): void {
     if (!this.config) return;
 
     const timing = GAME_CONFIG.EFFECT_TIMING;
 
-    // Emit death event with rewards
+    // Emit death event with rewards AND gore data
     this.eventManager.emit(GameEvents.ENEMY_DIED, {
       enemyId: this.enemyId,
       enemyType: this.config.type,
       killedBy: 'tank',
       xpAwarded: this.config.xpReward,
       goldAwarded: this.config.goldReward,
+      // Gore system data
+      x: this.x,
+      y: this.y,
+      scale: this.scale,
+      tint: this.tintTopLeft,
+      width: this.displayWidth,
+      height: this.displayHeight,
+      isBoss: this.config.category === EnemyCategory.Boss,
     });
 
     // Stop any animations and movement

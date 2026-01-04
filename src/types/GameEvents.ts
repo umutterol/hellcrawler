@@ -82,6 +82,14 @@ export interface EnemyDiedPayload {
   killedBy: 'tank' | 'skill';
   xpAwarded: number;
   goldAwarded: number;
+  // Gore system data (optional for backwards compatibility)
+  x?: number;
+  y?: number;
+  scale?: number;
+  tint?: number;
+  width?: number;
+  height?: number;
+  isBoss?: boolean;
 }
 
 export interface DamageDealtPayload {
