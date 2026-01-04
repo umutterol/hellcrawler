@@ -17,17 +17,22 @@
 | MVP (Core Systems) | ✅ Complete | None | Done |
 | VFX Polish | 🟡 In Progress | None | P0 |
 | **Center Tank Redesign** | ⏳ Planned | VFX Complete | P1 |
+| **Center Tank UI Refactor** | ⏳ Planned | Part of P1 | P1 |
 | Cinematic Module Effects | ⏳ Planned | Center Tank | P2 |
-| Content Expansion (Acts 2-8) | ⏳ Planned | Center Tank | P2 |
-| Audio System | ⏸️ Paused | Assets needed | P3 |
-| Faction Allegiance System | ⏳ Planned | All Acts Complete | P4 |
-| The Void (Endgame) | ⏳ Planned | Faction System | P5 |
-| Steam Release | ⏳ Planned | All Above | P6 |
+| **UI Polish & Missing Features** | ⏳ Planned | Center Tank UI | P2.5 |
+| Content Expansion (Acts 2-8) | ⏳ Planned | Center Tank | P3 |
+| Audio System | ⏸️ Paused | Assets needed | P4 |
+| Faction Allegiance System | ⏳ Planned | All Acts Complete | P5 |
+| The Void (Endgame) | ⏳ Planned | Faction System | P6 |
+| Steam Release | ⏳ Planned | All Above | P7 |
 
 **Critical Decision:** Center Tank Redesign is scheduled BEFORE content expansion because:
 1. It fundamentally changes gameplay (bidirectional combat)
 2. All future content must account for new slot layout
 3. Easier to implement now than retrofit later
+
+**UI Analysis Complete:** Phase 1B added for UI refactoring to support center tank.
+Separate TIER 2.5 added for UISpec features not yet implemented (drag/drop, tooltips, etc.)
 
 ---
 
@@ -56,6 +61,8 @@ Finish current VFX work before starting major architectural changes.
 
 **Major architectural change.** Tank moves to screen center with bidirectional combat.
 
+#### Phase 1A: Core Mechanics
+
 | # | Task | Complexity | Status |
 |---|------|------------|--------|
 | 1.1 | Move tank position to screen center | Low | ⏳ |
@@ -67,10 +74,24 @@ Finish current VFX work before starting major architectural changes.
 | 1.7 | Remove built-in cannon | Low | ⏳ |
 | 1.8 | Update slot costs: [0, 0, 10K, 20K, 75K] | Low | ⏳ |
 | 1.9 | Add Act 6 requirement for Slot 5 | Low | ⏳ |
-| 1.10 | Update UI to show slot directions | Medium | ⏳ |
-| 1.11 | Test bidirectional combat balance | Medium | ⏳ |
+| 1.10 | Test bidirectional combat balance | Medium | ⏳ |
 
-**Files to Modify:**
+#### Phase 1B: UI Refactoring for Center Tank
+
+| # | Task | Complexity | Status |
+|---|------|------------|--------|
+| 1.11 | **BottomBar.ts** - Add directional slot layout | Medium | ⏳ |
+| 1.12 | **BottomBar.ts** - Direction indicators (←/→/⟷) | Low | ⏳ |
+| 1.13 | **BottomBar.ts** - Reorder slots: [Back2, Back4, Center5, Front1, Front3] | Low | ⏳ |
+| 1.14 | **TankStatsPanel.ts** - Add direction labels to tabs | Low | ⏳ |
+| 1.15 | **TankStatsPanel.ts** - Show slot firing direction in content | Low | ⏳ |
+| 1.16 | **ShopPanel.ts** - Update slot costs display | Low | ⏳ |
+| 1.17 | **ShopPanel.ts** - Update unlock requirements | Low | ⏳ |
+| 1.18 | **InventoryPanel.ts** - Add direction labels to equipped slots | Low | ⏳ |
+| 1.19 | **UIConfig.ts** - Add slot direction constants | Low | ⏳ |
+| 1.20 | **UISpec.md** - Update with new slot layout diagrams | Low | ⏳ |
+
+**Files to Modify (Core):**
 - `src/config/GameConfig.ts` - Slot positions, costs, requirements
 - `src/entities/Tank.ts` - Position, remove cannon
 - `src/modules/BaseModule.ts` - Target direction logic
@@ -78,14 +99,23 @@ Finish current VFX work before starting major architectural changes.
 - `src/systems/WaveSystem.ts` - Bidirectional spawning
 - `src/state/GameState.ts` - Slot unlock logic
 
+**Files to Modify (UI):**
+- `src/ui/BottomBar.ts` - Slot layout with directions
+- `src/ui/panels/TankStatsPanel.ts` - Tab direction labels
+- `src/ui/panels/ShopPanel.ts` - New slot costs/requirements
+- `src/ui/panels/InventoryPanel.ts` - Equipped slot directions
+- `src/config/UIConfig.ts` - Direction constants
+- `docs/UISpec.md` - Updated specifications
+
 **Exit Criteria:**
 - Tank centered on screen
 - Enemies spawn from both sides (50/50)
 - Front slots attack right, back slots attack left
 - Center slot attacks closest from either side
+- UI clearly shows slot directions
 - Game is playable and balanced
 
-**Estimated Time:** 3-5 days
+**Estimated Time:** 4-6 days
 
 ---
 
@@ -122,6 +152,59 @@ Module sprites become independent entities with dramatic visual effects.
 - Combat feels cinematic and impactful
 
 **Estimated Time:** 1-2 weeks (can be done incrementally)
+
+---
+
+### 🟢 TIER 2.5: UI POLISH & MISSING FEATURES
+
+Features specified in UISpec.md but not yet implemented.
+
+#### Phase 2.5A: Essential Missing Features
+
+| # | Task | Complexity | Status |
+|---|------|------------|--------|
+| 2.51 | Drag & drop module equipping | Medium | ⏳ |
+| 2.52 | Tooltips system (showTooltips already in settings) | Medium | ⏳ |
+| 2.53 | Sort options in InventoryPanel (Rarity, Type, Recent) | Low | ⏳ |
+| 2.54 | Auto-sell toggle + Uncommon auto-sell | Medium | ⏳ |
+| 2.55 | Sell confirmation for Rare+ modules | Low | ⏳ |
+
+#### Phase 2.5B: Nice-to-Have Features
+
+| # | Task | Complexity | Status |
+|---|------|------------|--------|
+| 2.56 | Right-click context menus | Medium | ⏳ |
+| 2.57 | Module compare feature | Medium | ⏳ |
+| 2.58 | Double-click to equip/unequip | Low | ⏳ |
+| 2.59 | Zone selection UI | Medium | ⏳ |
+| 2.60 | Zone completion summary screen | Medium | ⏳ |
+
+#### Phase 2.5C: Future UI Systems
+
+| # | Task | Complexity | Status |
+|---|------|------------|--------|
+| 2.61 | Main Menu scene (New Game, Continue, Settings, Quit) | Medium | ⏳ |
+| 2.62 | Near Death full-screen overlay (per UISpec) | Low | ⏳ |
+| 2.63 | Gold income rate display (+5.2K/s in TopBar) | Low | ⏳ |
+| 2.64 | Flee button in TopBar | Low | ⏳ |
+| 2.65 | Wave pause button (delay next wave) | Low | ⏳ |
+
+**Files to Modify:**
+- `src/ui/panels/InventoryPanel.ts` - Drag/drop, sort, auto-sell, compare
+- `src/ui/TopBar.ts` - Gold rate, flee button
+- `src/ui/BottomBar.ts` - Wave pause
+- `src/ui/components/Tooltip.ts` - New file
+- `src/ui/components/ContextMenu.ts` - New file
+- `src/scenes/MainMenuScene.ts` - New file
+- `src/scenes/ZoneSelectScene.ts` - New file
+
+**Exit Criteria:**
+- All essential UISpec features implemented
+- Smooth drag-and-drop module management
+- Functional tooltips on hover
+- Auto-sell for efficient inventory management
+
+**Estimated Time:** 1-2 weeks (can be done incrementally alongside content)
 
 ---
 
@@ -259,28 +342,35 @@ Final polish and platform integration.
                                       │
                     ┌─────────────────▼───────────────────────┐
                     │  🟠 TIER 1: CENTER TANK REDESIGN        │
+                    │     Phase 1A: Core Mechanics             │
                     │     - Tank to center                     │
                     │     - Bidirectional combat               │
                     │     - Remove built-in cannon             │
                     │     - New slot layout & targeting        │
+                    │     Phase 1B: UI Refactoring             │
+                    │     - BottomBar directional slots        │
+                    │     - Panel direction labels             │
+                    │     - Updated shop costs                 │
                     └─────────────────┬───────────────────────┘
                                       │
           ┌───────────────────────────┼───────────────────────────┐
           │                           │                           │
           ▼                           ▼                           ▼
 ┌─────────────────┐     ┌─────────────────────┐     ┌─────────────────┐
-│ 🟡 TIER 2:       │     │ 🔵 TIER 3:           │     │ ⏸️ TIER 4:       │
-│ Module Effects   │     │ Content Expansion   │     │ Audio (Paused)  │
-│ - Independence   │     │ - Acts 2-8          │     │ - When assets   │
-│ - Cinematics     │     │ - All bosses        │     │   are ready     │
-│ (incremental)    │     │ - Uber variants     │     │                 │
-└────────┬────────┘     └──────────┬──────────┘     └─────────────────┘
+│ 🟡 TIER 2:       │     │ 🟢 TIER 2.5:         │     │ ⏸️ TIER 4:       │
+│ Module Effects   │     │ UI Polish           │     │ Audio (Paused)  │
+│ - Independence   │     │ - Drag & Drop       │     │ - When assets   │
+│ - Cinematics     │     │ - Tooltips          │     │   are ready     │
+│ (incremental)    │     │ - Auto-sell         │     │                 │
+└────────┬────────┘     │ - Sort/Compare      │     └─────────────────┘
+         │              │ - Zone Select UI    │
+         │              └──────────┬──────────┘
          │                         │
          └─────────────────────────┼──────────────────────────
                                    │
                     ┌──────────────▼──────────────────────────┐
-                    │      ALL CONTENT COMPLETE               │
-                    │  (All 8 Acts + All Uber Bosses)         │
+                    │  🔵 TIER 3: CONTENT EXPANSION            │
+                    │     (All 8 Acts + All Uber Bosses)       │
                     └──────────────┬──────────────────────────┘
                                    │
                     ┌──────────────▼──────────────────────────┐
@@ -383,6 +473,37 @@ Final polish and platform integration.
 ---
 
 ## Changelog
+
+### January 4, 2025 - UI Refactoring Plan Added
+
+**UI Analysis & Planning:**
+- Analyzed all 14 UI files against UISpec.md specification
+- Identified features requiring updates for center tank redesign
+- Identified UISpec features not yet implemented
+
+**Added to MasterPlan:**
+- TIER 1 Phase 1B: UI Refactoring for Center Tank (10 tasks)
+  - BottomBar directional slot layout
+  - Direction indicators for all panels
+  - Updated slot costs and requirements
+- TIER 2.5: UI Polish & Missing Features (15 tasks)
+  - Essential: Drag & drop, tooltips, sort, auto-sell
+  - Nice-to-have: Context menus, compare, double-click
+  - Future: Main menu, zone select, near death overlay
+
+**Files Analyzed:**
+- `src/ui/GameUI.ts` - Minimal, ready for floating elements
+- `src/ui/Sidebar.ts` - Complete, no changes needed
+- `src/ui/TopBar.ts` - Missing: gold rate, flee button
+- `src/ui/BottomBar.ts` - Needs: directional slots, wave pause
+- `src/ui/panels/SlidingPanel.ts` - Complete base class
+- `src/ui/panels/TankStatsPanel.ts` - Needs: direction labels
+- `src/ui/panels/InventoryPanel.ts` - Needs: drag/drop, sort, auto-sell
+- `src/ui/panels/ShopPanel.ts` - Needs: new costs/requirements
+- `src/ui/panels/SettingsPanel.ts` - Complete
+- `src/config/UIConfig.ts` - Needs: direction constants
+
+---
 
 ### January 4, 2025 - Major Roadmap Restructure
 
