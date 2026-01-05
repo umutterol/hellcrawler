@@ -23,6 +23,7 @@ import { ClickThroughManager } from '../managers/ClickThroughManager';
 import { getGoreManager } from '../effects/gore/GoreManager';
 import { AutoSellNotification } from '../ui/components/AutoSellNotification';
 import { getTooltipManager } from '../ui/components/TooltipManager';
+import { initContextMenu, destroyContextMenu } from '../ui/components/ContextMenu';
 
 /**
  * Main Game Scene - Core gameplay loop
@@ -126,6 +127,9 @@ export class GameScene extends Phaser.Scene {
 
     // Initialize tooltip manager for hover tooltips
     getTooltipManager().init(this);
+
+    // Initialize context menu for right-click menus
+    initContextMenu(this);
 
     // Initialize save manager and try to load saved game
     this.saveManager = getSaveManager();
@@ -439,6 +443,9 @@ export class GameScene extends Phaser.Scene {
 
     // Cleanup tooltip manager
     getTooltipManager().cleanup();
+
+    // Cleanup context menu
+    destroyContextMenu();
 
     // Cleanup entities
     this.tank.destroy();

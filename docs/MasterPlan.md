@@ -206,9 +206,9 @@ Features specified in UISpec.md but not yet implemented.
 
 | # | Task | Complexity | Status |
 |---|------|------------|--------|
-| 2.56 | Right-click context menus | Medium | ⏳ |
-| 2.57 | Module compare feature | Medium | ⏳ |
-| 2.58 | Double-click to equip/unequip | Low | ⏳ |
+| 2.56 | Right-click context menus | Medium | ✅ |
+| 2.57 | Module compare feature | Medium | ✅ |
+| 2.58 | Double-click to equip/unequip | Low | ✅ |
 | 2.59 | Zone selection UI | Medium | ⏳ |
 | 2.60 | Zone completion summary screen | Medium | ⏳ |
 
@@ -888,6 +888,48 @@ GameState (current) → Split into:
 ---
 
 ## Changelog
+
+### January 5, 2025 - TIER 2.5 Phase 2.5B: Interaction Features Complete
+
+**Completed Tasks 2.56, 2.57, 2.58:**
+
+- **2.58 Double-click to Equip/Unequip:**
+  - Added double-click detection with 300ms threshold
+  - Double-click on inventory module = auto-equip to first available slot
+  - Double-click on equipped module = unequip to inventory
+  - 8 unit tests passing
+
+- **2.56 Right-click Context Menus:**
+  - Created `ContextMenu.ts` component with dynamic item building
+  - Inventory modules show: Equip, Sell
+  - Equipped modules show: Unequip
+  - Menu positioned within screen bounds
+  - 11 unit tests passing
+
+- **2.57 Module Compare Feature (Tooltip-based):**
+  - Comparison integrated directly into tooltip (simpler UX)
+  - Select a module, then hover another to see stat differences
+  - Shows inline stat differences with color coding:
+    - Green (+X%) = stat gain if swapping to hovered module
+    - Red (-X%) = stat loss if swapping to hovered module
+  - Shows stats that would be lost (only on selected module)
+  - Shows "vs [ModuleName]" at bottom when comparing
+  - 10 unit tests passing
+
+**Files Created:**
+- `src/ui/components/ContextMenu.ts`
+- `tests/unit/doubleClick.test.ts`
+- `tests/unit/contextMenu.test.ts`
+- `tests/unit/moduleCompare.test.ts`
+
+**Files Modified:**
+- `src/ui/components/Tooltip.ts` - Added compareWith parameter, stat diff calculation
+- `src/ui/panels/InventoryPanel.ts` - Double-click, right-click, getCompareModule()
+- `src/scenes/GameScene.ts` - Initialize/cleanup ContextMenu
+
+**Test Summary:** 29 unit tests, all passing
+
+---
 
 ### January 5, 2025 - TIER 2.5: Tooltips System Complete
 

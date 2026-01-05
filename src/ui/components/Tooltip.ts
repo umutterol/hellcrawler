@@ -9,7 +9,7 @@ import { GAME_CONFIG } from '../../config/GameConfig';
  * Tooltip content types
  */
 export type TooltipContent =
-  | { type: 'module'; module: ModuleItemData }
+  | { type: 'module'; module: ModuleItemData; compareWith?: ModuleItemData }
   | { type: 'slot'; slot: ModuleSlotData; tankLevel: number }
   | { type: 'text'; title: string; description?: string };
 
@@ -58,7 +58,7 @@ export class Tooltip extends Phaser.GameObjects.Container {
     // Build content based on type
     switch (content.type) {
       case 'module':
-        this.buildModuleContent(content.module);
+        this.buildModuleContent(content.module, content.compareWith);
         break;
       case 'slot':
         this.buildSlotContent(content.slot, content.tankLevel);
@@ -88,7 +88,7 @@ export class Tooltip extends Phaser.GameObjects.Container {
   /**
    * Build module tooltip content
    */
-  private buildModuleContent(module: ModuleItemData): void {
+  private buildModuleContent(module: ModuleItemData, compareWith?: ModuleItemData): void {
     const padding = UI_CONFIG.TOOLTIP.PADDING;
     const lineHeight = UI_CONFIG.TOOLTIP.LINE_HEIGHT;
     const sectionSpacing = UI_CONFIG.TOOLTIP.SECTION_SPACING;
@@ -116,6 +116,9 @@ export class Tooltip extends Phaser.GameObjects.Container {
     this.contentContainer.add(rarityText);
     currentY += lineHeight + sectionSpacing;
 
+    // Build stat comparison map if comparing
+    const statDiffs = compareWith ? this.calculateStatDifferences(compareWith, module) : null;
+
     // Stats section
     if (module.stats.length > 0) {
       const statsHeader = this.scene.add.text(padding, currentY, 'Stats:', {
@@ -136,10 +139,101 @@ export class Tooltip extends Phaser.GameObjects.Container {
           color: statColor,
         });
         this.contentContainer.add(statText);
-        maxWidth = Math.max(maxWidth, statText.width + 8);
+
+        // Show diff if comparing
+        if (statDiffs) {
+          const diff = statDiffs.get(stat.type);
+          if (diff && diff.diff !== 0) {
+            const diffSign = diff.diff > 0 ? '+' : '';
+            const diffColor = diff.diff > 0 ? '#4ade80' : '#ef4444';
+            const diffText = this.scene.add.text(
+              padding + 8 + statText.width + 8,
+              currentY,
+              `(${diffSign}${diff.diff}%)`,
+              {
+                fontSize: '10px',
+                color: diffColor,
+                fontStyle: 'bold',
+              }
+            );
+            this.contentContainer.add(diffText);
+            maxWidth = Math.max(maxWidth, statText.width + diffText.width + 16);
+          } else {
+            maxWidth = Math.max(maxWidth, statText.width + 8);
+          }
+        } else {
+          maxWidth = Math.max(maxWidth, statText.width + 8);
+        }
         currentY += lineHeight - 2;
       }
+
+      // Show stats that only exist on selected module (being lost)
+      if (statDiffs) {
+        for (const [statType, diff] of statDiffs) {
+          if (diff.right === 0 && diff.left > 0) {
+            // This stat exists on selected but not on hovered - showing what would be lost
+            const statName = this.formatStatType(statType);
+            const lostText = this.scene.add.text(
+              padding + 8,
+              currentY,
+              `${statName}: -${diff.left}%`,
+              {
+                fontSize: '10px',
+                color: '#ef4444',
+              }
+            );
+            this.contentContainer.add(lostText);
+            maxWidth = Math.max(maxWidth, lostText.width + 8);
+            currentY += lineHeight - 2;
+          }
+        }
+      }
+
       currentY += sectionSpacing;
+    } else if (statDiffs) {
+      // Module has no stats but we're comparing - show what would be lost
+      const statsHeader = this.scene.add.text(padding, currentY, 'Stats:', {
+        fontSize: '11px',
+        color: UI_CONFIG.COLORS.TEXT_SECONDARY,
+        fontStyle: 'bold',
+      });
+      this.contentContainer.add(statsHeader);
+      currentY += lineHeight;
+
+      for (const [statType, diff] of statDiffs) {
+        if (diff.left > 0) {
+          const statName = this.formatStatType(statType);
+          const lostText = this.scene.add.text(
+            padding + 8,
+            currentY,
+            `${statName}: -${diff.left}%`,
+            {
+              fontSize: '10px',
+              color: '#ef4444',
+            }
+          );
+          this.contentContainer.add(lostText);
+          maxWidth = Math.max(maxWidth, lostText.width + 8);
+          currentY += lineHeight - 2;
+        }
+      }
+      currentY += sectionSpacing;
+    }
+
+    // Comparison header if comparing
+    if (compareWith) {
+      const compareHeader = this.scene.add.text(
+        padding,
+        currentY,
+        `vs ${this.formatModuleType(compareWith.type)}`,
+        {
+          fontSize: '9px',
+          color: UI_CONFIG.COLORS.TEXT_SECONDARY,
+        }
+      );
+      this.contentContainer.add(compareHeader);
+      maxWidth = Math.max(maxWidth, compareHeader.width);
+      currentY += lineHeight;
     }
 
     // Skills section
@@ -484,6 +578,37 @@ export class Tooltip extends Phaser.GameObjects.Container {
       [StatType.XPBonus]: 'XP Bonus',
     };
     return names[type] || type;
+  }
+
+  /**
+   * Calculate stat differences between two modules
+   * @param selected The currently selected module (what we have)
+   * @param hovered The module being hovered (what we could get)
+   * @returns Map of stat type to { left: selected value, right: hovered value, diff: change }
+   */
+  private calculateStatDifferences(
+    selected: ModuleItemData,
+    hovered: ModuleItemData
+  ): Map<StatType, { left: number; right: number; diff: number }> {
+    const diffs = new Map<StatType, { left: number; right: number; diff: number }>();
+
+    // Add selected module stats
+    for (const stat of selected.stats || []) {
+      diffs.set(stat.type, { left: stat.value, right: 0, diff: -stat.value });
+    }
+
+    // Add/merge hovered module stats
+    for (const stat of hovered.stats || []) {
+      const existing = diffs.get(stat.type);
+      if (existing) {
+        existing.right = stat.value;
+        existing.diff = stat.value - existing.left;
+      } else {
+        diffs.set(stat.type, { left: 0, right: stat.value, diff: stat.value });
+      }
+    }
+
+    return diffs;
   }
 
   /**

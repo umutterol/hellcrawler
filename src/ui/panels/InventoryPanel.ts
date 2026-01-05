@@ -16,6 +16,7 @@ import {
 } from '../../managers/SettingsManager';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { getTooltipManager } from '../components/TooltipManager';
+import { getContextMenu, ContextMenuItem } from '../components/ContextMenu';
 
 /**
  * Selection type to track where the selected module is
@@ -25,6 +26,11 @@ interface ModuleSelection {
   source: 'equipped' | 'inventory';
   slotIndex?: number; // Only set when source is 'equipped'
 }
+
+/**
+ * Double-click detection threshold in milliseconds
+ */
+const DOUBLE_CLICK_THRESHOLD = 300;
 
 /**
  * InventoryPanel - Sliding panel for module inventory management
@@ -70,6 +76,10 @@ export class InventoryPanel extends SlidingPanel {
   private equipButton!: Phaser.GameObjects.Container;
   private unequipButton!: Phaser.GameObjects.Container;
   private sellButton!: Phaser.GameObjects.Container;
+
+  // Double-click tracking
+  private lastClickTime: number = 0;
+  private lastClickedModuleId: string | null = null;
 
   constructor(scene: Phaser.Scene) {
     super(scene, PanelType.INVENTORY);
@@ -243,17 +253,25 @@ export class InventoryPanel extends SlidingPanel {
       rarityBar.fillRect(3, size - 5, size - 6, 2);
       container.add(rarityBar);
 
-      // Make clickable
+      // Make clickable (with double-click and right-click support)
       const hitArea = this.scene.add.rectangle(size / 2, size / 2, size, size);
       hitArea.setInteractive({ useHandCursor: true });
-      hitArea.on('pointerdown', () => {
-        this.selectModule({ module: slot.equipped!, source: 'equipped', slotIndex: index });
+      hitArea.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+        const selection: ModuleSelection = { module: slot.equipped!, source: 'equipped', slotIndex: index };
+        if (pointer.rightButtonDown()) {
+          // Right-click: show context menu
+          this.handleRightClick(selection, pointer.x, pointer.y);
+        } else {
+          // Left-click: select/double-click
+          this.handleModuleClick(selection);
+        }
       });
 
-      // Tooltip on hover
+      // Tooltip on hover (with comparison if another module is selected)
       hitArea.on('pointerover', (pointer: Phaser.Input.Pointer) => {
+        const compareWith = this.getCompareModule(slot.equipped!);
         getTooltipManager().show(
-          { type: 'module', module: slot.equipped! },
+          { type: 'module', module: slot.equipped!, compareWith },
           pointer.x,
           pointer.y
         );
@@ -623,17 +641,25 @@ export class InventoryPanel extends SlidingPanel {
       rarityBar.fillRect(4, size - 6, size - 8, 3);
       container.add(rarityBar);
 
-      // Make clickable
+      // Make clickable (with double-click and right-click support)
       const hitArea = this.scene.add.rectangle(size / 2, size / 2, size, size);
       hitArea.setInteractive({ useHandCursor: true });
-      hitArea.on('pointerdown', () => {
-        this.selectModule({ module: module as ModuleItemData, source: 'inventory' });
+      hitArea.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+        const selection: ModuleSelection = { module: module as ModuleItemData, source: 'inventory' };
+        if (pointer.rightButtonDown()) {
+          // Right-click: show context menu
+          this.handleRightClick(selection, pointer.x, pointer.y);
+        } else {
+          // Left-click: select/double-click
+          this.handleModuleClick(selection);
+        }
       });
 
-      // Tooltip on hover
+      // Tooltip on hover (with comparison if another module is selected)
       hitArea.on('pointerover', (pointer: Phaser.Input.Pointer) => {
+        const compareWith = this.getCompareModule(module as ModuleItemData);
         getTooltipManager().show(
-          { type: 'module', module: module as ModuleItemData },
+          { type: 'module', module: module as ModuleItemData, compareWith },
           pointer.x,
           pointer.y
         );
@@ -859,6 +885,126 @@ export class InventoryPanel extends SlidingPanel {
     }
 
     return container;
+  }
+
+  /**
+   * Handle click on a module (with double-click detection)
+   */
+  private handleModuleClick(selection: ModuleSelection): void {
+    const now = Date.now();
+    const moduleId = selection.module.id;
+
+    // Check for double-click
+    if (
+      this.lastClickedModuleId === moduleId &&
+      now - this.lastClickTime < DOUBLE_CLICK_THRESHOLD
+    ) {
+      // Double-click detected!
+      this.handleDoubleClick(selection);
+      // Reset tracking
+      this.lastClickTime = 0;
+      this.lastClickedModuleId = null;
+      return;
+    }
+
+    // Single click - update tracking and select
+    this.lastClickTime = now;
+    this.lastClickedModuleId = moduleId;
+    this.selectModule(selection);
+  }
+
+  /**
+   * Handle double-click on a module (equip/unequip)
+   */
+  private handleDoubleClick(selection: ModuleSelection): void {
+    if (import.meta.env.DEV) {
+      console.log(
+        `[InventoryPanel] Double-click on ${selection.module.type} (${selection.source})`
+      );
+    }
+
+    if (selection.source === 'inventory') {
+      // Double-click on inventory module = equip to first available slot
+      this.selectedModule = selection;
+      this.onEquip();
+    } else if (selection.source === 'equipped' && selection.slotIndex !== undefined) {
+      // Double-click on equipped module = unequip
+      this.selectedModule = selection;
+      this.onUnequip();
+    }
+  }
+
+  /**
+   * Handle right-click on a module (show context menu)
+   */
+  private handleRightClick(selection: ModuleSelection, x: number, y: number): void {
+    // Select the module first
+    this.selectModule(selection);
+
+    // Build context menu items based on source
+    const items = this.buildContextMenuItems(selection);
+
+    // Show context menu
+    getContextMenu(this.scene).show({
+      items,
+      x,
+      y,
+    });
+  }
+
+  /**
+   * Build context menu items for a module
+   */
+  private buildContextMenuItems(selection: ModuleSelection): ContextMenuItem[] {
+    const items: ContextMenuItem[] = [];
+
+    if (selection.source === 'inventory') {
+      // Inventory module options
+      items.push({
+        label: 'Equip',
+        icon: '⬆',
+        enabled: this.hasAvailableSlot(),
+        onClick: () => {
+          this.selectedModule = selection;
+          this.onEquip();
+        },
+      });
+
+      items.push({ separator: true, label: '' });
+
+      items.push({
+        label: 'Sell',
+        icon: '💰',
+        enabled: true,
+        onClick: () => {
+          this.selectedModule = selection;
+          this.onSell();
+        },
+      });
+    } else {
+      // Equipped module options
+      items.push({
+        label: 'Unequip',
+        icon: '⬇',
+        enabled: true,
+        onClick: () => {
+          this.selectedModule = selection;
+          this.onUnequip();
+        },
+      });
+    }
+
+    return items;
+  }
+
+  /**
+   * Get module to compare against when hovering
+   * Returns the selected module if different from hovered module
+   */
+  private getCompareModule(hoveredModule: ModuleItemData): ModuleItemData | undefined {
+    if (!this.selectedModule) return undefined;
+    if (this.selectedModule.module.id === hoveredModule.id) return undefined;
+    return this.selectedModule.module;
   }
 
   /**
