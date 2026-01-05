@@ -119,21 +119,25 @@ export class ShopPanel extends SlidingPanel {
 
   /**
    * Create all slot cards with pagination
+   * Only shows slots 2, 3, 4 (slots 0 and 1 are always free)
    */
   private createSlotCards(): void {
     const slots = this.gameState.getModuleSlots();
 
-    // Calculate pagination
-    const totalSlots = 5;
-    const totalPages = Math.ceil(totalSlots / ShopPanel.CARDS_PER_PAGE);
-    const startIndex = this.currentPage * ShopPanel.CARDS_PER_PAGE;
-    const endIndex = Math.min(startIndex + ShopPanel.CARDS_PER_PAGE, totalSlots);
+    // Only show purchasable slots (2, 3, 4) - slots 0 and 1 are always free
+    const purchasableSlotIndices = [2, 3, 4];
+    const totalPurchasable = purchasableSlotIndices.length;
+    const totalPages = Math.ceil(totalPurchasable / ShopPanel.CARDS_PER_PAGE);
+    const pageStartIndex = this.currentPage * ShopPanel.CARDS_PER_PAGE;
+    const pageEndIndex = Math.min(pageStartIndex + ShopPanel.CARDS_PER_PAGE, totalPurchasable);
 
     // Create cards for current page
-    for (let i = startIndex; i < endIndex; i++) {
-      const cardY = 40 + (i - startIndex) * 100;
-      const slot = slots[i];
-      const card = this.createSlotCard(i, cardY, slot?.unlocked ?? false);
+    for (let pageIdx = pageStartIndex; pageIdx < pageEndIndex; pageIdx++) {
+      const slotIndex = purchasableSlotIndices[pageIdx];
+      if (slotIndex === undefined) continue;
+      const cardY = 40 + (pageIdx - pageStartIndex) * 100;
+      const slot = slots[slotIndex];
+      const card = this.createSlotCard(slotIndex, cardY, slot?.unlocked ?? false);
       this.addToContent(card);
     }
 

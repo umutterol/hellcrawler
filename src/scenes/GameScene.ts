@@ -15,7 +15,6 @@ import { ParallaxBackground } from '../ui/ParallaxBackground';
 import { ModuleManager } from '../modules/ModuleManager';
 import { ModuleItem } from '../modules/ModuleItem';
 import { ModuleType } from '../types/ModuleTypes';
-import { Rarity } from '../types/GameTypes';
 import { getGameState } from '../state/GameState';
 import { getSaveManager, SaveManager } from '../managers/SaveManager';
 import { InputManager } from '../managers/InputManager';
@@ -234,28 +233,40 @@ export class GameScene extends Phaser.Scene {
   }
 
   /**
-   * Equip the starting module - 1× Uncommon Machine Gun
-   * Per GDD: "Player begins with: 1× Uncommon Machine Gun (random stat roll)"
+   * Equip starting modules - 2× Basic Machine Guns (front + back, no stats)
+   * Center tank design: Player begins with Machine Gun in both directions
+   * - Slot 0 (front): attacks RIGHT
+   * - Slot 1 (back): attacks LEFT
    */
   private equipStartingModule(): void {
     // Check if player already has modules equipped (loaded save)
     const slot0 = this.moduleManager.getSlot(0);
-    if (slot0 && slot0.hasModule()) {
+    const slot1 = this.moduleManager.getSlot(1);
+    if (slot0 && slot0.hasModule() && slot1 && slot1.hasModule()) {
       if (import.meta.env.DEV) {
-        console.log('[GameScene] Starting module already equipped (loaded save)');
+        console.log('[GameScene] Starting modules already equipped (loaded save)');
       }
       return;
     }
 
-    // Generate starting Uncommon Machine Gun
-    const startingModule = ModuleItem.generate(ModuleType.MachineGun, Rarity.Uncommon);
+    // Generate basic Machine Guns with no stats for bidirectional combat
+    const frontModule = ModuleItem.generateBasic(ModuleType.MachineGun);
+    const backModule = ModuleItem.generateBasic(ModuleType.MachineGun);
 
-    // Equip to slot 0
-    this.moduleManager.equipModule(0, startingModule);
+    // Equip to slot 0 (front - attacks RIGHT) if empty
+    if (slot0 && !slot0.hasModule()) {
+      this.moduleManager.equipModule(0, frontModule);
+      if (import.meta.env.DEV) {
+        console.log('[GameScene] Equipped front module (slot 0):', frontModule.getTypeName());
+      }
+    }
 
-    if (import.meta.env.DEV) {
-      console.log('[GameScene] Equipped starting module:', startingModule.getTypeName());
-      console.log('[GameScene] Stats:', startingModule.getStats());
+    // Equip to slot 1 (back - attacks LEFT) if empty
+    if (slot1 && !slot1.hasModule()) {
+      this.moduleManager.equipModule(1, backModule);
+      if (import.meta.env.DEV) {
+        console.log('[GameScene] Equipped back module (slot 1):', backModule.getTypeName());
+      }
     }
   }
 

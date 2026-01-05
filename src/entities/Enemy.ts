@@ -49,7 +49,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
   private static readonly HEALTH_BAR_HEIGHT = 6;
   private static readonly HEALTH_BAR_PADDING = 8; // Pixels above sprite top
   // Stop distance from tank center (not using GAME_CONFIG to avoid circular dependency)
-  private static readonly STOP_DISTANCE_FROM_TANK = 80;
+  private static readonly STOP_DISTANCE_FROM_TANK = 200;
   private static idCounter: number = 0;
 
   constructor(scene: Phaser.Scene, x: number = 0, y: number = 0) {
@@ -106,8 +106,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
     this.applyVisualsByCategory(config.category);
 
     // Flip sprite based on spawn side (enemies should face the tank)
-    // Sprites face right by default, so flip if coming from right
-    this.setFlipX(side === 'right');
+    // Sprites face left by default, so flip if coming from left (to face right toward tank)
+    this.setFlipX(side === 'left');
 
     // Enable physics body and set hitbox AFTER texture is set
     const body = this.body as Phaser.Physics.Arcade.Body;

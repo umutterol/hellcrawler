@@ -202,11 +202,12 @@ export class ModuleManager {
 
   /**
    * Initialize the 5 module slots
-   * Slot 0 is always unlocked, others start locked
+   * Slots 0 (front) and 1 (back) are always unlocked for bidirectional combat
    */
   private initializeSlots(): void {
     for (let i = 0; i < ModuleManager.MAX_SLOTS; i++) {
-      const slot = new ModuleSlot(i, i === 0);
+      // Slots 0 and 1 start unlocked
+      const slot = new ModuleSlot(i, i === 0 || i === 1);
       this.slots.push(slot);
     }
   }
@@ -312,6 +313,10 @@ export class ModuleManager {
     // Equip to slot (this emits MODULE_EQUIPPED event)
     // The event handler will skip since activeModules already has an entry
     const previousData = slot.equip(moduleItem.getData());
+
+    // Also update GameState to persist the equipped module for UI panels
+    // This ensures InventoryPanel and other UI can see the equipped module
+    this.gameState.equipModuleDirectly(slotIndex, moduleItem.getData());
 
     // Return previous module as ModuleItem if there was one
     if (previousData) {

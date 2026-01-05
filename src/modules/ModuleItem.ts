@@ -3,9 +3,10 @@ import { Rarity, StatType } from '../types/GameTypes';
 
 /**
  * Stat roll ranges per rarity
- * GDD: Uncommon 1-5%, Rare 3-8%, Epic 5-12%, Legendary 8-15%
+ * GDD: Common 0 stats, Uncommon 1-5%, Rare 3-8%, Epic 5-12%, Legendary 8-15%
  */
 const STAT_RANGES: Record<Rarity, { min: number; max: number; count: number }> = {
+  [Rarity.Common]: { min: 0, max: 0, count: 0 },
   [Rarity.Uncommon]: { min: 1, max: 5, count: 1 },
   [Rarity.Rare]: { min: 3, max: 8, count: 2 },
   [Rarity.Epic]: { min: 5, max: 12, count: 3 },
@@ -34,6 +35,7 @@ const STAT_POOL: StatType[] = [
  * This is the SINGLE SOURCE OF TRUTH for module sell values
  */
 export const MODULE_SELL_VALUES: Record<Rarity, number> = {
+  [Rarity.Common]: 0, // Basic starter modules cannot be sold
   [Rarity.Uncommon]: 50,
   [Rarity.Rare]: 200,
   [Rarity.Epic]: 1000,
@@ -72,6 +74,22 @@ export class ModuleItem {
       type,
       rarity,
       stats,
+      skills,
+    });
+  }
+
+  /**
+   * Generate a basic module with no stats (for starting equipment)
+   */
+  public static generateBasic(type: ModuleType): ModuleItem {
+    const id = `module_${type}_${++ModuleItem.idCounter}_${Date.now()}`;
+    const skills = ModuleItem.getSkillsForType(type);
+
+    return new ModuleItem({
+      id,
+      type,
+      rarity: Rarity.Common,
+      stats: [],
       skills,
     });
   }

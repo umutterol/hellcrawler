@@ -145,7 +145,7 @@ export class GameState {
       modules: {
         slots: [
           { index: 0, stats: { damageLevel: 0, attackSpeedLevel: 0, cdrLevel: 0 }, equipped: null, unlocked: true },
-          { index: 1, stats: { damageLevel: 0, attackSpeedLevel: 0, cdrLevel: 0 }, equipped: null, unlocked: false },
+          { index: 1, stats: { damageLevel: 0, attackSpeedLevel: 0, cdrLevel: 0 }, equipped: null, unlocked: true },
           { index: 2, stats: { damageLevel: 0, attackSpeedLevel: 0, cdrLevel: 0 }, equipped: null, unlocked: false },
           { index: 3, stats: { damageLevel: 0, attackSpeedLevel: 0, cdrLevel: 0 }, equipped: null, unlocked: false },
           { index: 4, stats: { damageLevel: 0, attackSpeedLevel: 0, cdrLevel: 0 }, equipped: null, unlocked: false },
@@ -616,6 +616,29 @@ export class GameState {
     }
 
     return true;
+  }
+
+  /**
+   * Directly set a module as equipped on a slot (no events)
+   * Used by ModuleManager to sync state without triggering duplicate events
+   */
+  public equipModuleDirectly(slotIndex: number, module: ModuleItemData): void {
+    if (slotIndex < 0 || slotIndex >= this.moduleSlots.length) {
+      return;
+    }
+
+    const slot = this.moduleSlots[slotIndex];
+    if (!slot || !slot.unlocked) {
+      return;
+    }
+
+    // Simply set the equipped module - no events, no inventory management
+    // The calling code (ModuleManager) handles all the side effects
+    slot.equipped = module;
+
+    if (import.meta.env.DEV) {
+      console.log(`[GameState] equipModuleDirectly: slot ${slotIndex} = ${module.type}`);
+    }
   }
 
   /**

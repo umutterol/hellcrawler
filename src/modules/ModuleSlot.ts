@@ -9,19 +9,19 @@ import { GameEvents } from '../types/GameEvents';
  * Slots have per-stat upgrades (damage, attackSpeed, CDR) that provide bonuses.
  * Slots can hold one ModuleItem at a time.
  *
- * Unlock costs:
- * - Slot 0: Free
- * - Slot 1: 10,000 Gold
- * - Slot 2: 50,000 Gold
- * - Slot 3: 200,000 Gold
- * - Slot 4: 1,000,000 Gold
+ * Center Tank Layout:
+ * - Slot 0 (Front): Free, attacks RIGHT
+ * - Slot 1 (Back): Free, attacks LEFT
+ * - Slot 2 (Front): 10,000 Gold, attacks RIGHT
+ * - Slot 3 (Back): 20,000 Gold, attacks LEFT
+ * - Slot 4 (Center): 75,000 Gold + Act 6, attacks BOTH
  */
 export class ModuleSlot {
   private data: ModuleSlotData;
   private eventManager: EventManager;
 
-  // Unlock costs per slot index
-  private static readonly UNLOCK_COSTS: number[] = [0, 10000, 50000, 200000, 1000000];
+  // Unlock costs per slot index (slots 0 and 1 are free)
+  private static readonly UNLOCK_COSTS: number[] = [0, 0, 10000, 20000, 75000];
 
   // Upgrade cost = (current level + 1) * 50
   private static readonly UPGRADE_COST_MULTIPLIER = 50;
@@ -37,7 +37,8 @@ export class ModuleSlot {
         cdrLevel: 0,
       },
       equipped: null,
-      unlocked: index === 0 ? true : unlocked, // Slot 0 is always unlocked
+      // Slots 0 (front) and 1 (back) are always unlocked for bidirectional combat
+      unlocked: index === 0 || index === 1 ? true : unlocked,
     };
   }
 

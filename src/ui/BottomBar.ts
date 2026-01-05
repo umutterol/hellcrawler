@@ -247,9 +247,9 @@ export class BottomBar {
     slotContainer.add(levelText);
     this.slotLevelTexts.push(levelText);
 
-    // Lock icon (for locked slots)
+    // Lock icon (for locked slots - slots 0 and 1 are always unlocked)
     let lockIcon: Phaser.GameObjects.Text | null = null;
-    if (index > 0) {
+    if (index > 1) {
       lockIcon = this.scene.add.text(size / 2, size / 2, '🔒', {
         fontSize: '14px',
       });

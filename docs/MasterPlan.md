@@ -737,13 +737,20 @@ TIER 4 (Audio) can run in parallel with ANY tier (waiting for assets)
 ### 2. Slot Unlock Changes
 | Old | New |
 |-----|-----|
-| Slot 1: Free | Slot 1: Free |
-| Slot 2: 10K | Slot 2: Free |
-| Slot 3: 50K | Slot 3: 10K |
-| Slot 4: 500K (Diaboros) | Slot 4: 20K |
-| Slot 5: 2M (All Ubers) | Slot 5: 75K (Act 6) |
+| Slot 1: Free | Slot 0: Free (front, attacks RIGHT) |
+| Slot 2: 10K | Slot 1: Free (back, attacks LEFT) |
+| Slot 3: 50K | Slot 2: 10K (front, attacks RIGHT) |
+| Slot 4: 500K (Diaboros) | Slot 3: 20K (back, attacks LEFT) |
+| Slot 5: 2M (All Ubers) | Slot 4: 75K (center, attacks BOTH) - Act 6 req |
 
-### 3. Faction Allegiance System
+**Starting Equipment:** Player begins with 2× Uncommon Machine Guns (one in each free slot) for bidirectional combat.
+
+### 3. Enemy Behavior
+- Enemies spawn from both sides (50/50 alternating distribution)
+- Enemies stop 80 pixels from tank center and attack in place
+- Enemies cannot pass through the tank
+
+### 4. Faction Allegiance System
 - Unlocks after all 8 Uber Bosses
 - Choose: Angels / Demons / Military
 - Module infusions are cumulative
@@ -879,6 +886,57 @@ GameState (current) → Split into:
 ---
 
 ## Changelog
+
+### January 5, 2025 - Starting Equipment UI Sync Fix
+
+**Problem:** Equipped modules weren't displaying in InventoryPanel because ModuleManager.equipModule() didn't sync data to GameState.
+
+**Root Cause:** ModuleManager maintained its own slot data separate from GameState. When InventoryPanel queried GameState.getModuleSlots(), it received empty equipped fields.
+
+**Solution:**
+- Added `GameState.equipModuleDirectly()` method to set equipped module without triggering events
+- Modified `ModuleManager.equipModule()` to call `gameState.equipModuleDirectly()` after equipping
+- This ensures both ModuleManager (runtime) and GameState (UI/persistence) stay synchronized
+
+**Added Rarity.Common for Starting Modules:**
+- Starting Machine Guns now use `Rarity.Common` (no stats, 0 gold sell value)
+- Added `ModuleItem.generateBasic()` method for creating stat-less starter modules
+- Updated STAT_RANGES and MODULE_SELL_VALUES to include Common tier
+
+**Shop Panel Updates:**
+- Removed slots 0 and 1 from shop (always free)
+- Only shows purchasable slots 2, 3, 4
+
+**Files Modified:**
+- `src/state/GameState.ts` - Added equipModuleDirectly() method
+- `src/modules/ModuleManager.ts` - Sync to GameState on equip
+- `src/modules/ModuleItem.ts` - Added generateBasic(), Common rarity support
+- `src/types/GameTypes.ts` - Added Rarity.Common
+- `src/types/GameEvents.ts` - Added 'common' to ModuleSoldPayload
+- `src/scenes/GameScene.ts` - Use generateBasic() for starting modules
+- `src/ui/panels/ShopPanel.ts` - Only show slots 2, 3, 4
+
+---
+
+### January 4, 2025 - Starting Equipment & Enemy Stop Distance
+
+**Starting Equipment Changes:**
+- Both slots 0 (front) and 1 (back) now unlocked by default
+- Player starts with 2× Uncommon Machine Guns (one per slot)
+- Ensures bidirectional combat from game start
+
+**Enemy Stop Distance:**
+- Enemies stop 80 pixels from tank center (STOP_DISTANCE_FROM_TANK = 80)
+- Enemies from right stop at x = 1040 (960 + 80)
+- Enemies from left stop at x = 880 (960 - 80)
+- Enemies cannot pass through the tank
+
+**Files Modified:**
+- `src/modules/ModuleSlot.ts` - Slots 0 and 1 always unlocked, updated UNLOCK_COSTS
+- `src/modules/ModuleManager.ts` - Updated initializeSlots() for both slots unlocked
+- `src/scenes/GameScene.ts` - Updated equipStartingModule() to equip to both slots
+
+---
 
 ### January 4, 2025 - Center Tank Redesign (Phase 1A) Complete
 

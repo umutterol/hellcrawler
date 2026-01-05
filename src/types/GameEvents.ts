@@ -160,7 +160,7 @@ export interface ModuleUnequippedPayload {
 
 export interface ModuleSoldPayload {
   moduleId: string;
-  rarity: 'uncommon' | 'rare' | 'epic' | 'legendary';
+  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
   goldEarned: number;
 }
 

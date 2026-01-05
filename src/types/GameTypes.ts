@@ -36,6 +36,7 @@ export interface TankProgression {
  * Determines stat count and value ranges for modules
  */
 export enum Rarity {
+  Common = 'common', // Basic starter modules (no stats)
   Uncommon = 'uncommon',
   Rare = 'rare',
   Epic = 'epic',
