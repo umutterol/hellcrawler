@@ -7,6 +7,7 @@ import { BaseModule } from '../modules/BaseModule';
 import { GameEvents } from '../types/GameEvents';
 import { UI_CONFIG } from '../config/UIConfig';
 import { GAME_CONFIG, SlotDirection } from '../config/GameConfig';
+import { getTooltipManager } from './components/TooltipManager';
 
 /**
  * BottomBar - Fixed bar at bottom of screen
@@ -341,6 +342,27 @@ export class BottomBar {
     skill2Auto.setVisible(false);
     slotContainer.add(skill2Auto);
     this.skill2Autos[index] = skill2Auto;
+
+    // Tooltip hit area
+    const hitArea = this.scene.add.rectangle(size / 2, size / 2, size, size, 0x000000, 0);
+    hitArea.setInteractive();
+    hitArea.on('pointerover', (pointer: Phaser.Input.Pointer) => {
+      const slotData = this.gameState.getModuleSlots()[index];
+      if (slotData) {
+        getTooltipManager().show(
+          { type: 'slot', slot: slotData, tankLevel: this.gameState.getTankLevel() },
+          pointer.x,
+          pointer.y
+        );
+      }
+    });
+    hitArea.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      getTooltipManager().updatePosition(pointer.x, pointer.y);
+    });
+    hitArea.on('pointerout', () => {
+      getTooltipManager().hide();
+    });
+    slotContainer.add(hitArea);
   }
 
   private createWaveProgress(): void {

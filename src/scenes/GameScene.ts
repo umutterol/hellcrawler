@@ -22,6 +22,7 @@ import { getPanelManager, PanelManager } from '../managers/PanelManager';
 import { ClickThroughManager } from '../managers/ClickThroughManager';
 import { getGoreManager } from '../effects/gore/GoreManager';
 import { AutoSellNotification } from '../ui/components/AutoSellNotification';
+import { getTooltipManager } from '../ui/components/TooltipManager';
 
 /**
  * Main Game Scene - Core gameplay loop
@@ -122,6 +123,9 @@ export class GameScene extends Phaser.Scene {
   private initializeManagers(): void {
     // Managers are singletons - no initialization needed here
     // EventManager and GameState are accessed via their getInstance() methods
+
+    // Initialize tooltip manager for hover tooltips
+    getTooltipManager().init(this);
 
     // Initialize save manager and try to load saved game
     this.saveManager = getSaveManager();
@@ -432,6 +436,9 @@ export class GameScene extends Phaser.Scene {
 
     // Cleanup panel manager
     PanelManager.resetInstance();
+
+    // Cleanup tooltip manager
+    getTooltipManager().cleanup();
 
     // Cleanup entities
     this.tank.destroy();

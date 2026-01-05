@@ -138,6 +138,20 @@ export const UI_CONFIG = {
     BUTTON_WIDTH: 100,
     BUTTON_SPACING: 12,
   },
+
+  // Tooltip configuration
+  TOOLTIP: {
+    MAX_WIDTH: 250,
+    PADDING: 10,
+    BORDER_RADIUS: 6,
+    BACKGROUND: 0x1a1a2e,
+    BORDER_COLOR: 0x8b7355,
+    SHOW_DELAY: 300, // ms before tooltip appears
+    OFFSET_X: 12, // Offset from cursor
+    OFFSET_Y: 12,
+    LINE_HEIGHT: 16,
+    SECTION_SPACING: 8,
+  },
 } as const;
 
 // Panel identifiers

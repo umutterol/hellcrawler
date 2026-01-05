@@ -15,6 +15,7 @@ import {
   SortDirection,
 } from '../../managers/SettingsManager';
 import { ConfirmModal } from '../components/ConfirmModal';
+import { getTooltipManager } from '../components/TooltipManager';
 
 /**
  * Selection type to track where the selected module is
@@ -106,10 +107,10 @@ export class InventoryPanel extends SlidingPanel {
     this.createDetailsSection();
 
     // Calculate total content height for scrolling
-    // Equipped section: ~90px (header + 64px slots)
-    // Grid section at y=100: header (32) + grid (4 rows × 58) + pagination (30) = 294px
-    // Details section at y=394: ~150px (details + buttons)
-    const totalContentHeight = 100 + 294 + 150; // ~544px
+    // Equipped section: ~56px (4px top + 48px slots + 4px bottom)
+    // Grid section at y=60: header (28) + grid (4 rows × 58) + pagination (30) = 290px
+    // Details section: ~150px (details + buttons)
+    const totalContentHeight = 60 + 290 + 150; // ~500px
     this.setContentHeight(totalContentHeight);
   }
 
@@ -160,19 +161,10 @@ export class InventoryPanel extends SlidingPanel {
     const sectionContainer = this.scene.add.container(16, 0);
     const slots = this.gameState.getModuleSlots();
 
-    // Section header
-    const headerText = this.scene.add.text(0, 0, 'EQUIPPED MODULES', {
-      fontFamily: 'Arial',
-      fontSize: '14px',
-      color: UI_CONFIG.COLORS.TEXT_SECONDARY,
-      fontStyle: 'bold',
-    });
-    sectionContainer.add(headerText);
-
-    // Equipped slots (5 slots) - wider spacing for new panel width
-    const slotSize = 64; // Larger slots
-    const slotSpacing = 16; // More spacing
-    const slotsY = 24;
+    // Equipped slots (5 slots) - 25% smaller (48px instead of 64px)
+    const slotSize = 48;
+    const slotSpacing = 12;
+    const slotsY = 4; // Start higher without header
 
     for (let i = 0; i < 5; i++) {
       const slot = slots[i];
@@ -222,9 +214,9 @@ export class InventoryPanel extends SlidingPanel {
     slotBg.strokeRoundedRect(0, 0, size, size, 4);
     container.add(slotBg);
 
-    // Direction indicator (inside slot, top center)
-    const dirIndicator = this.scene.add.text(size / 2, 4, dirShort, {
-      fontSize: '10px',
+    // Direction indicator (inside slot, top center) - smaller for 48px slots
+    const dirIndicator = this.scene.add.text(size / 2, 2, dirShort, {
+      fontSize: '8px',
       color: dirColor,
       fontStyle: 'bold',
     });
@@ -232,13 +224,13 @@ export class InventoryPanel extends SlidingPanel {
     container.add(dirIndicator);
 
     if (slot?.equipped) {
-      // Module icon (first letter of type)
+      // Module icon (first letter of type) - smaller for 48px slots
       const moduleType = slot.equipped.type;
       const iconText = moduleType.charAt(0).toUpperCase();
       const rarityColor = this.getRarityColorHex(slot.equipped.rarity);
 
       const moduleIcon = this.scene.add.text(size / 2, size / 2, iconText, {
-        fontSize: '24px',
+        fontSize: '18px',
         color: rarityColor,
         fontStyle: 'bold',
       });
@@ -248,7 +240,7 @@ export class InventoryPanel extends SlidingPanel {
       // Rarity indicator bar at bottom
       const rarityBar = this.scene.add.graphics();
       rarityBar.fillStyle(this.getRarityColorValue(slot.equipped.rarity), 1);
-      rarityBar.fillRect(4, size - 6, size - 8, 3);
+      rarityBar.fillRect(3, size - 5, size - 6, 2);
       container.add(rarityBar);
 
       // Make clickable
@@ -257,27 +249,42 @@ export class InventoryPanel extends SlidingPanel {
       hitArea.on('pointerdown', () => {
         this.selectModule({ module: slot.equipped!, source: 'equipped', slotIndex: index });
       });
+
+      // Tooltip on hover
+      hitArea.on('pointerover', (pointer: Phaser.Input.Pointer) => {
+        getTooltipManager().show(
+          { type: 'module', module: slot.equipped! },
+          pointer.x,
+          pointer.y
+        );
+      });
+      hitArea.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+        getTooltipManager().updatePosition(pointer.x, pointer.y);
+      });
+      hitArea.on('pointerout', () => {
+        getTooltipManager().hide();
+      });
+
       container.add(hitArea);
     } else if (slot?.unlocked) {
-      // Empty unlocked slot
+      // Empty unlocked slot - smaller for 48px slots
       const emptyText = this.scene.add.text(size / 2, size / 2, `${index + 1}`, {
-        fontSize: '18px',
+        fontSize: '14px',
         color: UI_CONFIG.COLORS.TEXT_SECONDARY,
       });
       emptyText.setOrigin(0.5);
       container.add(emptyText);
     } else {
-      // Locked slot
-      const lockText = this.scene.add.text(size / 2, size / 2 - 6, `${index + 1}`, {
-        fontSize: '16px',
+      // Locked slot - smaller for 48px slots
+      const lockText = this.scene.add.text(size / 2, size / 2 - 4, `${index + 1}`, {
+        fontSize: '12px',
         color: UI_CONFIG.COLORS.TEXT_SECONDARY,
       });
       lockText.setOrigin(0.5);
       container.add(lockText);
 
-      const lockIcon = this.scene.add.text(size / 2, size - 12, 'L', {
-        fontSize: '12px',
-        color: '#ff6666',
+      const lockIcon = this.scene.add.text(size / 2, size - 10, '🔒', {
+        fontSize: '10px',
       });
       lockIcon.setOrigin(0.5);
       container.add(lockIcon);
@@ -356,49 +363,76 @@ export class InventoryPanel extends SlidingPanel {
   }
 
   /**
-   * Create sort controls
+   * Create sort controls with icons (right-aligned)
    */
   private createSortControls(container: Phaser.GameObjects.Container, y: number): void {
     const currentMethod = this.settingsManager.inventorySortMethod;
     const currentDirection = this.settingsManager.inventorySortDirection;
     const dirArrow = currentDirection === 'desc' ? '▼' : '▲';
+    const contentWidth = this.getContentWidth();
 
-    // Sort label
-    const sortLabel = this.scene.add.text(0, y, 'Sort:', {
-      fontSize: '11px',
-      color: UI_CONFIG.COLORS.TEXT_SECONDARY,
-    });
-    container.add(sortLabel);
-
-    const buttonConfigs: { method: InventorySortMethod; label: string; x: number }[] = [
-      { method: 'rarity', label: 'Rarity', x: 40 },
-      { method: 'type', label: 'Type', x: 110 },
-      { method: 'recent', label: 'Recent', x: 165 },
+    // Icon-based sort buttons: ◆ (rarity), ▣ (type), ⏱ (recent)
+    const buttonConfigs: { method: InventorySortMethod; icon: string; tooltip: string }[] = [
+      { method: 'rarity', icon: '◆', tooltip: 'Sort by Rarity' },
+      { method: 'type', icon: '▣', tooltip: 'Sort by Type' },
+      { method: 'recent', icon: '⏱', tooltip: 'Sort by Recent' },
     ];
 
-    for (const config of buttonConfigs) {
+    const iconSize = 20;
+    const iconSpacing = 4;
+    const totalWidth = buttonConfigs.length * iconSize + (buttonConfigs.length - 1) * iconSpacing;
+    let startX = contentWidth - totalWidth;
+
+    for (let i = 0; i < buttonConfigs.length; i++) {
+      const config = buttonConfigs[i]!;
       const isActive = currentMethod === config.method;
-      const displayLabel = isActive ? `${config.label} ${dirArrow}` : config.label;
-      const color = isActive ? '#ffd700' : UI_CONFIG.COLORS.TEXT_PRIMARY;
+      const x = startX + i * (iconSize + iconSpacing);
 
-      const btn = this.scene.add.text(config.x, y, displayLabel, {
-        fontSize: '11px',
-        color,
-        fontStyle: isActive ? 'bold' : 'normal',
-      });
+      // Icon button background
+      const btnBg = this.scene.add.rectangle(
+        x + iconSize / 2,
+        y + iconSize / 2,
+        iconSize,
+        iconSize,
+        isActive ? 0x4a4a6a : 0x2a2a3a,
+        1
+      );
+      btnBg.setStrokeStyle(1, isActive ? 0xffd700 : 0x555555);
+      container.add(btnBg);
 
-      btn.setInteractive({ useHandCursor: true });
-      btn.on('pointerover', () => {
-        if (!isActive) btn.setColor('#ffd700');
+      // Icon with direction arrow if active
+      const iconText = isActive ? `${config.icon}${dirArrow}` : config.icon;
+      const btn = this.scene.add.text(x + iconSize / 2, y + iconSize / 2, iconText, {
+        fontSize: isActive ? '10px' : '12px',
+        color: isActive ? '#ffd700' : UI_CONFIG.COLORS.TEXT_PRIMARY,
       });
-      btn.on('pointerout', () => {
-        if (!isActive) btn.setColor(UI_CONFIG.COLORS.TEXT_PRIMARY);
+      btn.setOrigin(0.5);
+      container.add(btn);
+
+      // Interactive area
+      btnBg.setInteractive({ useHandCursor: true });
+      btnBg.on('pointerover', () => {
+        if (!isActive) {
+          btnBg.setFillStyle(0x3a3a5a);
+          btn.setColor('#ffd700');
+        }
+        // Show tooltip
+        getTooltipManager().show(
+          { type: 'text', title: config.tooltip },
+          btnBg.x + container.x + 16,
+          btnBg.y + container.y
+        );
       });
-      btn.on('pointerdown', () => {
+      btnBg.on('pointerout', () => {
+        if (!isActive) {
+          btnBg.setFillStyle(0x2a2a3a);
+          btn.setColor(UI_CONFIG.COLORS.TEXT_PRIMARY);
+        }
+        getTooltipManager().hide();
+      });
+      btnBg.on('pointerdown', () => {
         this.onSortClick(config.method);
       });
-
-      container.add(btn);
     }
   }
 
@@ -408,7 +442,8 @@ export class InventoryPanel extends SlidingPanel {
   private createInventoryGrid(): void {
     const rawInventory = this.gameState.getModuleInventory();
     const inventory = this.sortModules(rawInventory);
-    const sectionContainer = this.scene.add.container(16, 100);
+    // Adjusted Y position since equipped slots are now smaller (48px + 4px top + 8px gap = 60)
+    const sectionContainer = this.scene.add.container(16, 60);
 
     // Calculate pagination
     const totalPages = Math.max(1, Math.ceil(inventory.length / InventoryPanel.ITEMS_PER_PAGE));
@@ -416,33 +451,26 @@ export class InventoryPanel extends SlidingPanel {
     const endIndex = Math.min(startIndex + InventoryPanel.ITEMS_PER_PAGE, inventory.length);
     const pageItems = inventory.slice(startIndex, endIndex);
 
-    // Section header with item count
-    const inventoryHeaderText = this.scene.add.text(
-      0,
-      0,
-      `INVENTORY (${inventory.length}/50)`,
-      {
-        fontFamily: 'Arial',
-        fontSize: '14px',
-        color: UI_CONFIG.COLORS.TEXT_SECONDARY,
-        fontStyle: 'bold',
-      }
-    );
-    sectionContainer.add(inventoryHeaderText);
+    // Inventory count (small, left side)
+    const countText = this.scene.add.text(0, 4, `${inventory.length}/50`, {
+      fontSize: '10px',
+      color: UI_CONFIG.COLORS.TEXT_SECONDARY,
+    });
+    sectionContainer.add(countText);
 
-    // Sort controls (right-aligned on same line as header)
-    this.createSortControls(sectionContainer, 2);
+    // Sort controls (right-aligned, icon buttons)
+    this.createSortControls(sectionContainer, 0);
 
     // Divider
     const divider = this.scene.add.graphics();
-    divider.lineStyle(1, UI_CONFIG.COLORS.PANEL_BORDER, 0.5);
-    divider.lineBetween(0, 20, this.getContentWidth(), 20);
+    divider.lineStyle(1, UI_CONFIG.COLORS.PANEL_BORDER, 0.3);
+    divider.lineBetween(0, 22, this.getContentWidth(), 22);
     sectionContainer.add(divider);
 
     // Grid parameters - 8 columns for wider panel
     const cellSize = 52;
     const cellSpacing = 6;
-    const gridY = 32;
+    const gridY = 28;
 
     // Draw grid cells and modules
     for (let row = 0; row < InventoryPanel.GRID_ROWS; row++) {
@@ -601,6 +629,22 @@ export class InventoryPanel extends SlidingPanel {
       hitArea.on('pointerdown', () => {
         this.selectModule({ module: module as ModuleItemData, source: 'inventory' });
       });
+
+      // Tooltip on hover
+      hitArea.on('pointerover', (pointer: Phaser.Input.Pointer) => {
+        getTooltipManager().show(
+          { type: 'module', module: module as ModuleItemData },
+          pointer.x,
+          pointer.y
+        );
+      });
+      hitArea.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+        getTooltipManager().updatePosition(pointer.x, pointer.y);
+      });
+      hitArea.on('pointerout', () => {
+        getTooltipManager().hide();
+      });
+
       container.add(hitArea);
     }
 
@@ -611,9 +655,9 @@ export class InventoryPanel extends SlidingPanel {
    * Create the details/actions section
    */
   private createDetailsSection(): void {
-    // Position below grid (100 + grid height + pagination)
-    const gridHeight = InventoryPanel.GRID_ROWS * (52 + 6) + 32 + 30; // cells + header + pagination
-    const sectionContainer = this.scene.add.container(16, 100 + gridHeight);
+    // Position below grid (60 + grid height + pagination)
+    const gridHeight = InventoryPanel.GRID_ROWS * (52 + 6) + 28 + 30; // cells + header + pagination
+    const sectionContainer = this.scene.add.container(16, 60 + gridHeight);
 
     // Divider
     const divider = this.scene.add.graphics();

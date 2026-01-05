@@ -197,7 +197,7 @@ Features specified in UISpec.md but not yet implemented.
 | # | Task | Complexity | Status |
 |---|------|------------|--------|
 | 2.51 | Drag & drop module equipping | Medium | ⏳ |
-| 2.52 | Tooltips system (showTooltips already in settings) | Medium | ⏳ |
+| 2.52 | Tooltips system (showTooltips already in settings) | Medium | ✅ |
 | 2.53 | Sort options in InventoryPanel (Rarity, Type, Recent) | Low | ✅ |
 | 2.54 | Auto-sell toggle + Uncommon auto-sell | Medium | ✅ |
 | 2.55 | Sell confirmation for Rare+ modules | Low | ✅ |
@@ -888,6 +888,42 @@ GameState (current) → Split into:
 ---
 
 ## Changelog
+
+### January 5, 2025 - TIER 2.5: Tooltips System Complete
+
+**Completed Task 2.52: Tooltips System**
+
+- **Tooltip Component:** Created `Tooltip.ts` with support for:
+  - Module tooltips (name, rarity, stats, skills, sell value)
+  - Slot tooltips (direction, stat levels, upgrade costs, equipped module)
+  - Simple text tooltips
+  - Screen edge positioning to stay within bounds
+
+- **TooltipManager Singleton:** Created `TooltipManager.ts` with:
+  - Show delay (300ms before tooltip appears)
+  - Position update for following cursor
+  - Settings-aware (`showTooltips` setting respected)
+  - Scene-aware lifecycle management
+
+- **Integrated hover triggers:**
+  - InventoryPanel: module cells and equipped slots
+  - BottomBar: module slot containers
+
+**Files Created:**
+- `src/ui/components/Tooltip.ts`
+- `src/ui/components/TooltipManager.ts`
+- `tests/unit/tooltip.test.ts` (42 tests)
+- `tests/e2e/tooltip.spec.ts` (7 tests)
+
+**Files Modified:**
+- `src/config/UIConfig.ts` - Added TOOLTIP configuration
+- `src/ui/panels/InventoryPanel.ts` - Added tooltip hover triggers
+- `src/ui/BottomBar.ts` - Added tooltip hover triggers for slots
+- `src/scenes/GameScene.ts` - Initialize/cleanup TooltipManager
+
+**Test Summary:** 42 new unit tests (224 total), 7 new e2e tests
+
+---
 
 ### January 5, 2025 - TIER 2.5: First Three Features Complete
 
