@@ -19,7 +19,8 @@
 | **VFX Polish (Gore System)** | ✅ Complete | None | P0 |
 | **Center Tank Redesign (Phase 1A)** | ✅ Complete | None | P1 |
 | **Center Tank UI Refactor (Phase 1B)** | ✅ Complete | None | P1 |
-| Cinematic Module Effects | ⏳ Planned | Center Tank | P2 |
+| **Module Independence (Phase 2A)** | ✅ Complete | None | P2 |
+| Cinematic Module Effects (Phase 2B) | ⏳ Planned | Phase 2A | P2 |
 | **UI Polish & Missing Features** | ⏳ Planned | Center Tank UI | P2.5 |
 | Content Expansion (Acts 2-8) | ⏳ Planned | Center Tank | P3 |
 | Audio System | ⏸️ Paused | Assets needed | P4 |
@@ -155,27 +156,27 @@ See `docs/GorePlan.md` for detailed implementation plan.
 
 Module sprites become independent entities with dramatic visual effects.
 
-#### Phase 2A: Module Independence
+#### Phase 2A: Module Independence ✅ COMPLETE
 
 | # | Task | Complexity | Status |
 |---|------|------------|--------|
-| 2.1 | Create ModuleSprite entity class | Medium | ⏳ |
-| 2.2 | Add idle wobble animation | Low | ⏳ |
-| 2.3 | Add target tracking rotation | Medium | ⏳ |
-| 2.4 | Add fire recoil animation | Low | ⏳ |
-| 2.5 | Update projectile spawn to module position | Medium | ⏳ |
+| 2.1 | Create ModuleSprite entity class | Medium | ✅ |
+| 2.2 | Add idle wobble animation | Low | ✅ |
+| 2.3 | Add target tracking rotation | Medium | ✅ |
+| 2.4 | Add fire recoil animation | Low | ✅ |
+| 2.5 | Update projectile spawn to module position | Medium | ✅ |
 
-**Files to Create:**
+**Files Created:**
 - `src/entities/ModuleSprite.ts`
 
 #### Phase 2B: Cinematic Effects (Priority Order)
 
 | # | Module | Effect | Status |
 |---|--------|--------|--------|
-| 2.6 | Missile Pod | Vertical launch → arc → dive | ⏳ |
-| 2.7 | Machine Gun | Tracers + shell casings | ⏳ |
-| 2.8 | Tesla Coil | Charge-up + branching lightning | ⏳ |
-| 2.9 | Mortar | Sky trajectory + target indicator | ⏳ |
+| 2.6 | Missile Pod | Vertical launch → arc → dive | ✅ |
+| 2.7 | Machine Gun | Tracers + shell casings | ✅ |
+| 2.8 | Tesla Coil | Charge-up + branching lightning | ⏸️ (module not implemented) |
+| 2.9 | Mortar | Sky trajectory + target indicator | ⏸️ (module not implemented) |
 | 2.10 | Others | As time permits | ⏳ |
 
 **Exit Criteria:**
@@ -698,10 +699,11 @@ TIER 4 (Audio) can run in parallel with ANY tier (waiting for assets)
 | MVP | ✅ Complete | Dec 2024 |
 | Balance Guide | ✅ Complete | Jan 3, 2025 |
 | VFX Polish | 🟡 In Progress | Jan 4, 2025 |
-| Center Tank | ⏳ Next | - |
+| Center Tank | ✅ Complete | Jan 5, 2025 |
+| Module Independence | ✅ Complete | Jan 5, 2025 |
 
-**Current Phase:** VFX Polish - Gore System Complete ✅
-**Next Phase:** Center Tank Redesign (TIER 1) or remaining weapon VFX (0.7, 0.8)
+**Current Phase:** Module Independence (Phase 2A) Complete ✅
+**Next Phase:** Cinematic Module Effects (Phase 2B) or UI Polish (TIER 2.5)
 **Audio Status:** ⏸️ Paused (waiting for assets)
 
 ---
@@ -886,6 +888,33 @@ GameState (current) → Split into:
 ---
 
 ## Changelog
+
+### January 5, 2025 - Phase 2A Complete: Module Independence
+
+**Implemented ModuleSprite Entity System (Tasks 2.1-2.5):**
+- Created `ModuleSprite` entity class extending Phaser.GameObjects.Container
+- Module sprites attach to tank container at slot-specific positions
+- Idle wobble animation (subtle up/down movement + rotation breathing)
+- Target tracking rotation toward nearest enemy (respects slot direction)
+- Fire recoil animation triggered when module fires
+- Projectile spawn position now uses sprite's barrel tip (accounts for rotation)
+
+**Key Features:**
+- `ModuleSprite` manages visual representation independently from `BaseModule` logic
+- Smooth lerp-based rotation toward targets with clamped angle limits
+- Direction-aware targeting (Left/Right/Both based on slot)
+- Placeholder textures generated in BootScene for development
+
+**Files Created:**
+- `src/entities/ModuleSprite.ts` - ModuleSprite entity class
+
+**Files Modified:**
+- `src/modules/BaseModule.ts` - Added setModuleSprite(), getLastFireTime(), updated getFirePosition()
+- `src/modules/ModuleManager.ts` - Manages ModuleSprite lifecycle, triggers recoil on fire
+- `src/scenes/BootScene.ts` - Added createModulePlaceholders() for dev textures
+- `src/scenes/GameScene.ts` - Added setTankContainer() call
+
+---
 
 ### January 5, 2025 - UI Fixes: Centered Layout + Direction Arrows Inside Slots
 

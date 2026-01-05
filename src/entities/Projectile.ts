@@ -54,6 +54,11 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite implements IPoolabl
   protected homingTarget: Phaser.GameObjects.GameObject | null = null;
   protected homingStrength: number = 0.1;
 
+  // Tracer effect (for machine gun bullets)
+  protected lastTracerTime: number = 0;
+  protected static readonly TRACER_INTERVAL = 20; // ms between tracer spawns
+  protected static readonly TRACER_COLORS = [0xffff00, 0xffcc00, 0xff8800];
+
   // ID counter
   private static idCounter: number = 0;
 
@@ -88,6 +93,7 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite implements IPoolabl
     this.maxLifetime = config.lifetime || 3000;
     this.hasHit = false;
     this.piercedEnemies.clear();
+    this.lastTracerTime = 0;
 
     // Make visible and active
     this.setActive(true);
@@ -252,6 +258,11 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite implements IPoolabl
       return;
     }
 
+    // Spawn tracer effect for bullets
+    if (this.config?.type === ProjectileType.Bullet) {
+      this.updateTracerEffect(time);
+    }
+
     // Homing logic
     if (this.homingTarget && this.homingTarget.active) {
       this.updateHoming(delta);
@@ -264,6 +275,33 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite implements IPoolabl
       }
       this.deactivate();
     }
+  }
+
+  /**
+   * Spawn tracer trail effect for bullets
+   * Creates glowing dots that fade behind the projectile
+   */
+  private updateTracerEffect(time: number): void {
+    if (time - this.lastTracerTime < Projectile.TRACER_INTERVAL) return;
+    this.lastTracerTime = time;
+
+    // Pick tracer color (alternating for visual interest)
+    const colorIndex = Math.floor(this.lifetime / Projectile.TRACER_INTERVAL) % Projectile.TRACER_COLORS.length;
+    const color = Projectile.TRACER_COLORS[colorIndex]!;
+
+    // Create tracer dot at current position
+    const tracer = this.scene.add.circle(this.x, this.y, 3, color, 0.7);
+    tracer.setDepth(GAME_CONFIG.DEPTH.PROJECTILES - 1);
+
+    // Fade out and shrink
+    this.scene.tweens.add({
+      targets: tracer,
+      scale: 0.3,
+      alpha: 0,
+      duration: 100,
+      ease: 'Quad.easeOut',
+      onComplete: () => tracer.destroy(),
+    });
   }
 
   private updateHoming(_delta: number): void {
@@ -302,10 +340,11 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite implements IPoolabl
 
   /**
    * Play impact effect for single-target hits
-   * Creates a bright flash with spark particles
+   * Creates a bright flash with spark particles + dust puff (per GDD 4.6)
    */
   private playImpactEffect(): void {
     const isCrit = this.config?.isCrit || false;
+    const isBullet = this.config?.type === ProjectileType.Bullet;
     const baseColor = isCrit ? 0xffff00 : 0xffffff;
     const sparkColor = isCrit ? 0xffaa00 : 0xffffcc;
 
@@ -340,6 +379,42 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite implements IPoolabl
         duration: 120 + Math.random() * 60,
         ease: 'Quad.easeOut',
         onComplete: () => spark.destroy(),
+      });
+    }
+
+    // Dust puff for bullet impacts (per GDD 4.6)
+    if (isBullet) {
+      this.playDustPuff();
+    }
+  }
+
+  /**
+   * Create dust puff effect for bullet impacts
+   * Small grey-brown particles that drift upward
+   */
+  private playDustPuff(): void {
+    const dustCount = 3;
+    const dustColors = [0x888888, 0x999999, 0x777766];
+
+    for (let i = 0; i < dustCount; i++) {
+      const color = dustColors[i % dustColors.length]!;
+      const offsetX = Phaser.Math.FloatBetween(-8, 8);
+      const offsetY = Phaser.Math.FloatBetween(-4, 4);
+      const size = 4 + Math.random() * 3;
+
+      const dust = this.scene.add.circle(this.x + offsetX, this.y + offsetY, size, color, 0.4);
+      dust.setDepth(GAME_CONFIG.DEPTH.EFFECTS - 3);
+
+      // Dust drifts upward and expands
+      this.scene.tweens.add({
+        targets: dust,
+        y: dust.y - 15 - Math.random() * 10,
+        x: dust.x + Phaser.Math.FloatBetween(-5, 5),
+        scale: 1.5,
+        alpha: 0,
+        duration: 200 + Math.random() * 100,
+        ease: 'Quad.easeOut',
+        onComplete: () => dust.destroy(),
       });
     }
   }

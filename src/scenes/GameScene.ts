@@ -206,6 +206,7 @@ export class GameScene extends Phaser.Scene {
     this.moduleManager = new ModuleManager(this, gameState);
     this.moduleManager.setTankPosition(this.tank.x, this.tank.y);
     this.moduleManager.setProjectileGroup(this.projectiles);
+    this.moduleManager.setTankContainer(this.tank); // Attach module sprites to tank
 
     // Combat system handles projectile-enemy and enemy-tank collisions
     this.combatSystem = new CombatSystem(

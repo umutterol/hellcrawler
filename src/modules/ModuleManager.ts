@@ -7,6 +7,7 @@ import { ModuleItemData, ModuleType } from '../types/ModuleTypes';
 import { Rarity } from '../types/GameTypes';
 import { GameState } from '../state/GameState';
 import { Enemy } from '../entities/Enemy';
+import { ModuleSprite } from '../entities/ModuleSprite';
 import { EventManager, getEventManager } from '../managers/EventManager';
 import {
   GameEvents,
@@ -36,6 +37,12 @@ export class ModuleManager {
 
   // Active module instances (one per equipped slot)
   private activeModules: Map<number, BaseModule> = new Map();
+
+  // Module sprites (visual representation on tank)
+  private moduleSprites: Map<number, ModuleSprite> = new Map();
+
+  // Tank container for attaching module sprites
+  private tankContainer: Phaser.GameObjects.Container | null = null;
 
   // Inventory of unequipped modules
   private inventory: ModuleItem[] = [];
@@ -201,6 +208,77 @@ export class ModuleManager {
   }
 
   /**
+   * Set the tank container for attaching module sprites
+   */
+  public setTankContainer(container: Phaser.GameObjects.Container): void {
+    this.tankContainer = container;
+
+    // Recreate sprites for existing equipped modules and link them
+    for (const [slotIndex, module] of this.activeModules) {
+      const sprite = this.createModuleSprite(slotIndex, module.getModuleData());
+      if (sprite) {
+        module.setModuleSprite(sprite);
+      }
+    }
+  }
+
+  /**
+   * Create a module sprite for a slot
+   */
+  private createModuleSprite(slotIndex: number, moduleData: ModuleItemData): ModuleSprite | null {
+    if (!this.tankContainer) {
+      if (import.meta.env.DEV) {
+        console.warn('[ModuleManager] Cannot create sprite - no tank container set');
+      }
+      return null;
+    }
+
+    // Destroy existing sprite if any
+    const existingSprite = this.moduleSprites.get(slotIndex);
+    if (existingSprite) {
+      existingSprite.destroy();
+      this.moduleSprites.delete(slotIndex);
+    }
+
+    // Create new sprite
+    const sprite = new ModuleSprite(this.scene, {
+      type: moduleData.type,
+      slotIndex,
+      tankContainer: this.tankContainer,
+    });
+
+    this.moduleSprites.set(slotIndex, sprite);
+
+    if (import.meta.env.DEV) {
+      console.log(`[ModuleManager] Created sprite for slot ${slotIndex}: ${moduleData.type}`);
+    }
+
+    return sprite;
+  }
+
+  /**
+   * Destroy a module sprite for a slot
+   */
+  private destroyModuleSprite(slotIndex: number): void {
+    const sprite = this.moduleSprites.get(slotIndex);
+    if (sprite) {
+      sprite.destroy();
+      this.moduleSprites.delete(slotIndex);
+
+      if (import.meta.env.DEV) {
+        console.log(`[ModuleManager] Destroyed sprite for slot ${slotIndex}`);
+      }
+    }
+  }
+
+  /**
+   * Get the module sprite for a slot
+   */
+  public getModuleSprite(slotIndex: number): ModuleSprite | null {
+    return this.moduleSprites.get(slotIndex) ?? null;
+  }
+
+  /**
    * Initialize the 5 module slots
    * Slots 0 (front) and 1 (back) are always unlocked for bidirectional combat
    */
@@ -285,18 +363,20 @@ export class ModuleManager {
       this.inventory.splice(inventoryIndex, 1);
     }
 
-    // Destroy existing active module
+    // Destroy existing active module and sprite
     const existingModule = this.activeModules.get(slotIndex);
     if (existingModule) {
       existingModule.destroy();
       this.activeModules.delete(slotIndex);
     }
+    this.destroyModuleSprite(slotIndex);
 
     // Create new active module BEFORE equipping to slot
     // This ensures activeModules is populated before MODULE_EQUIPPED event fires
+    const moduleData = moduleItem.getData();
     const newModule = createModule(
       this.scene,
-      moduleItem.getData(),
+      moduleData,
       slotIndex,
       slot.getStats(),
       this.gameState
@@ -308,15 +388,21 @@ export class ModuleManager {
         newModule.setProjectileGroup(this.projectileGroup);
       }
       this.activeModules.set(slotIndex, newModule);
+
+      // Create visual sprite for the module and link to module
+      const sprite = this.createModuleSprite(slotIndex, moduleData);
+      if (sprite) {
+        newModule.setModuleSprite(sprite);
+      }
     }
 
     // Equip to slot (this emits MODULE_EQUIPPED event)
     // The event handler will skip since activeModules already has an entry
-    const previousData = slot.equip(moduleItem.getData());
+    const previousData = slot.equip(moduleData);
 
     // Also update GameState to persist the equipped module for UI panels
     // This ensures InventoryPanel and other UI can see the equipped module
-    this.gameState.equipModuleDirectly(slotIndex, moduleItem.getData());
+    this.gameState.equipModuleDirectly(slotIndex, moduleData);
 
     // Return previous module as ModuleItem if there was one
     if (previousData) {
@@ -335,12 +421,13 @@ export class ModuleManager {
     const slot = this.slots[slotIndex];
     if (!slot) return null;
 
-    // Destroy active module
+    // Destroy active module and sprite
     const activeModule = this.activeModules.get(slotIndex);
     if (activeModule) {
       activeModule.destroy();
       this.activeModules.delete(slotIndex);
     }
+    this.destroyModuleSprite(slotIndex);
 
     // Unequip from slot
     const moduleData = slot.unequip();
@@ -440,8 +527,23 @@ export class ModuleManager {
       // Filter enemies based on slot direction
       const targetableEnemies = this.filterEnemiesBySlotDirection(slotIndex, enemies);
 
+      // Update sprite target tracking
+      const sprite = this.moduleSprites.get(slotIndex);
+      if (sprite) {
+        sprite.update(time, delta, targetableEnemies);
+      }
+
+      // Track if module fired this frame
+      const fireTimeBefore = module.getLastFireTime();
+
       // Fire at enemies on this slot's side
       module.fire(time, targetableEnemies);
+
+      // Check if module fired - trigger recoil animation
+      const fireTimeAfter = module.getLastFireTime();
+      if (sprite && fireTimeAfter !== fireTimeBefore) {
+        sprite.playRecoil();
+      }
     }
   }
 
@@ -522,9 +624,11 @@ export class ModuleManager {
    * Load saved module data
    */
   public loadData(slotData: ModuleItemData[], inventoryData: ModuleItemData[]): void {
-    // Clear existing
+    // Clear existing modules and sprites
     this.activeModules.forEach((m) => m.destroy());
     this.activeModules.clear();
+    this.moduleSprites.forEach((s) => s.destroy());
+    this.moduleSprites.clear();
     this.inventory = [];
 
     // Load inventory
@@ -554,6 +658,12 @@ export class ModuleManager {
             module.setProjectileGroup(this.projectileGroup);
           }
           this.activeModules.set(i, module);
+
+          // Create visual sprite for the module and link to module
+          const sprite = this.createModuleSprite(i, data);
+          if (sprite) {
+            module.setModuleSprite(sprite);
+          }
         }
       }
     }
@@ -581,9 +691,16 @@ export class ModuleManager {
     this.eventManager.off(GameEvents.MODULE_UNEQUIPPED, this.onModuleUnequipped, this);
     this.eventManager.off(GameEvents.SLOT_STAT_UPGRADED, this.onSlotStatUpgraded, this);
 
+    // Destroy all sprites
+    this.moduleSprites.forEach((s) => s.destroy());
+    this.moduleSprites.clear();
+
+    // Destroy all modules
     this.activeModules.forEach((m) => m.destroy());
     this.activeModules.clear();
+
     this.inventory = [];
     this.slots = [];
+    this.tankContainer = null;
   }
 }

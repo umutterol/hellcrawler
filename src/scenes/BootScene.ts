@@ -395,5 +395,84 @@ export class BootScene extends Phaser.Scene {
       bulletGraphics.generateTexture('bullet-placeholder', 8, 8);
       bulletGraphics.destroy();
     }
+
+    // Create module placeholder textures
+    this.createModulePlaceholders();
+  }
+
+  /**
+   * Create placeholder textures for module sprites
+   * These are 16-bit style turret sprites
+   */
+  private createModulePlaceholders(): void {
+    // Machine Gun - Dual barrel turret
+    if (!this.textures.exists('module-machinegun')) {
+      const g = this.make.graphics({ x: 0, y: 0 });
+      // Turret base
+      g.fillStyle(0x4a5a4a, 1);
+      g.fillRect(0, 4, 12, 8);
+      // Barrel mount
+      g.fillStyle(0x5a6a5a, 1);
+      g.fillRect(8, 2, 6, 12);
+      // Top barrel
+      g.fillStyle(0x3a3a3a, 1);
+      g.fillRect(10, 3, 16, 3);
+      // Bottom barrel
+      g.fillRect(10, 10, 16, 3);
+      // Muzzle flash point (small bright dot)
+      g.fillStyle(0x666666, 1);
+      g.fillCircle(25, 4, 1);
+      g.fillCircle(25, 12, 1);
+      g.generateTexture('module-machinegun', 28, 16);
+      g.destroy();
+    }
+
+    // Missile Pod - Boxy launcher with tubes
+    if (!this.textures.exists('module-missile')) {
+      const g = this.make.graphics({ x: 0, y: 0 });
+      // Launcher body
+      g.fillStyle(0x5a5a3a, 1);
+      g.fillRect(0, 2, 14, 12);
+      // Launch tubes (2x2)
+      g.fillStyle(0x2a2a2a, 1);
+      g.fillCircle(16, 5, 3);
+      g.fillCircle(16, 11, 3);
+      g.fillCircle(22, 5, 3);
+      g.fillCircle(22, 11, 3);
+      // Highlight
+      g.fillStyle(0x7a7a5a, 1);
+      g.fillRect(2, 3, 10, 2);
+      g.generateTexture('module-missile', 28, 16);
+      g.destroy();
+    }
+
+    // Repair Drone - Hexagonal drone with glow
+    if (!this.textures.exists('module-repair')) {
+      const g = this.make.graphics({ x: 0, y: 0 });
+      // Drone body (hexagon-ish)
+      g.fillStyle(0x3a6a3a, 1);
+      g.fillRect(4, 4, 12, 8);
+      g.fillRect(6, 2, 8, 12);
+      // Center light
+      g.fillStyle(0x66ff66, 1);
+      g.fillCircle(10, 8, 3);
+      // Rotor arms
+      g.fillStyle(0x2a4a2a, 1);
+      g.fillRect(0, 6, 5, 4);
+      g.fillRect(15, 6, 5, 4);
+      g.generateTexture('module-repair', 20, 16);
+      g.destroy();
+    }
+
+    // Generic placeholder for unknown types
+    if (!this.textures.exists('module-placeholder')) {
+      const g = this.make.graphics({ x: 0, y: 0 });
+      g.fillStyle(0x666666, 1);
+      g.fillRect(0, 4, 10, 8);
+      g.fillStyle(0x888888, 1);
+      g.fillRect(8, 6, 12, 4);
+      g.generateTexture('module-placeholder', 20, 16);
+      g.destroy();
+    }
   }
 }

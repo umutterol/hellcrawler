@@ -5,6 +5,7 @@ import { EventManager, getEventManager } from '../managers/EventManager';
 import { GameEvents } from '../types/GameEvents';
 import { Projectile } from '../entities/Projectile';
 import { Enemy } from '../entities/Enemy';
+import { ModuleSprite } from '../entities/ModuleSprite';
 import { GAME_CONFIG, BALANCE } from '../config/GameConfig';
 
 /**
@@ -63,6 +64,9 @@ export abstract class BaseModule {
 
   // Stats cache (computed from module stats)
   protected cachedStats: Map<StatType, number> = new Map();
+
+  // Visual sprite reference (for projectile spawn position)
+  protected moduleSprite: ModuleSprite | null = null;
 
   constructor(
     scene: Phaser.Scene,
@@ -187,10 +191,25 @@ export abstract class BaseModule {
   }
 
   /**
+   * Set the visual sprite reference for this module
+   * Used for accurate projectile spawn position based on sprite rotation
+   */
+  public setModuleSprite(sprite: ModuleSprite | null): void {
+    this.moduleSprite = sprite;
+  }
+
+  /**
    * Get the firing position for this module's slot
-   * Combines tank position with slot-specific offset
+   * Uses ModuleSprite position if available (accounts for rotation),
+   * otherwise falls back to slot-specific offset from tank position
    */
   protected getFirePosition(): { x: number; y: number } {
+    // Use sprite's fire position if available (accounts for rotation)
+    if (this.moduleSprite) {
+      return this.moduleSprite.getFirePosition();
+    }
+
+    // Fallback to static slot position
     return {
       x: this.tankX + this.slotOffsetX,
       y: this.tankY + this.slotOffsetY,
@@ -433,6 +452,13 @@ export abstract class BaseModule {
    */
   public getSlotIndex(): number {
     return this.slotIndex;
+  }
+
+  /**
+   * Get last fire time (for recoil animation triggering)
+   */
+  public getLastFireTime(): number {
+    return this.lastFireTime;
   }
 
   /**
