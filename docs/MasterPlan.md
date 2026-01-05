@@ -216,8 +216,8 @@ Features specified in UISpec.md but not yet implemented.
 
 | # | Task | Complexity | Status |
 |---|------|------------|--------|
-| 2.61 | Main Menu scene (New Game, Continue, Settings, Quit) | Medium | ⏳ |
-| 2.62 | Near Death full-screen overlay (per UISpec) | Low | ⏳ |
+| 2.61 | ~~Main Menu scene~~ | Medium | ❌ SKIPPED - Game loads directly |
+| 2.62 | Near Death full-screen overlay (per UISpec) | Low | ✅ |
 | 2.63 | Gold income rate display (+5.2K/s in TopBar) | Low | ⏳ |
 | 2.64 | Flee button in TopBar | Low | ⏳ |
 | 2.65 | Wave pause button (delay next wave) | Low | ⏳ |
@@ -888,6 +888,28 @@ GameState (current) → Split into:
 ---
 
 ## Changelog
+
+### January 5, 2025 - TIER 2.5 Task 2.62: Near Death Overlay
+
+**Completed Task 2.62: Near Death Full-Screen Overlay**
+
+- **Near Death Overlay:** Created `NearDeathOverlay.ts` with:
+  - Semi-transparent red pulsing overlay (doesn't cover sidebar)
+  - "NEAR DEATH" warning text with pulsing animation
+  - "Attack Speed -50%" debuff indicator
+  - Auto-revive countdown timer (updates in real-time)
+  - Large green "REVIVE NOW" button with hover effects
+
+- **Integration:**
+  - Listens for `NEAR_DEATH_ENTERED` and `TANK_REVIVED` events
+  - Gets tank reference for timer updates
+  - Smooth fade in/out animations
+
+**Files Modified:**
+- `src/ui/components/NearDeathOverlay.ts` - NEW file
+- `src/scenes/GameScene.ts` - Added overlay initialization and update
+
+**Skipped Task 2.61:** Main Menu scene removed - game loads directly into gameplay.
 
 ### January 5, 2025 - TIER 2.5 Task 2.60: Zone Completion Summary Screen
 

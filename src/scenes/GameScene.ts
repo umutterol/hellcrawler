@@ -25,6 +25,7 @@ import { AutoSellNotification } from '../ui/components/AutoSellNotification';
 import { getTooltipManager } from '../ui/components/TooltipManager';
 import { initContextMenu, destroyContextMenu } from '../ui/components/ContextMenu';
 import { ZoneCompletionPanel } from '../ui/components/ZoneCompletionPanel';
+import { NearDeathOverlay } from '../ui/components/NearDeathOverlay';
 
 /**
  * Main Game Scene - Core gameplay loop
@@ -87,6 +88,9 @@ export class GameScene extends Phaser.Scene {
   // Zone completion panel (used for side effects, not read)
   // @ts-expect-error - Intentionally unused, manages itself via events
   private _zoneCompletionPanel!: ZoneCompletionPanel;
+
+  // Near death overlay (needs update call for timer)
+  private nearDeathOverlay!: NearDeathOverlay;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -304,6 +308,10 @@ export class GameScene extends Phaser.Scene {
     // Zone completion summary panel
     this._zoneCompletionPanel = new ZoneCompletionPanel(this);
 
+    // Near death overlay
+    this.nearDeathOverlay = new NearDeathOverlay(this);
+    this.nearDeathOverlay.setTank(this.tank);
+
     // Initialize panel system
     this.initializePanelSystem();
 
@@ -394,6 +402,9 @@ export class GameScene extends Phaser.Scene {
     // Update UI
     this.bottomBar.update(time, delta);
     this.bottomBar.updateEnemyCount(this.waveSystem.getEnemiesRemaining());
+
+    // Update near death overlay timer
+    this.nearDeathOverlay.update();
 
     // Update FPS counter
     this.updateDebugInfo(delta);

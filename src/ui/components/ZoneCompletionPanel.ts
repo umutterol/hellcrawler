@@ -40,6 +40,10 @@ export class ZoneCompletionPanel extends Phaser.GameObjects.Container {
   private modulesDropped: DroppedModuleInfo[] = [];
   private isShowing: boolean = false;
 
+  // Auto-hide timer
+  private autoHideTimer: Phaser.Time.TimerEvent | null = null;
+  private readonly AUTO_HIDE_DELAY = 5000; // 5 seconds
+
   // Panel dimensions
   private readonly panelWidth = 380;
   private readonly panelPadding = 20;
@@ -78,7 +82,11 @@ export class ZoneCompletionPanel extends Phaser.GameObjects.Container {
       0x000000,
       0.7
     );
-    this.overlay.setInteractive(); // Block clicks through
+    this.overlay.setInteractive({ useHandCursor: true });
+    // Click anywhere to dismiss
+    this.overlay.on('pointerdown', () => {
+      this.dismissAndContinue();
+    });
     this.add(this.overlay);
   }
 
@@ -119,6 +127,9 @@ export class ZoneCompletionPanel extends Phaser.GameObjects.Container {
   public show(stats: ZoneCompletedPayload): void {
     this.isShowing = true;
 
+    // Cancel any existing auto-hide timer
+    this.cancelAutoHideTimer();
+
     // Clear previous dialog content
     this.dialog.removeAll(true);
 
@@ -144,12 +155,47 @@ export class ZoneCompletionPanel extends Phaser.GameObjects.Container {
       duration: 300,
       ease: 'Back.easeOut',
     });
+
+    // Start auto-hide timer (5 seconds)
+    this.autoHideTimer = this.scene.time.delayedCall(this.AUTO_HIDE_DELAY, () => {
+      this.dismissAndContinue();
+    });
+  }
+
+  /**
+   * Cancel the auto-hide timer
+   */
+  private cancelAutoHideTimer(): void {
+    if (this.autoHideTimer) {
+      this.autoHideTimer.destroy();
+      this.autoHideTimer = null;
+    }
+  }
+
+  /**
+   * Dismiss the panel and continue to next zone
+   */
+  private dismissAndContinue(): void {
+    // Cancel timer if still active
+    this.cancelAutoHideTimer();
+
+    // Advance to next zone
+    this.gameState.completeZone();
+
+    // Call callback
+    this.callbacks.onContinue?.();
+
+    // Hide panel
+    this.hide();
   }
 
   /**
    * Hide the completion panel
    */
   public hide(): void {
+    // Cancel auto-hide timer
+    this.cancelAutoHideTimer();
+
     this.scene.tweens.add({
       targets: this,
       alpha: 0,
@@ -406,14 +452,7 @@ export class ZoneCompletionPanel extends Phaser.GameObjects.Container {
    * Handle continue button click
    */
   private onContinue(): void {
-    // Advance to next zone
-    this.gameState.completeZone();
-
-    // Call callback
-    this.callbacks.onContinue?.();
-
-    // Hide panel
-    this.hide();
+    this.dismissAndContinue();
   }
 
   /**
@@ -484,6 +523,7 @@ export class ZoneCompletionPanel extends Phaser.GameObjects.Container {
    * Destroy the panel
    */
   public destroy(fromScene?: boolean): void {
+    this.cancelAutoHideTimer();
     this.eventManager.off(GameEvents.MODULE_DROPPED, this.onModuleDropped, this);
     this.eventManager.off(GameEvents.ZONE_CHANGED, this.onZoneChanged, this);
     this.eventManager.off(GameEvents.ZONE_COMPLETED, this.onZoneCompleted, this);
