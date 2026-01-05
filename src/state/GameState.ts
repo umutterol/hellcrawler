@@ -131,7 +131,7 @@ export class GameState {
           maxHP: BALANCE.TANK_MAX_HP_BASE,      // 200 base HP
           currentHP: BALANCE.TANK_MAX_HP_BASE,
           defense: 0,
-          hpRegen: 0,
+          hpRegen: BALANCE.TANK_REGEN_BASE,     // 10 HP/s base regen
         },
         statLevels: {
           [StatType.Damage]: 0,
@@ -364,8 +364,8 @@ export class GameState {
         this.tankStats.defense = level * BALANCE.TANK_DEFENSE_PER_LEVEL;
         break;
       case TankStatType.HPRegen:
-        // +1 HP/s per level
-        this.tankStats.hpRegen = level * BALANCE.TANK_REGEN_PER_LEVEL;
+        // Base regen + bonus per level
+        this.tankStats.hpRegen = BALANCE.TANK_REGEN_BASE + level * BALANCE.TANK_REGEN_PER_LEVEL;
         break;
     }
   }
