@@ -128,10 +128,10 @@ export class GameState {
         level: 1,
         xp: 0,
         stats: {
-          maxHP: BALANCE.TANK_MAX_HP_BASE,      // 200 base HP
+          maxHP: BALANCE.TANK_MAX_HP_BASE,      // 500 base HP
           currentHP: BALANCE.TANK_MAX_HP_BASE,
           defense: 0,
-          hpRegen: BALANCE.TANK_REGEN_BASE,     // 10 HP/s base regen
+          hpRegen: BALANCE.TANK_REGEN_BASE,     // 5 HP/s base regen
         },
         statLevels: {
           [StatType.Damage]: 0,

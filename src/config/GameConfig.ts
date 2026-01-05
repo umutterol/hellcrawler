@@ -258,10 +258,10 @@ export const BALANCE = {
   // ============================================
 
   // Tank stat bonuses per level
-  TANK_MAX_HP_BASE: 200,          // Base tank HP
+  TANK_MAX_HP_BASE: 500,          // Base tank HP (increased for early game buffer)
   TANK_MAX_HP_PER_LEVEL: 25,      // +25 HP per Vitality level
   TANK_DEFENSE_PER_LEVEL: 1.0,    // +1 defense per Barrier level
-  TANK_REGEN_BASE: 10,            // Base HP/s regen (always active)
+  TANK_REGEN_BASE: 5,             // Base HP/s regen (always active)
   TANK_REGEN_PER_LEVEL: 1.0,      // +1 HP/s per Regen level
 
   // ============================================

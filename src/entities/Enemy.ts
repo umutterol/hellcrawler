@@ -38,7 +38,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
   protected currentHP: number = 0;
   protected maxHP: number = 0;
   protected lastAttackTime: number = 0;
-  protected attackCooldown: number = 2000; // ms between attacks (reduced from 1000ms for better balance)
+  protected attackCooldown: number = 1500; // ms between attacks (50% slower than original 1000ms)
 
   // Visual
   protected healthBar: Phaser.GameObjects.Graphics | null = null;
