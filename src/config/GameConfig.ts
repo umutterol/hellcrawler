@@ -246,11 +246,11 @@ export const BALANCE = {
   // ============================================
 
   // Slot stat scaling per level - these are MULTIPLIERS not tiny percentages
-  // At level 50: damage = 1 + 50*0.05 = 3.5x, speed = 1 + 50*0.03 = 2.5x
-  // This matches enemy scaling roughly (enemies get 1.8x HP per act)
-  SLOT_DAMAGE_PER_LEVEL: 0.05,    // +5% damage per slot damage level
-  SLOT_SPEED_PER_LEVEL: 0.03,     // +3% attack speed per slot speed level
-  SLOT_CDR_PER_LEVEL: 0.02,       // +2% CDR per slot CDR level
+  // REBALANCED: Increased from 5%/3% to 8%/5% for more impactful upgrades
+  // At level 50: damage = 1 + 50*0.08 = 5.0x, speed = 1 + 50*0.05 = 3.5x
+  SLOT_DAMAGE_PER_LEVEL: 0.08,    // +8% damage per slot damage level (was 5%)
+  SLOT_SPEED_PER_LEVEL: 0.05,     // +5% attack speed per slot speed level (was 3%)
+  SLOT_CDR_PER_LEVEL: 0.03,       // +3% CDR per slot CDR level (was 2%)
   SLOT_CDR_CAP: 0.75,             // Max 75% CDR (don't want 0 cooldowns)
 
   // ============================================

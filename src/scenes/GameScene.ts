@@ -26,6 +26,7 @@ import { getTooltipManager } from '../ui/components/TooltipManager';
 import { initContextMenu, destroyContextMenu } from '../ui/components/ContextMenu';
 import { ZoneCompletionPanel } from '../ui/components/ZoneCompletionPanel';
 import { NearDeathOverlay } from '../ui/components/NearDeathOverlay';
+import { BalanceDebugOverlay } from '../ui/components/BalanceDebugOverlay';
 
 /**
  * Main Game Scene - Core gameplay loop
@@ -91,6 +92,9 @@ export class GameScene extends Phaser.Scene {
 
   // Near death overlay (needs update call for timer)
   private nearDeathOverlay!: NearDeathOverlay;
+
+  // Balance debug overlay (DEV only - toggle with F3)
+  private balanceDebugOverlay: BalanceDebugOverlay | null = null;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -322,6 +326,9 @@ export class GameScene extends Phaser.Scene {
         color: '#00ff00',
       });
       this.fpsText.setDepth(1000);
+
+      // Balance debug overlay (toggle with F3)
+      this.balanceDebugOverlay = new BalanceDebugOverlay(this);
     }
   }
 
@@ -407,6 +414,11 @@ export class GameScene extends Phaser.Scene {
     // Update near death overlay timer
     this.nearDeathOverlay.update();
 
+    // Update balance debug overlay
+    if (this.balanceDebugOverlay) {
+      this.balanceDebugOverlay.update();
+    }
+
     // Update FPS counter
     this.updateDebugInfo(delta);
   }
@@ -451,6 +463,12 @@ export class GameScene extends Phaser.Scene {
     this.gameUI.destroy();
     this.sidebar.destroy();
     this._autoSellNotification.destroy();
+
+    // Cleanup balance debug overlay
+    if (this.balanceDebugOverlay) {
+      this.balanceDebugOverlay.destroy();
+      this.balanceDebugOverlay = null;
+    }
 
     // Cleanup panels
     this.tankStatsPanel.destroy();

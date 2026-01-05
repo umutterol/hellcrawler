@@ -695,30 +695,31 @@ export const ENEMY_CONFIGS: Record<EnemyType, EnemyConfig> = {
   },
   [EnemyType.FireSkull]: {
     type: EnemyType.FireSkull,
-    category: EnemyCategory.Fodder,
-    hp: 35,        // Very fragile
-    damage: 12,    // High damage (explodes)
-    speed: 100,    // Fast flying
-    xpReward: 10,
-    goldReward: 5,
+    category: EnemyCategory.Elite,  // Elite per BalanceGuide
+    hp: 150,       // REBALANCED: 50% reduction (was 300)
+    damage: 15,    // High damage (explodes on death - 30 AoE dmg)
+    speed: 50,     // Slower but threatening
+    xpReward: 35,
+    goldReward: 25,
   },
 
   // ============================================
   // ELITE ENEMIES (special spawns, harder)
+  // REBALANCED: All HP reduced by 50% for better pacing
   // ============================================
   [EnemyType.Demon]: {
     type: EnemyType.Demon,
     category: EnemyCategory.Elite,
-    hp: 300,       // Tanky
+    hp: 150,       // REBALANCED: 50% reduction (was 300)
     damage: 15,
     speed: 70,
-    xpReward: 35,  // Elite XP per BalanceGuide
-    goldReward: 25, // Elite gold per BalanceGuide
+    xpReward: 35,
+    goldReward: 25,
   },
   [EnemyType.Necromancer]: {
     type: EnemyType.Necromancer,
     category: EnemyCategory.Elite,
-    hp: 200,       // Ranged support, less HP
+    hp: 100,       // REBALANCED: 50% reduction (was 200)
     damage: 12,
     speed: 50,     // Slow caster
     xpReward: 40,
@@ -727,7 +728,7 @@ export const ENEMY_CONFIGS: Record<EnemyType, EnemyConfig> = {
   [EnemyType.ShadowFiend]: {
     type: EnemyType.ShadowFiend,
     category: EnemyCategory.Elite,
-    hp: 180,       // Glass cannon assassin
+    hp: 90,        // REBALANCED: 50% reduction (was 180)
     damage: 25,    // High burst
     speed: 130,    // Very fast
     xpReward: 38,
@@ -736,7 +737,7 @@ export const ENEMY_CONFIGS: Record<EnemyType, EnemyConfig> = {
   [EnemyType.InfernalWarrior]: {
     type: EnemyType.InfernalWarrior,
     category: EnemyCategory.Elite,
-    hp: 350,       // Heavy tank
+    hp: 175,       // REBALANCED: 50% reduction (was 350)
     damage: 18,
     speed: 60,
     xpReward: 45,
@@ -745,11 +746,12 @@ export const ENEMY_CONFIGS: Record<EnemyType, EnemyConfig> = {
 
   // ============================================
   // SUPER ELITE ENEMIES (rare, zone 1 wave 7)
+  // REBALANCED: HP reduced by 50% for better pacing
   // ============================================
   [EnemyType.ArchDemon]: {
     type: EnemyType.ArchDemon,
     category: EnemyCategory.SuperElite,
-    hp: 1500,      // Per BalanceGuide
+    hp: 750,       // REBALANCED: 50% reduction (was 1500)
     damage: 25,
     speed: 50,
     xpReward: 150,
@@ -758,7 +760,7 @@ export const ENEMY_CONFIGS: Record<EnemyType, EnemyConfig> = {
   [EnemyType.VoidReaver]: {
     type: EnemyType.VoidReaver,
     category: EnemyCategory.SuperElite,
-    hp: 1200,      // Faster but less HP
+    hp: 600,       // REBALANCED: 50% reduction (was 1200)
     damage: 35,    // High damage teleporter
     speed: 90,
     xpReward: 175,
@@ -767,20 +769,23 @@ export const ENEMY_CONFIGS: Record<EnemyType, EnemyConfig> = {
 
   // ============================================
   // BOSSES (zone 2 wave 7)
+  // REBALANCED: HP reduced by ~80% - Desktop Heroes bosses are like our Ubers
+  // These are end-of-zone bosses, not endgame Uber encounters
+  // Target TTK: 15-30 seconds with appropriate gear
   // ============================================
   [EnemyType.CorruptedSentinel]: {
     type: EnemyType.CorruptedSentinel,
     category: EnemyCategory.Boss,
-    hp: 10000,     // Per BalanceGuide
+    hp: 2000,      // REBALANCED: Was 10000, now 2000 (~80% reduction)
     damage: 40,
     speed: 45,
     xpReward: 500,
-    goldReward: 5000, // Per BalanceGuide
+    goldReward: 5000,
   },
   [EnemyType.InfernalWarlord]: {
     type: EnemyType.InfernalWarlord,
     category: EnemyCategory.Boss,
-    hp: 8000,      // Slightly less HP, more mobile
+    hp: 1600,      // REBALANCED: Was 8000, now 1600 (~80% reduction)
     damage: 45,
     speed: 55,
     xpReward: 450,
@@ -789,7 +794,7 @@ export const ENEMY_CONFIGS: Record<EnemyType, EnemyConfig> = {
   [EnemyType.LordOfFlames]: {
     type: EnemyType.LordOfFlames,
     category: EnemyCategory.Boss,
-    hp: 12000,     // Tankiest boss
+    hp: 2500,      // REBALANCED: Was 12000, now 2500 (~80% reduction)
     damage: 35,    // Lower damage but more HP
     speed: 35,     // Very slow
     xpReward: 600,

@@ -75,11 +75,11 @@ export class WaveSystem {
   private zoneGoldGained: number = 0;
 
   // Fodder types for random selection
+  // NOTE: FireSkull removed - it's an Elite enemy per BalanceGuide (300 HP)
   private readonly fodderTypes: EnemyType[] = [
     EnemyType.Imp,
     EnemyType.Hellhound,
     EnemyType.PossessedSoldier,
-    EnemyType.FireSkull,
   ];
 
   private readonly eliteTypes: EnemyType[] = [
@@ -87,6 +87,7 @@ export class WaveSystem {
     EnemyType.Necromancer,
     EnemyType.ShadowFiend,
     EnemyType.InfernalWarrior,
+    EnemyType.FireSkull, // Added - per BalanceGuide this is an Elite (300 HP, explodes on death)
   ];
 
   constructor(

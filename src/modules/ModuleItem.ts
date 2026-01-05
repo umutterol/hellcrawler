@@ -3,14 +3,22 @@ import { Rarity, StatType } from '../types/GameTypes';
 
 /**
  * Stat roll ranges per rarity
- * GDD: Common 0 stats, Uncommon 1-5%, Rare 3-8%, Epic 5-12%, Legendary 8-15%
+ *
+ * REBALANCED: Module stats now provide meaningful multiplicative bonuses
+ * At slot level 50 (3.5x base), a Legendary should add ~50-80% more damage
+ *
+ * Old values made modules feel worthless:
+ *   Legendary was only 8-15% per stat → barely noticeable
+ *
+ * New values make modules impactful at all stages:
+ *   Legendary is 50-75% per stat → significant multiplier
  */
 const STAT_RANGES: Record<Rarity, { min: number; max: number; count: number }> = {
   [Rarity.Common]: { min: 0, max: 0, count: 0 },
-  [Rarity.Uncommon]: { min: 1, max: 5, count: 1 },
-  [Rarity.Rare]: { min: 3, max: 8, count: 2 },
-  [Rarity.Epic]: { min: 5, max: 12, count: 3 },
-  [Rarity.Legendary]: { min: 8, max: 15, count: 4 },
+  [Rarity.Uncommon]: { min: 10, max: 20, count: 1 },   // Was 1-5%
+  [Rarity.Rare]: { min: 18, max: 32, count: 2 },       // Was 3-8%
+  [Rarity.Epic]: { min: 30, max: 50, count: 3 },       // Was 5-12%
+  [Rarity.Legendary]: { min: 50, max: 75, count: 4 },  // Was 8-15%
 };
 
 /**
