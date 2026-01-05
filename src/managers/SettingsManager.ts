@@ -15,6 +15,16 @@ import { GameEvents } from '../types/GameEvents';
 /**
  * Game settings interface
  */
+/**
+ * Inventory sort methods
+ */
+export type InventorySortMethod = 'rarity' | 'type' | 'recent';
+
+/**
+ * Sort direction
+ */
+export type SortDirection = 'asc' | 'desc';
+
 export interface GameSettings {
   // Display settings
   showHealthBars: boolean;
@@ -25,6 +35,11 @@ export interface GameSettings {
   autoCollectLoot: boolean;
   confirmRareSells: boolean;
   showTooltips: boolean;
+
+  // Inventory settings
+  inventorySortMethod: InventorySortMethod;
+  inventorySortDirection: SortDirection;
+  autoSellUncommon: boolean;
 
   // Audio settings (0-100)
   masterVolume: number;
@@ -55,6 +70,11 @@ const DEFAULT_SETTINGS: GameSettings = {
   autoCollectLoot: true,
   confirmRareSells: true,
   showTooltips: true,
+
+  // Inventory - sort by rarity descending (best first)
+  inventorySortMethod: 'rarity',
+  inventorySortDirection: 'desc',
+  autoSellUncommon: false, // Off by default - player must opt-in
 
   // Audio - reasonable defaults
   masterVolume: 80,
@@ -277,6 +297,20 @@ export class SettingsManager {
 
   public get showForegroundLayer(): boolean {
     return this.settings.showForegroundLayer;
+  }
+
+  // Inventory getters
+
+  public get inventorySortMethod(): InventorySortMethod {
+    return this.settings.inventorySortMethod;
+  }
+
+  public get inventorySortDirection(): SortDirection {
+    return this.settings.inventorySortDirection;
+  }
+
+  public get autoSellUncommon(): boolean {
+    return this.settings.autoSellUncommon;
   }
 
   /**

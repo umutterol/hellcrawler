@@ -21,6 +21,7 @@ import { MODULE_SELL_VALUES } from '../modules/ModuleItem';
 import { SaveData } from '../types/SaveTypes';
 import { GameEvents } from '../types/GameEvents';
 import { EventManager } from '../managers/EventManager';
+import { getSettingsManager } from '../managers/SettingsManager';
 import { GAME_CONFIG, BALANCE } from '../config/GameConfig';
 import { calculateXPRequired, calculateUpgradeCost } from '../config/Constants';
 
@@ -690,8 +691,40 @@ export class GameState {
 
   /**
    * Add a module to the inventory
+   * If autoSellUncommon is enabled and module is Uncommon, auto-sell it instead
+   *
+   * @param module The module to add
+   * @param dropPosition Optional position for auto-sell notification
+   * @returns true if added to inventory, false if auto-sold
    */
-  public addToInventory(module: ModuleItemData): void {
+  public addToInventory(module: ModuleItemData, dropPosition?: { x: number; y: number }): boolean {
+    // Check auto-sell setting for Uncommon modules
+    const settings = getSettingsManager();
+    if (settings.autoSellUncommon && module.rarity === Rarity.Uncommon) {
+      // Auto-sell the module
+      const goldEarned = MODULE_SELL_VALUES[Rarity.Uncommon] || 50;
+      this.addGold(goldEarned, 'module_sold');
+
+      // Emit auto-sold event with position for notification
+      this.eventManager.emit(GameEvents.MODULE_AUTO_SOLD, {
+        moduleId: module.id,
+        moduleType: module.type,
+        rarity: 'uncommon',
+        goldEarned,
+        x: dropPosition?.x ?? 0,
+        y: dropPosition?.y ?? 0,
+      });
+
+      if (import.meta.env.DEV) {
+        console.log(
+          `[GameState] Auto-sold ${module.type} (${module.rarity}) for ${goldEarned} gold`
+        );
+      }
+
+      return false; // Module was auto-sold, not added to inventory
+    }
+
+    // Normal inventory addition
     this.moduleInventory.push(module);
 
     if (import.meta.env.DEV) {
@@ -699,6 +732,8 @@ export class GameState {
         `[GameState] Added ${module.type} (${module.rarity}) to inventory (${this.moduleInventory.length} total)`
       );
     }
+
+    return true; // Module was added to inventory
   }
 
   /**

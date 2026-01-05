@@ -21,6 +21,7 @@ import { InputManager } from '../managers/InputManager';
 import { getPanelManager, PanelManager } from '../managers/PanelManager';
 import { ClickThroughManager } from '../managers/ClickThroughManager';
 import { getGoreManager } from '../effects/gore/GoreManager';
+import { AutoSellNotification } from '../ui/components/AutoSellNotification';
 
 /**
  * Main Game Scene - Core gameplay loop
@@ -76,6 +77,9 @@ export class GameScene extends Phaser.Scene {
   // Desktop Mode (Electron)
   // Note: Initialized for Electron window click-through behavior
   private _clickThroughManager: ClickThroughManager | null = null;
+
+  // Auto-sell notification system (used for side effects, not read)
+  private _autoSellNotification!: AutoSellNotification;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -281,6 +285,9 @@ export class GameScene extends Phaser.Scene {
     // Core HUD elements (deprecated - most moved to TopBar/BottomBar)
     this.gameUI = new GameUI(this);
 
+    // Auto-sell notification for Uncommon modules
+    this._autoSellNotification = new AutoSellNotification(this);
+
     // Initialize panel system
     this.initializePanelSystem();
 
@@ -415,6 +422,7 @@ export class GameScene extends Phaser.Scene {
     this.bottomBar.destroy();
     this.gameUI.destroy();
     this.sidebar.destroy();
+    this._autoSellNotification.destroy();
 
     // Cleanup panels
     this.tankStatsPanel.destroy();

@@ -36,9 +36,13 @@ describe('Module Sell Values - Canonical Source', () => {
     expect(MODULE_SELL_VALUES[Rarity.Legendary]).toBe(5000);
   });
 
-  it('should have exactly 4 rarity tiers defined', () => {
+  it('should have exactly 5 rarity tiers defined (including Common)', () => {
     const keys = Object.keys(MODULE_SELL_VALUES);
-    expect(keys.length).toBe(4);
+    expect(keys.length).toBe(5);
+  });
+
+  it('should return 0 gold for Common modules', () => {
+    expect(MODULE_SELL_VALUES[Rarity.Common]).toBe(0);
   });
 
   it('should have increasing value by rarity tier', () => {
@@ -52,9 +56,9 @@ describe('Module Sell Values - Canonical Source', () => {
     expect(legendary).toBeGreaterThan(epic);
   });
 
-  it('should have all values be positive integers', () => {
+  it('should have all values be non-negative integers', () => {
     Object.values(MODULE_SELL_VALUES).forEach((value) => {
-      expect(value).toBeGreaterThan(0);
+      expect(value).toBeGreaterThanOrEqual(0);
       expect(Number.isInteger(value)).toBe(true);
     });
   });

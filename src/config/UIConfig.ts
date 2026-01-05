@@ -126,6 +126,18 @@ export const UI_CONFIG = {
   // [Back2, Back4, Center5, Front3, Front1] = slot indices [1, 3, 4, 2, 0]
   // This creates visual grouping: Left attackers | Center | Right attackers
   SLOT_DISPLAY_ORDER: [1, 3, 4, 2, 0] as readonly number[],
+
+  // Modal configuration
+  MODAL: {
+    WIDTH: 320,
+    PADDING: 20,
+    BORDER_RADIUS: 8,
+    BACKGROUND: 0x1a1a2e,
+    OVERLAY_ALPHA: 0.7,
+    BUTTON_HEIGHT: 32,
+    BUTTON_WIDTH: 100,
+    BUTTON_SPACING: 12,
+  },
 } as const;
 
 // Panel identifiers

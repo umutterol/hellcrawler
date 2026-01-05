@@ -70,9 +70,9 @@ export class SettingsPanel extends SlidingPanel {
     // Calculate total content height for scrolling
     // Save section is the last section and its Y position depends on Electron mode
     const settingsManager = getSettingsManager();
-    const saveYOffset = settingsManager.isElectron() ? 820 : 715;
+    const saveYOffset = settingsManager.isElectron() ? 852 : 747;
     // Save section contains: divider + save button (y=16, h=36) + quit button (y=60, h=36)
-    const totalContentHeight = saveYOffset + 60 + 36 + 20; // ~816-921px depending on mode
+    const totalContentHeight = saveYOffset + 60 + 36 + 20; // ~843-948px depending on mode
     this.setContentHeight(totalContentHeight);
   }
 
@@ -137,6 +137,7 @@ export class SettingsPanel extends SlidingPanel {
     const toggles: { label: string; key: keyof GameSettings }[] = [
       { label: 'Auto-Collect Loot', key: 'autoCollectLoot' },
       { label: 'Confirm Rare+ Sells', key: 'confirmRareSells' },
+      { label: 'Auto-Sell Uncommon', key: 'autoSellUncommon' },
       { label: 'Show Tooltips', key: 'showTooltips' },
     ];
 
@@ -152,7 +153,7 @@ export class SettingsPanel extends SlidingPanel {
    * Create audio settings section
    */
   private createAudioSection(): void {
-    const sectionContainer = this.scene.add.container(16, 260);
+    const sectionContainer = this.scene.add.container(16, 292);
 
     // Section header
     const headerText = this.scene.add.text(0, 0, 'AUDIO', {
@@ -448,7 +449,7 @@ export class SettingsPanel extends SlidingPanel {
    * Create background layers visibility section
    */
   private createBackgroundLayersSection(): void {
-    const sectionContainer = this.scene.add.container(16, 390);
+    const sectionContainer = this.scene.add.container(16, 422);
 
     // Section header
     const headerText = this.scene.add.text(0, 0, 'BACKGROUND LAYERS', {
@@ -491,7 +492,7 @@ export class SettingsPanel extends SlidingPanel {
       return; // Skip this section in web browser
     }
 
-    const sectionContainer = this.scene.add.container(16, 555);
+    const sectionContainer = this.scene.add.container(16, 587);
 
     // Section header
     const headerText = this.scene.add.text(0, 0, 'DESKTOP MODE', {
@@ -547,7 +548,7 @@ export class SettingsPanel extends SlidingPanel {
   private createControlsSection(): void {
     // Adjust Y position based on whether Desktop Mode section is shown
     const settingsManager = getSettingsManager();
-    const yOffset = settingsManager.isElectron() ? 660 : 555;
+    const yOffset = settingsManager.isElectron() ? 692 : 587;
     const sectionContainer = this.scene.add.container(16, yOffset);
 
     // Section header
@@ -592,7 +593,7 @@ export class SettingsPanel extends SlidingPanel {
   private createSaveSection(): void {
     // Adjust Y position based on whether Desktop Mode section is shown
     const settingsManager = getSettingsManager();
-    const yOffset = settingsManager.isElectron() ? 820 : 715;
+    const yOffset = settingsManager.isElectron() ? 852 : 747;
     const sectionContainer = this.scene.add.container(16, yOffset);
 
     // Divider

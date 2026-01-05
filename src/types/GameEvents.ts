@@ -25,6 +25,7 @@ export enum GameEvents {
   MODULE_EQUIPPED = 'module:equipped',
   MODULE_UNEQUIPPED = 'module:unequipped',
   MODULE_SOLD = 'module:sold',
+  MODULE_AUTO_SOLD = 'module:auto_sold',
   SKILL_ACTIVATED = 'skill:activated',
   SKILL_COOLDOWN_STARTED = 'skill:cooldown_started',
   SKILL_COOLDOWN_ENDED = 'skill:cooldown_ended',
@@ -162,6 +163,15 @@ export interface ModuleSoldPayload {
   moduleId: string;
   rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
   goldEarned: number;
+}
+
+export interface ModuleAutoSoldPayload {
+  moduleId: string;
+  moduleType: string;
+  rarity: 'uncommon';
+  goldEarned: number;
+  x: number;
+  y: number;
 }
 
 export interface SkillActivatedPayload {
@@ -326,6 +336,7 @@ export type EventPayloadMap = {
   [GameEvents.MODULE_EQUIPPED]: ModuleEquippedPayload;
   [GameEvents.MODULE_UNEQUIPPED]: ModuleUnequippedPayload;
   [GameEvents.MODULE_SOLD]: ModuleSoldPayload;
+  [GameEvents.MODULE_AUTO_SOLD]: ModuleAutoSoldPayload;
   [GameEvents.SKILL_ACTIVATED]: SkillActivatedPayload;
   [GameEvents.SKILL_COOLDOWN_STARTED]: SkillCooldownPayload;
   [GameEvents.SKILL_COOLDOWN_ENDED]: SkillCooldownPayload;

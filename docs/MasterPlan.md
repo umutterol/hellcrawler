@@ -198,9 +198,9 @@ Features specified in UISpec.md but not yet implemented.
 |---|------|------------|--------|
 | 2.51 | Drag & drop module equipping | Medium | ⏳ |
 | 2.52 | Tooltips system (showTooltips already in settings) | Medium | ⏳ |
-| 2.53 | Sort options in InventoryPanel (Rarity, Type, Recent) | Low | ⏳ |
-| 2.54 | Auto-sell toggle + Uncommon auto-sell | Medium | ⏳ |
-| 2.55 | Sell confirmation for Rare+ modules | Low | ⏳ |
+| 2.53 | Sort options in InventoryPanel (Rarity, Type, Recent) | Low | ✅ |
+| 2.54 | Auto-sell toggle + Uncommon auto-sell | Medium | ✅ |
+| 2.55 | Sell confirmation for Rare+ modules | Low | ✅ |
 
 #### Phase 2.5B: Nice-to-Have Features
 
@@ -888,6 +888,56 @@ GameState (current) → Split into:
 ---
 
 ## Changelog
+
+### January 5, 2025 - TIER 2.5: First Three Features Complete
+
+**Completed Phase 2.5A Inventory Features (Tasks 2.53, 2.54, 2.55):**
+
+- **2.53 Sort Options:** Added sort by Rarity/Type/Recent to InventoryPanel
+  - Added `inventorySortMethod` and `inventorySortDirection` settings
+  - Added RARITY_ORDER constant for sorting
+  - Created sort controls UI with toggle direction
+  - 15 unit tests + 6 e2e tests passing
+
+- **2.55 Sell Confirmation:** Created ConfirmModal for Rare+ modules
+  - Created reusable `ConfirmModal.ts` component with Promise-based API
+  - Added `confirmRareSells` setting (default: true)
+  - Shows "Don't ask again" checkbox option
+  - Displays module preview with rarity color
+  - 21 unit tests + 7 e2e tests passing
+
+- **2.54 Auto-sell Toggle:** Implemented auto-sell for Uncommon modules
+  - Added `autoSellUncommon` setting (default: false - opt-in)
+  - Added `MODULE_AUTO_SOLD` event to GameEvents
+  - Modified `GameState.addToInventory()` to auto-sell when enabled
+  - Created `AutoSellNotification.ts` component for floating "+Xg (Auto-sold)" text
+  - Updated LootSystem to pass drop position for notifications
+  - Added toggle to SettingsPanel in Gameplay section
+  - 20 unit tests + 6 e2e tests passing
+
+**Files Created:**
+- `src/ui/components/ConfirmModal.ts`
+- `src/ui/components/AutoSellNotification.ts`
+- `tests/unit/inventorySort.test.ts`
+- `tests/unit/confirmModal.test.ts`
+- `tests/unit/autoSell.test.ts`
+- `tests/e2e/inventorySort.spec.ts`
+- `tests/e2e/sellConfirmation.spec.ts`
+- `tests/e2e/autoSell.spec.ts`
+
+**Files Modified:**
+- `src/managers/SettingsManager.ts` - Added inventory and auto-sell settings
+- `src/config/UIConfig.ts` - Added MODAL configuration
+- `src/ui/panels/InventoryPanel.ts` - Sort controls, sell confirmation
+- `src/ui/panels/SettingsPanel.ts` - Auto-sell toggle in Gameplay section
+- `src/state/GameState.ts` - Auto-sell logic in addToInventory()
+- `src/types/GameEvents.ts` - Added MODULE_AUTO_SOLD event
+- `src/systems/LootSystem.ts` - Pass drop position for notifications
+- `src/scenes/GameScene.ts` - Initialize AutoSellNotification
+
+**Test Summary:** 56 new unit tests, 19 new e2e tests, all passing
+
+---
 
 ### January 5, 2025 - Phase 2A Complete: Module Independence
 

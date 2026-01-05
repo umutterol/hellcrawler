@@ -65,17 +65,22 @@ export class LootSystem {
     // Roll for module drop
     const module = this.rollForDrop(category);
     if (module) {
-      // For now, add directly to inventory (visual drops later)
-      this.gameState.addToInventory(module.getData());
-      const added = true;
+      // Get drop position from enemy position
+      const dropX = payload.x ?? 0;
+      const dropY = payload.y ?? 0;
 
+      // For now, add directly to inventory (visual drops later)
+      // Pass drop position for auto-sell notification
+      const added = this.gameState.addToInventory(module.getData(), { x: dropX, y: dropY });
+
+      // Only emit MODULE_DROPPED if actually added to inventory (not auto-sold)
       if (added) {
         this.eventManager.emit(GameEvents.MODULE_DROPPED, {
           moduleId: module.getId(),
           rarity: module.getRarity() as 'uncommon' | 'rare' | 'epic' | 'legendary',
           type: module.getType(),
-          x: 0, // Position not relevant for auto-pickup
-          y: 0,
+          x: dropX,
+          y: dropY,
           droppedBy: payload.enemyId,
         });
 

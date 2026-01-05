@@ -8,6 +8,13 @@ import { ModuleItemData, ModuleSlotData } from '../../types/ModuleTypes';
 import { Rarity } from '../../types/GameTypes';
 import { MODULE_SELL_VALUES } from '../../modules/ModuleItem';
 import { GAME_CONFIG, SlotDirection } from '../../config/GameConfig';
+import {
+  getSettingsManager,
+  SettingsManager,
+  InventorySortMethod,
+  SortDirection,
+} from '../../managers/SettingsManager';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 /**
  * Selection type to track where the selected module is
@@ -28,10 +35,23 @@ interface ModuleSelection {
  * - Click to select, see details
  * - Equip/Unequip/Sell buttons
  */
+// Rarity order for sorting (higher = better)
+const RARITY_ORDER: Record<string, number> = {
+  [Rarity.Common]: 0,
+  [Rarity.Uncommon]: 1,
+  [Rarity.Rare]: 2,
+  [Rarity.Epic]: 3,
+  [Rarity.Legendary]: 4,
+};
+
 export class InventoryPanel extends SlidingPanel {
   // Initialize after super() since these need GameState singleton
   private gameState: GameState = getGameState();
   private eventManager: EventManager = getEventManager();
+  private settingsManager: SettingsManager = getSettingsManager();
+
+  // Confirm modal for rare+ sells
+  private confirmModal: ConfirmModal | null = null;
 
   // UI Elements that need updating
   private equippedSlotContainers: Phaser.GameObjects.Container[] = [];
@@ -55,6 +75,9 @@ export class InventoryPanel extends SlidingPanel {
     this.setTitle('INVENTORY');
     this.initContent();
     this.subscribeToEvents();
+
+    // Create confirm modal for rare+ sells
+    this.confirmModal = new ConfirmModal(scene);
   }
 
   /**
@@ -264,10 +287,127 @@ export class InventoryPanel extends SlidingPanel {
   }
 
   /**
+   * Sort modules based on current settings
+   */
+  private sortModules(modules: readonly ModuleItemData[]): ModuleItemData[] {
+    const sortMethod = this.settingsManager.inventorySortMethod;
+    const sortDirection = this.settingsManager.inventorySortDirection;
+    const multiplier = sortDirection === 'desc' ? -1 : 1;
+
+    // Create a mutable copy for sorting
+    const sorted = [...modules];
+
+    switch (sortMethod) {
+      case 'rarity':
+        sorted.sort((a, b) => {
+          const rarityDiff = (RARITY_ORDER[a.rarity] ?? 0) - (RARITY_ORDER[b.rarity] ?? 0);
+          if (rarityDiff !== 0) return rarityDiff * multiplier;
+          // Secondary sort by type for same rarity
+          return a.type.localeCompare(b.type) * multiplier;
+        });
+        break;
+
+      case 'type':
+        sorted.sort((a, b) => {
+          const typeDiff = a.type.localeCompare(b.type);
+          if (typeDiff !== 0) return typeDiff * multiplier;
+          // Secondary sort by rarity for same type
+          return ((RARITY_ORDER[a.rarity] ?? 0) - (RARITY_ORDER[b.rarity] ?? 0)) * multiplier;
+        });
+        break;
+
+      case 'recent':
+        // Module IDs contain timestamp, more recent = higher ID
+        sorted.sort((a, b) => {
+          return a.id.localeCompare(b.id) * multiplier;
+        });
+        break;
+    }
+
+    return sorted;
+  }
+
+  /**
+   * Handle sort button click
+   */
+  private onSortClick(method: InventorySortMethod): void {
+    const currentMethod = this.settingsManager.inventorySortMethod;
+    const currentDirection = this.settingsManager.inventorySortDirection;
+
+    if (currentMethod === method) {
+      // Toggle direction if same method
+      const newDirection: SortDirection = currentDirection === 'desc' ? 'asc' : 'desc';
+      this.settingsManager.setSetting('inventorySortDirection', newDirection);
+    } else {
+      // Change method, reset to descending
+      this.settingsManager.setSetting('inventorySortMethod', method);
+      this.settingsManager.setSetting('inventorySortDirection', 'desc');
+    }
+
+    // Reset to first page and rebuild
+    this.currentPage = 0;
+    this.rebuildContent();
+
+    if (import.meta.env.DEV) {
+      console.log(
+        `[InventoryPanel] Sort changed: ${this.settingsManager.inventorySortMethod} ${this.settingsManager.inventorySortDirection}`
+      );
+    }
+  }
+
+  /**
+   * Create sort controls
+   */
+  private createSortControls(container: Phaser.GameObjects.Container, y: number): void {
+    const currentMethod = this.settingsManager.inventorySortMethod;
+    const currentDirection = this.settingsManager.inventorySortDirection;
+    const dirArrow = currentDirection === 'desc' ? '▼' : '▲';
+
+    // Sort label
+    const sortLabel = this.scene.add.text(0, y, 'Sort:', {
+      fontSize: '11px',
+      color: UI_CONFIG.COLORS.TEXT_SECONDARY,
+    });
+    container.add(sortLabel);
+
+    const buttonConfigs: { method: InventorySortMethod; label: string; x: number }[] = [
+      { method: 'rarity', label: 'Rarity', x: 40 },
+      { method: 'type', label: 'Type', x: 110 },
+      { method: 'recent', label: 'Recent', x: 165 },
+    ];
+
+    for (const config of buttonConfigs) {
+      const isActive = currentMethod === config.method;
+      const displayLabel = isActive ? `${config.label} ${dirArrow}` : config.label;
+      const color = isActive ? '#ffd700' : UI_CONFIG.COLORS.TEXT_PRIMARY;
+
+      const btn = this.scene.add.text(config.x, y, displayLabel, {
+        fontSize: '11px',
+        color,
+        fontStyle: isActive ? 'bold' : 'normal',
+      });
+
+      btn.setInteractive({ useHandCursor: true });
+      btn.on('pointerover', () => {
+        if (!isActive) btn.setColor('#ffd700');
+      });
+      btn.on('pointerout', () => {
+        if (!isActive) btn.setColor(UI_CONFIG.COLORS.TEXT_PRIMARY);
+      });
+      btn.on('pointerdown', () => {
+        this.onSortClick(config.method);
+      });
+
+      container.add(btn);
+    }
+  }
+
+  /**
    * Create the inventory grid with pagination
    */
   private createInventoryGrid(): void {
-    const inventory = this.gameState.getModuleInventory();
+    const rawInventory = this.gameState.getModuleInventory();
+    const inventory = this.sortModules(rawInventory);
     const sectionContainer = this.scene.add.container(16, 100);
 
     // Calculate pagination
@@ -289,6 +429,9 @@ export class InventoryPanel extends SlidingPanel {
       }
     );
     sectionContainer.add(inventoryHeaderText);
+
+    // Sort controls (right-aligned on same line as header)
+    this.createSortControls(sectionContainer, 2);
 
     // Divider
     const divider = this.scene.add.graphics();
@@ -760,16 +903,63 @@ export class InventoryPanel extends SlidingPanel {
   }
 
   /**
+   * Check if a rarity requires confirmation to sell
+   */
+  private requiresSellConfirmation(rarity: string): boolean {
+    return [Rarity.Rare, Rarity.Epic, Rarity.Legendary].includes(rarity as Rarity);
+  }
+
+  /**
    * Handle sell action
    */
-  private onSell(): void {
+  private async onSell(): Promise<void> {
     if (!this.selectedModule || this.selectedModule.source !== 'inventory') return;
 
-    const success = this.gameState.sellModule(this.selectedModule.module as ModuleItemData);
+    const module = this.selectedModule.module as ModuleItemData;
+
+    // Check if confirmation is needed for Rare+ modules
+    if (
+      this.requiresSellConfirmation(module.rarity) &&
+      this.settingsManager.confirmRareSells &&
+      this.confirmModal
+    ) {
+      const sellValue = MODULE_SELL_VALUES[module.rarity as Rarity] || 0;
+      const rarityName = module.rarity.charAt(0).toUpperCase() + module.rarity.slice(1);
+
+      const confirmed = await this.confirmModal.show({
+        title: 'Confirm Sell',
+        message: `Are you sure you want to sell this ${rarityName} module for ${sellValue}g?`,
+        confirmText: 'Sell',
+        cancelText: 'Cancel',
+        showDontAskAgain: true,
+        modulePreview: module,
+        onDontAskAgainChanged: (checked) => {
+          if (checked) {
+            this.settingsManager.setSetting('confirmRareSells', false);
+            if (import.meta.env.DEV) {
+              console.log('[InventoryPanel] Disabled rare sell confirmations');
+            }
+          }
+        },
+      });
+
+      if (!confirmed) {
+        if (import.meta.env.DEV) {
+          console.log('[InventoryPanel] Sell cancelled by user');
+        }
+        return;
+      }
+    }
+
+    const success = this.gameState.sellModule(module);
 
     if (success) {
       this.selectedModule = null;
       this.rebuildContent();
+
+      if (import.meta.env.DEV) {
+        console.log(`[InventoryPanel] Sold ${module.type} (${module.rarity})`);
+      }
     }
   }
 
@@ -854,6 +1044,8 @@ export class InventoryPanel extends SlidingPanel {
   public destroy(fromScene?: boolean): void {
     this.eventManager.off(GameEvents.MODULE_EQUIPPED, this.onModuleChanged, this);
     this.eventManager.off(GameEvents.MODULE_SOLD, this.onModuleChanged, this);
+    this.confirmModal?.destroy(true);
+    this.confirmModal = null;
     super.destroy(fromScene);
   }
 }
