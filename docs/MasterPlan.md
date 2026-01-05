@@ -210,7 +210,7 @@ Features specified in UISpec.md but not yet implemented.
 | 2.57 | Module compare feature | Medium | ✅ |
 | 2.58 | Double-click to equip/unequip | Low | ✅ |
 | 2.59 | Zone selection UI | Medium | ✅ |
-| 2.60 | Zone completion summary screen | Medium | ⏳ |
+| 2.60 | Zone completion summary screen | Medium | ✅ |
 
 #### Phase 2.5C: Future UI Systems
 
@@ -888,6 +888,32 @@ GameState (current) → Split into:
 ---
 
 ## Changelog
+
+### January 5, 2025 - TIER 2.5 Task 2.60: Zone Completion Summary Screen
+
+**Completed Task 2.60: Zone Completion Summary Screen**
+
+- **Zone Completion Panel:** Created `ZoneCompletionPanel.ts` modal with:
+  - "ZONE COMPLETE!" title with zone and act name
+  - Stats display: Enemies Defeated, XP Earned, Gold Collected
+  - Modules dropped during zone (up to 3 shown with "more..." indicator)
+  - "CONTINUE" button to advance to next zone
+  - Smooth animations on show/hide
+
+- **Zone Stat Tracking:** Enhanced `WaveSystem.ts` with:
+  - `zoneStartTime`, `zoneEnemiesKilled`, `zoneXpGained`, `zoneGoldGained` tracking
+  - Stats initialized on wave 1 or zone change
+  - Stats passed in `ZONE_COMPLETED` event payload
+
+- **Integration:**
+  - Panel listens for `ZONE_COMPLETED` event and auto-shows
+  - Panel tracks `MODULE_DROPPED` events during zone
+  - Continue button calls `gameState.completeZone()` to advance
+
+**Files Modified:**
+- `src/ui/components/ZoneCompletionPanel.ts` - NEW file
+- `src/systems/WaveSystem.ts` - Zone stat tracking
+- `src/scenes/GameScene.ts` - Added panel initialization
 
 ### January 5, 2025 - TIER 2.5 Task 2.59: Zone Selection UI
 

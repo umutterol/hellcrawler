@@ -24,6 +24,7 @@ import { getGoreManager } from '../effects/gore/GoreManager';
 import { AutoSellNotification } from '../ui/components/AutoSellNotification';
 import { getTooltipManager } from '../ui/components/TooltipManager';
 import { initContextMenu, destroyContextMenu } from '../ui/components/ContextMenu';
+import { ZoneCompletionPanel } from '../ui/components/ZoneCompletionPanel';
 
 /**
  * Main Game Scene - Core gameplay loop
@@ -82,6 +83,10 @@ export class GameScene extends Phaser.Scene {
 
   // Auto-sell notification system (used for side effects, not read)
   private _autoSellNotification!: AutoSellNotification;
+
+  // Zone completion panel (used for side effects, not read)
+  // @ts-expect-error - Intentionally unused, manages itself via events
+  private _zoneCompletionPanel!: ZoneCompletionPanel;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -295,6 +300,9 @@ export class GameScene extends Phaser.Scene {
 
     // Auto-sell notification for Uncommon modules
     this._autoSellNotification = new AutoSellNotification(this);
+
+    // Zone completion summary panel
+    this._zoneCompletionPanel = new ZoneCompletionPanel(this);
 
     // Initialize panel system
     this.initializePanelSystem();

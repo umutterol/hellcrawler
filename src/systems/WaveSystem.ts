@@ -64,6 +64,12 @@ export class WaveSystem {
   private isWavePaused: boolean = false;
   private wavePauseTimer: number = 0;
 
+  // Zone tracking for completion summary
+  private zoneStartTime: number = 0;
+  private zoneEnemiesKilled: number = 0;
+  private zoneXpGained: number = 0;
+  private zoneGoldGained: number = 0;
+
   // Fodder types for random selection
   private readonly fodderTypes: EnemyType[] = [
     EnemyType.Imp,
@@ -119,6 +125,12 @@ export class WaveSystem {
     this.enemiesKilled = 0;
     this.totalEnemiesInWave = 0;
 
+    // Reset zone tracking
+    this.zoneStartTime = Date.now();
+    this.zoneEnemiesKilled = 0;
+    this.zoneXpGained = 0;
+    this.zoneGoldGained = 0;
+
     // Start wave 1 after a short delay
     this.scene.time.delayedCall(500, () => {
       this.startWave(1);
@@ -159,6 +171,14 @@ export class WaveSystem {
     this.spawnQueue = [];
     this.enemiesSpawned = 0;
     this.enemiesKilled = 0;
+
+    // Initialize zone tracking on first wave
+    if (waveNumber === 1) {
+      this.zoneStartTime = Date.now();
+      this.zoneEnemiesKilled = 0;
+      this.zoneXpGained = 0;
+      this.zoneGoldGained = 0;
+    }
 
     // Get wave composition
     const composition = this.getWaveComposition(waveNumber);
@@ -397,6 +417,11 @@ export class WaveSystem {
   private onEnemyDied(payload: { enemyId: string; xpAwarded: number; goldAwarded: number }): void {
     this.enemiesKilled++;
 
+    // Track zone stats
+    this.zoneEnemiesKilled++;
+    this.zoneXpGained += payload.xpAwarded;
+    this.zoneGoldGained += payload.goldAwarded;
+
     // Award XP and gold
     this.gameState.addXP(payload.xpAwarded, 'enemy');
     this.gameState.addGold(payload.goldAwarded, 'enemy_drop');
@@ -473,15 +498,16 @@ export class WaveSystem {
         if (nextWave <= GAME_CONFIG.WAVES_PER_ZONE) {
           this.startWave(nextWave);
         } else {
-          // Zone complete - emit event
+          // Zone complete - emit event with tracked stats
+          const zoneDuration = Date.now() - this.zoneStartTime;
           this.eventManager.emit(GameEvents.ZONE_COMPLETED, {
             zoneNumber: this.gameState.getCurrentZone(),
             actNumber: this.gameState.getCurrentAct(),
             totalWaves: GAME_CONFIG.WAVES_PER_ZONE,
-            totalDuration: 0,
-            totalEnemiesKilled: 0,
-            totalXpGained: 0,
-            totalGoldGained: 0,
+            totalDuration: zoneDuration,
+            totalEnemiesKilled: this.zoneEnemiesKilled,
+            totalXpGained: this.zoneXpGained,
+            totalGoldGained: this.zoneGoldGained,
           });
         }
       }
