@@ -53,6 +53,8 @@ export class GameState {
   private currentAct: number;
   private currentZone: number;
   private currentWave: number;
+  private highestAct: number;   // Highest act ever reached
+  private highestZone: number;  // Highest zone in highest act
   private bossesDefeated: Set<string>;
   private ubersDefeated: Set<string>;
 
@@ -91,6 +93,8 @@ export class GameState {
     this.currentAct = defaultState.progression.currentAct;
     this.currentZone = defaultState.progression.currentZone;
     this.currentWave = defaultState.progression.currentWave;
+    this.highestAct = defaultState.progression.highestAct ?? defaultState.progression.currentAct;
+    this.highestZone = defaultState.progression.highestZone ?? defaultState.progression.currentZone;
     this.bossesDefeated = new Set(defaultState.progression.bossesDefeated);
     this.ubersDefeated = new Set(defaultState.progression.ubersDefeated);
 
@@ -158,6 +162,8 @@ export class GameState {
         currentAct: 1,
         currentZone: 1,
         currentWave: 1,
+        highestAct: 1,
+        highestZone: 1,
         bossesDefeated: [],
         ubersDefeated: [],
       },
@@ -1003,8 +1009,109 @@ export class GameState {
       this.currentAct += 1;
     }
 
+    // Update highest progress if we've reached a new zone
+    this.updateHighestProgress();
+
     if (import.meta.env.DEV) {
       console.log(`[GameState] Advanced to Act ${this.currentAct}, Zone ${this.currentZone}`);
+    }
+  }
+
+  /**
+   * Set the current zone directly (for zone selection UI)
+   * Only allows selecting zones that have been previously reached
+   *
+   * @returns true if zone was changed, false if zone is locked
+   */
+  public setZone(act: number, zone: number): boolean {
+    // Validate act and zone bounds
+    if (act < 1 || act > GAME_CONFIG.TOTAL_ACTS || zone < 1 || zone > GAME_CONFIG.ZONES_PER_ACT) {
+      if (import.meta.env.DEV) {
+        console.warn(`[GameState] Invalid zone selection: Act ${act}, Zone ${zone}`);
+      }
+      return false;
+    }
+
+    // Check if this zone is unlocked (accessible)
+    if (!this.isZoneUnlocked(act, zone)) {
+      if (import.meta.env.DEV) {
+        console.warn(`[GameState] Zone is locked: Act ${act}, Zone ${zone}`);
+      }
+      return false;
+    }
+
+    // Store previous values for event
+    const previousAct = this.currentAct;
+    const previousZone = this.currentZone;
+
+    // Don't change if already at this zone
+    if (previousAct === act && previousZone === zone) {
+      return false;
+    }
+
+    // Update to new zone
+    this.currentAct = act;
+    this.currentZone = zone;
+    this.currentWave = 1; // Reset to wave 1 when changing zones
+
+    // Emit zone changed event
+    this.eventManager.emit(GameEvents.ZONE_CHANGED, {
+      previousAct,
+      previousZone,
+      newAct: act,
+      newZone: zone,
+    });
+
+    if (import.meta.env.DEV) {
+      console.log(`[GameState] Zone changed: Act ${previousAct}-${previousZone} -> Act ${act}-${zone}`);
+    }
+
+    return true;
+  }
+
+  /**
+   * Check if a zone is unlocked (accessible for replay)
+   * A zone is unlocked if:
+   * - It's Act 1 Zone 1 (always unlocked)
+   * - Player has reached or passed this zone before
+   */
+  public isZoneUnlocked(act: number, zone: number): boolean {
+    // Act 1 Zone 1 is always unlocked
+    if (act === 1 && zone === 1) {
+      return true;
+    }
+
+    // If this act is before the highest act, all zones in it are unlocked
+    if (act < this.highestAct) {
+      return true;
+    }
+
+    // If this is the highest act, only zones up to highestZone are unlocked
+    if (act === this.highestAct) {
+      return zone <= this.highestZone;
+    }
+
+    // Acts beyond highest are locked
+    return false;
+  }
+
+  /**
+   * Update highest progression when completing zones
+   * Called internally when zone completion advances past current highest
+   */
+  private updateHighestProgress(): void {
+    // Check if current position is ahead of highest
+    const currentAhead =
+      this.currentAct > this.highestAct ||
+      (this.currentAct === this.highestAct && this.currentZone > this.highestZone);
+
+    if (currentAhead) {
+      this.highestAct = this.currentAct;
+      this.highestZone = this.currentZone;
+
+      if (import.meta.env.DEV) {
+        console.log(`[GameState] New highest progress: Act ${this.highestAct}, Zone ${this.highestZone}`);
+      }
     }
   }
 
@@ -1099,6 +1206,8 @@ export class GameState {
         currentAct: this.currentAct,
         currentZone: this.currentZone,
         currentWave: this.currentWave,
+        highestAct: this.highestAct,
+        highestZone: this.highestZone,
         bossesDefeated: Array.from(this.bossesDefeated),
         ubersDefeated: Array.from(this.ubersDefeated),
       },
@@ -1160,6 +1269,9 @@ export class GameState {
     this.currentAct = data.progression.currentAct;
     this.currentZone = data.progression.currentZone;
     this.currentWave = data.progression.currentWave;
+    // Backwards compatibility: if highestAct/Zone don't exist, use currentAct/Zone
+    this.highestAct = data.progression.highestAct ?? data.progression.currentAct;
+    this.highestZone = data.progression.highestZone ?? data.progression.currentZone;
     this.bossesDefeated = new Set(data.progression.bossesDefeated);
     this.ubersDefeated = new Set(data.progression.ubersDefeated);
 
@@ -1243,6 +1355,14 @@ export class GameState {
 
   public getCurrentWave(): number {
     return this.currentWave;
+  }
+
+  public getHighestAct(): number {
+    return this.highestAct;
+  }
+
+  public getHighestZone(): number {
+    return this.highestZone;
   }
 
   public getBossesDefeated(): readonly string[] {

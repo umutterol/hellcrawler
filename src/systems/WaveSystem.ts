@@ -93,8 +93,55 @@ export class WaveSystem {
     this.spawnXRight = GAME_CONFIG.WIDTH + 50;  // Off-screen right
     this.spawnXLeft = -50;                       // Off-screen left
 
-    // Subscribe to enemy death events
+    // Subscribe to events
     this.eventManager.on(GameEvents.ENEMY_DIED, this.onEnemyDied, this);
+    this.eventManager.on(GameEvents.ZONE_CHANGED, this.onZoneChanged, this);
+  }
+
+  /**
+   * Handle zone change - reset waves and start fresh
+   */
+  private onZoneChanged(payload: { newAct: number; newZone: number }): void {
+    if (import.meta.env.DEV) {
+      console.log(`[WaveSystem] Zone changed to Act ${payload.newAct}, Zone ${payload.newZone} - resetting waves`);
+    }
+
+    // Kill all active enemies
+    this.clearAllEnemies();
+
+    // Reset wave state
+    this.waveInProgress = false;
+    this.isWavePaused = false;
+    this.wavePauseTimer = 0;
+    this.currentWave = 0;
+    this.spawnQueue = [];
+    this.enemiesSpawned = 0;
+    this.enemiesKilled = 0;
+    this.totalEnemiesInWave = 0;
+
+    // Start wave 1 after a short delay
+    this.scene.time.delayedCall(500, () => {
+      this.startWave(1);
+    });
+  }
+
+  /**
+   * Clear all active enemies from the field
+   */
+  private clearAllEnemies(): void {
+    const enemies = this.enemies.getChildren() as Enemy[];
+    let cleared = 0;
+
+    for (const enemy of enemies) {
+      if (enemy.active) {
+        enemy.deactivate();
+        cleared++;
+      }
+    }
+
+    if (import.meta.env.DEV && cleared > 0) {
+      console.log(`[WaveSystem] Cleared ${cleared} enemies for zone change`);
+    }
   }
 
   /**

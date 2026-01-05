@@ -420,6 +420,7 @@ export class BottomBar {
     this.eventManager.on(GameEvents.WAVE_STARTED, this.onWaveStarted, this);
     this.eventManager.on(GameEvents.WAVE_COMPLETED, this.onWaveCompleted, this);
     this.eventManager.on(GameEvents.ENEMY_DIED, this.onEnemyDied, this);
+    this.eventManager.on(GameEvents.ZONE_CHANGED, this.onZoneChanged, this);
   }
 
   // === HP Bar Methods ===
@@ -743,6 +744,15 @@ export class BottomBar {
     // Enemy count is updated via updateEnemyCount from GameScene
   }
 
+  private onZoneChanged(): void {
+    // Reset wave display when zone changes
+    this.currentWave = 1;
+    this.totalEnemies = 0;
+    this.remainingEnemies = 0;
+    this.updateWaveProgress();
+    this.enemyCountText.setText('Enemies: 0');
+  }
+
   // === Update Loop ===
 
   public update(_time: number, _delta: number): void {
@@ -841,6 +851,7 @@ export class BottomBar {
     this.eventManager.off(GameEvents.WAVE_STARTED, this.onWaveStarted, this);
     this.eventManager.off(GameEvents.WAVE_COMPLETED, this.onWaveCompleted, this);
     this.eventManager.off(GameEvents.ENEMY_DIED, this.onEnemyDied, this);
+    this.eventManager.off(GameEvents.ZONE_CHANGED, this.onZoneChanged, this);
 
     this.scene.tweens.killTweensOf(this.nearDeathButton);
     this.container.destroy(true);

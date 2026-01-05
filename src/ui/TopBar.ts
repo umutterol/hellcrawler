@@ -2,8 +2,9 @@ import Phaser from 'phaser';
 import { EventManager, getEventManager } from '../managers/EventManager';
 import { GameState, getGameState } from '../state/GameState';
 import { GameEvents } from '../types/GameEvents';
-import { UI_CONFIG } from '../config/UIConfig';
+import { UI_CONFIG, ZONE_CONFIG } from '../config/UIConfig';
 import { GAME_CONFIG } from '../config/GameConfig';
+import { ZoneSelectionPanel } from './components/ZoneSelectionPanel';
 
 /**
  * TopBar - Horizontal bar at top of screen
@@ -38,6 +39,7 @@ export class TopBar {
 
   // Right section - Zone
   private zoneText!: Phaser.GameObjects.Text;
+  private zoneSelectionPanel: ZoneSelectionPanel | null = null;
 
   // Constants
   private readonly HEIGHT = UI_CONFIG.TOP_BAR.HEIGHT;
@@ -146,14 +148,75 @@ export class TopBar {
       fontStyle: 'bold',
     });
     this.zoneText.setOrigin(1, 0.5);
+    this.zoneText.setInteractive({ useHandCursor: true });
+
+    // Hover effects
+    this.zoneText.on('pointerover', () => {
+      this.zoneText.setColor('#4ecdc4'); // Cyan on hover
+    });
+
+    this.zoneText.on('pointerout', () => {
+      this.zoneText.setColor('#ffffff');
+    });
+
+    // Click to open zone selection
+    this.zoneText.on('pointerdown', () => {
+      this.toggleZoneSelection();
+    });
+
     this.container.add(this.zoneText);
+  }
+
+  private toggleZoneSelection(): void {
+    if (this.zoneSelectionPanel) {
+      this.closeZoneSelection();
+      return;
+    }
+
+    // Position panel below the zone text, aligned to right edge
+    const panelX = GAME_CONFIG.WIDTH - this.PADDING - ZONE_CONFIG.PANEL_WIDTH;
+    const panelY = this.HEIGHT + 4;
+
+    this.zoneSelectionPanel = new ZoneSelectionPanel(
+      this.scene,
+      panelX,
+      panelY,
+      {
+        onZoneSelected: (act: number, zone: number) => {
+          this.updateZoneText();
+          // Notify game scene to reset waves
+          if (import.meta.env.DEV) {
+            console.log(`[TopBar] Zone selected: Act ${act}, Zone ${zone}`);
+          }
+        },
+        onClose: () => {
+          this.zoneSelectionPanel = null;
+        },
+      }
+    );
+  }
+
+  private closeZoneSelection(): void {
+    if (this.zoneSelectionPanel) {
+      this.zoneSelectionPanel.destroy();
+      this.zoneSelectionPanel = null;
+    }
   }
 
   private subscribeToEvents(): void {
     this.eventManager.on(GameEvents.GOLD_CHANGED, this.onGoldChanged, this);
     this.eventManager.on(GameEvents.XP_GAINED, this.onXPChanged, this);
     this.eventManager.on(GameEvents.LEVEL_UP, this.onLevelUp, this);
-    // Note: ZONE_CHANGED event will be added when zone progression is implemented
+    this.eventManager.on(GameEvents.ZONE_CHANGED, this.onZoneChanged, this);
+    this.eventManager.on(GameEvents.ZONE_COMPLETED, this.onZoneCompleted, this);
+  }
+
+  private onZoneChanged(): void {
+    this.updateZoneText();
+  }
+
+  private onZoneCompleted(): void {
+    this.updateZoneText();
   }
 
   private onGoldChanged(payload: { newGold: number; change: number }): void {
@@ -265,7 +328,12 @@ export class TopBar {
   private updateZoneText(): void {
     const act = this.gameState.getCurrentAct();
     const zone = this.gameState.getCurrentZone();
-    this.zoneText.setText(`Act ${act} - Zone ${zone}`);
+
+    // Get zone name from config if available
+    const zoneNames = ZONE_CONFIG.ZONES[act];
+    const zoneName = zoneNames?.[zone - 1] ?? `Zone ${zone}`;
+
+    this.zoneText.setText(`Act ${act}: ${zoneName} ▼`);
   }
 
   private updateAll(): void {
@@ -307,11 +375,14 @@ export class TopBar {
     this.eventManager.off(GameEvents.GOLD_CHANGED, this.onGoldChanged, this);
     this.eventManager.off(GameEvents.XP_GAINED, this.onXPChanged, this);
     this.eventManager.off(GameEvents.LEVEL_UP, this.onLevelUp, this);
+    this.eventManager.off(GameEvents.ZONE_CHANGED, this.onZoneChanged, this);
+    this.eventManager.off(GameEvents.ZONE_COMPLETED, this.onZoneCompleted, this);
 
     if (this.goldTween) {
       this.goldTween.stop();
     }
 
+    this.closeZoneSelection();
     this.container.destroy(true);
   }
 }

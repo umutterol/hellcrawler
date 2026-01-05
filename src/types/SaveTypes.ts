@@ -42,12 +42,16 @@ export interface SaveData {
 
   /** Progression through game content */
   progression: {
-    /** Current Act (1-4) */
+    /** Current Act (1-8) */
     currentAct: number;
     /** Current Zone within act */
     currentZone: number;
     /** Current Wave within zone */
     currentWave: number;
+    /** Highest Act ever reached (for zone selection) - optional for backwards compat */
+    highestAct?: number;
+    /** Highest Zone in highest act ever reached - optional for backwards compat */
+    highestZone?: number;
     /** IDs of defeated bosses */
     bossesDefeated: string[];
     /** IDs of defeated uber bosses */

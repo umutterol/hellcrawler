@@ -209,7 +209,7 @@ Features specified in UISpec.md but not yet implemented.
 | 2.56 | Right-click context menus | Medium | ✅ |
 | 2.57 | Module compare feature | Medium | ✅ |
 | 2.58 | Double-click to equip/unequip | Low | ✅ |
-| 2.59 | Zone selection UI | Medium | ⏳ |
+| 2.59 | Zone selection UI | Medium | ✅ |
 | 2.60 | Zone completion summary screen | Medium | ⏳ |
 
 #### Phase 2.5C: Future UI Systems
@@ -888,6 +888,49 @@ GameState (current) → Split into:
 ---
 
 ## Changelog
+
+### January 5, 2025 - TIER 2.5 Task 2.59: Zone Selection UI
+
+**Completed Task 2.59: Zone Selection UI**
+
+- **Zone Selection Panel:** Created `ZoneSelectionPanel.ts` dropdown with:
+  - Displays all 8 Acts with zone names (e.g., "Ruined City: Suburbs/Downtown")
+  - Visual indicators for current zone, completed zones, and locked zones
+  - Click to select and change to any previously reached zone
+  - Wave resets to 1 when changing zones
+  - Panel closes when clicking outside or selecting a zone
+
+- **TopBar Integration:**
+  - Zone text now clickable (shows "Act X: ZoneName ▼")
+  - Hover effect changes text to cyan
+  - Click opens ZoneSelectionPanel
+
+- **GameState Enhancements:**
+  - Added `highestAct` and `highestZone` tracking for unlock status
+  - Added `setZone(act, zone)` method for changing zones
+  - Added `isZoneUnlocked(act, zone)` method for checking accessibility
+  - Added `ZONE_CHANGED` event to GameEvents
+  - Backwards-compatible save/load with migration
+
+- **Zone Config:** Added `ZONE_CONFIG` to UIConfig with:
+  - 8 Acts with names and descriptions
+  - 2 zones per act with unique names
+  - Panel sizing and layout constants
+
+**Files Created:**
+- `src/ui/components/ZoneSelectionPanel.ts`
+- `tests/unit/zoneSelection.test.ts` (25 tests)
+
+**Files Modified:**
+- `src/config/UIConfig.ts` - Added ZONE_CONFIG
+- `src/ui/TopBar.ts` - Added click handler, zone name display
+- `src/state/GameState.ts` - Added zone selection methods
+- `src/types/GameEvents.ts` - Added ZONE_CHANGED event
+- `src/types/SaveTypes.ts` - Added highestAct/Zone fields
+
+**Test Summary:** 25 unit tests passing
+
+---
 
 ### January 5, 2025 - TIER 2.5 Phase 2.5B: Interaction Features Complete
 

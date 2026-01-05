@@ -154,6 +154,40 @@ export const UI_CONFIG = {
   },
 } as const;
 
+// Zone selection configuration
+export const ZONE_CONFIG = {
+  // Act names and themes
+  ACTS: [
+    { id: 1, name: 'Ruined City', description: 'The demon invasion begins' },
+    { id: 2, name: 'Forsaken Cathedral', description: 'A holy place defiled' },
+    { id: 3, name: 'Military Base', description: 'Last stand of humanity' },
+    { id: 4, name: 'Underground Bunker', description: 'Tunnels of horror' },
+    { id: 5, name: 'Hell Outskirts', description: 'The portal opens' },
+    { id: 6, name: 'Burning Hells', description: 'Infernal depths' },
+    { id: 7, name: 'Chaos Realm', description: 'Reality unravels' },
+    { id: 8, name: 'Throne of Diaboros', description: 'The final battle' },
+  ] as const,
+
+  // Zone names per act (2 zones each)
+  ZONES: {
+    1: ['Suburbs', 'Downtown'],
+    2: ['Graveyard', 'Nave'],
+    3: ['Perimeter', 'Command Center'],
+    4: ['Upper Tunnels', 'Deep Caverns'],
+    5: ['Scorched Plains', 'Lava Fields'],
+    6: ['Bone Valley', 'Soul Forge'],
+    7: ['Void Rift', 'Nightmare Spire'],
+    8: ['Hellgate', 'Dark Throne'],
+  } as Record<number, readonly [string, string]>,
+
+  // UI settings
+  PANEL_WIDTH: 350,
+  PANEL_PADDING: 16,
+  ACT_HEADER_HEIGHT: 32,
+  ZONE_ITEM_HEIGHT: 28,
+  MAX_HEIGHT: 280, // Max panel height before scrolling
+} as const;
+
 // Panel identifiers
 export enum PanelType {
   TANK_STATS = 'tank_stats',

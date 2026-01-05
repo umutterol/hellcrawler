@@ -39,6 +39,7 @@ export enum GameEvents {
   WAVE_STARTED = 'wave:started',
   WAVE_COMPLETED = 'wave:completed',
   ZONE_COMPLETED = 'zone:completed',
+  ZONE_CHANGED = 'zone:changed',
 
   // Boss Events
   BOSS_SPAWNED = 'boss:spawned',
@@ -240,6 +241,13 @@ export interface ZoneCompletedPayload {
   totalGoldGained: number;
 }
 
+export interface ZoneChangedPayload {
+  previousAct: number;
+  previousZone: number;
+  newAct: number;
+  newZone: number;
+}
+
 // Boss Event Payloads
 export interface BossSpawnedPayload {
   bossId: string;
@@ -346,6 +354,7 @@ export type EventPayloadMap = {
   [GameEvents.WAVE_STARTED]: WaveStartedPayload;
   [GameEvents.WAVE_COMPLETED]: WaveCompletedPayload;
   [GameEvents.ZONE_COMPLETED]: ZoneCompletedPayload;
+  [GameEvents.ZONE_CHANGED]: ZoneChangedPayload;
   [GameEvents.BOSS_SPAWNED]: BossSpawnedPayload;
   [GameEvents.BOSS_DEFEATED]: BossDefeatedPayload;
   [GameEvents.NEAR_DEATH_ENTERED]: NearDeathEnteredPayload;
