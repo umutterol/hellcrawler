@@ -33,7 +33,9 @@ export class MissilePodModule extends BaseModule {
   private static readonly ARC_HEIGHT_MIN = 100;
   private static readonly ARC_HEIGHT_MAX = 150;
   private static readonly TRAVEL_DURATION = 800; // ms to reach target
-  private static readonly AOE_RADIUS = 40;
+  // AoE radius must account for enemy movement during flight time
+  // At 120 speed over 800ms, enemy moves ~96px. Use 100px radius to reliably hit.
+  private static readonly AOE_RADIUS = 100;
 
   // Current enemies reference (for barrage missiles)
   private currentEnemies: Enemy[] = [];

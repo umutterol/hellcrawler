@@ -54,7 +54,11 @@ export class BootScene extends Phaser.Scene {
     this.load.image('fire-skull-no-fire', 'assets/sprites/enemies/act1/fire-skull-no-fire.png');
 
     // === BOSS - SENTINEL ===
-    this.load.image('sentinel-idle', 'assets/sprites/bosses/sentinel-idle.png');
+    // Sentinel spritesheet: 960x144 with 5 frames = 192x144 per frame
+    this.load.spritesheet('sentinel-idle', 'assets/sprites/bosses/sentinel-idle.png', {
+      frameWidth: 192,
+      frameHeight: 144,
+    });
     this.load.image('sentinel-attack', 'assets/sprites/bosses/sentinel-attack.png');
     this.load.image('sentinel-attack-no-breath', 'assets/sprites/bosses/sentinel-attack-no-breath.png');
     this.load.image('sentinel-breath', 'assets/sprites/bosses/breath.png');
@@ -256,6 +260,16 @@ export class BootScene extends Phaser.Scene {
           { key: 'soldier-8' },
         ],
         frameRate: 8,
+        repeat: -1,
+      });
+    }
+
+    // Sentinel boss idle animation (5 frames)
+    if (!this.anims.exists('sentinel-idle-anim')) {
+      this.anims.create({
+        key: 'sentinel-idle-anim',
+        frames: this.anims.generateFrameNumbers('sentinel-idle', { start: 0, end: 4 }),
+        frameRate: 6,
         repeat: -1,
       });
     }

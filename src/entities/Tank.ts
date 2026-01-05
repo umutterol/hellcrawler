@@ -65,9 +65,11 @@ export class Tank extends Phaser.GameObjects.Container {
 
     // Create physics hitboxes for enemy collision detection (both sides for center tank)
     // Tank is at screen center, enemies approach from both left and right
+    // Enemies stop at STOP_DISTANCE_FROM_TANK (200px from tank center)
+    // Hitbox must extend to where enemies stop: offsetX + width/2 >= 200
     const hitboxWidth = 120;
     const hitboxHeight = 100;
-    const hitboxOffsetX = 100; // Distance from tank center to hitbox center
+    const hitboxOffsetX = 140; // Distance from tank center to hitbox center (reaches 200px with half-width)
 
     // Right hitbox - enemies from right stop here
     this.hitboxRight = this.scene.physics.add.sprite(

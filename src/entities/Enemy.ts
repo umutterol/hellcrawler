@@ -224,9 +224,11 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
         break;
 
       case EnemyType.CorruptedSentinel:
-        this.setTexture('sentinel-idle');
-        // Boss uses idle texture
-        this.stop();
+        this.setTexture('sentinel-idle', 0);
+        // Play sentinel idle animation
+        if (this.scene.anims.exists('sentinel-idle-anim')) {
+          this.play('sentinel-idle-anim');
+        }
         break;
 
       // Elite enemies - use soldier sprite with tint until we have specific sprites
