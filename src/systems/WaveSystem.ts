@@ -64,6 +64,10 @@ export class WaveSystem {
   private isWavePaused: boolean = false;
   private wavePauseTimer: number = 0;
 
+  // Hold next wave (player-controlled pause)
+  private holdNextWave: boolean = false;
+  private waitingForManualStart: boolean = false;
+
   // Zone tracking for completion summary
   private zoneStartTime: number = 0;
   private zoneEnemiesKilled: number = 0;
@@ -102,6 +106,31 @@ export class WaveSystem {
     // Subscribe to events
     this.eventManager.on(GameEvents.ENEMY_DIED, this.onEnemyDied, this);
     this.eventManager.on(GameEvents.ZONE_CHANGED, this.onZoneChanged, this);
+    this.eventManager.on(GameEvents.WAVE_HOLD_TOGGLED, this.onWaveHoldToggled, this);
+    this.eventManager.on(GameEvents.WAVE_START_REQUESTED, this.onWaveStartRequested, this);
+  }
+
+  /**
+   * Handle wave hold toggle from UI
+   */
+  private onWaveHoldToggled(payload: { hold: boolean }): void {
+    this.holdNextWave = payload.hold;
+    if (import.meta.env.DEV) {
+      console.log(`[WaveSystem] Hold next wave: ${payload.hold}`);
+    }
+  }
+
+  /**
+   * Handle manual wave start request from UI
+   */
+  private onWaveStartRequested(): void {
+    if (this.waitingForManualStart) {
+      this.waitingForManualStart = false;
+      const nextWave = this.currentWave + 1;
+      if (nextWave <= GAME_CONFIG.WAVES_PER_ZONE) {
+        this.startWave(nextWave);
+      }
+    }
   }
 
   /**
@@ -484,6 +513,43 @@ export class WaveSystem {
   }
 
   /**
+   * Check if waiting for manual wave start
+   */
+  public isWaitingForManualStart(): boolean {
+    return this.waitingForManualStart;
+  }
+
+  /**
+   * Get hold next wave state
+   */
+  public getHoldNextWave(): boolean {
+    return this.holdNextWave;
+  }
+
+  /**
+   * Set hold next wave state (delays auto-start of next wave)
+   */
+  public setHoldNextWave(hold: boolean): void {
+    this.holdNextWave = hold;
+    if (import.meta.env.DEV) {
+      console.log(`[WaveSystem] Hold next wave: ${hold}`);
+    }
+  }
+
+  /**
+   * Manually start the next wave (when holding)
+   */
+  public startNextWave(): void {
+    if (this.waitingForManualStart) {
+      this.waitingForManualStart = false;
+      const nextWave = this.currentWave + 1;
+      if (nextWave <= GAME_CONFIG.WAVES_PER_ZONE) {
+        this.startWave(nextWave);
+      }
+    }
+  }
+
+  /**
    * Update loop - process spawn queue
    */
   public update(time: number, delta: number): void {
@@ -493,10 +559,17 @@ export class WaveSystem {
       if (this.wavePauseTimer <= 0) {
         this.isWavePaused = false;
 
-        // Auto-start next wave if not past max waves
+        // Check if we should hold/wait for manual start
         const nextWave = this.currentWave + 1;
         if (nextWave <= GAME_CONFIG.WAVES_PER_ZONE) {
-          this.startWave(nextWave);
+          if (this.holdNextWave) {
+            // Wait for manual start
+            this.waitingForManualStart = true;
+            this.eventManager.emit(GameEvents.WAVE_WAITING, { nextWave });
+          } else {
+            // Auto-start next wave
+            this.startWave(nextWave);
+          }
         } else {
           // Zone complete - emit event with tracked stats
           const zoneDuration = Date.now() - this.zoneStartTime;
@@ -623,5 +696,8 @@ export class WaveSystem {
    */
   public destroy(): void {
     this.eventManager.off(GameEvents.ENEMY_DIED, this.onEnemyDied, this);
+    this.eventManager.off(GameEvents.ZONE_CHANGED, this.onZoneChanged, this);
+    this.eventManager.off(GameEvents.WAVE_HOLD_TOGGLED, this.onWaveHoldToggled, this);
+    this.eventManager.off(GameEvents.WAVE_START_REQUESTED, this.onWaveStartRequested, this);
   }
 }

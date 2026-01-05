@@ -38,6 +38,9 @@ export enum GameEvents {
   // Wave Events
   WAVE_STARTED = 'wave:started',
   WAVE_COMPLETED = 'wave:completed',
+  WAVE_WAITING = 'wave:waiting',
+  WAVE_HOLD_TOGGLED = 'wave:hold_toggled',
+  WAVE_START_REQUESTED = 'wave:start_requested',
   ZONE_COMPLETED = 'zone:completed',
   ZONE_CHANGED = 'zone:changed',
 
@@ -231,6 +234,18 @@ export interface WaveCompletedPayload {
   goldAwarded: number;
 }
 
+export interface WaveWaitingPayload {
+  nextWave: number;
+}
+
+export interface WaveHoldToggledPayload {
+  hold: boolean;
+}
+
+export interface WaveStartRequestedPayload {
+  // Empty - just a signal
+}
+
 export interface ZoneCompletedPayload {
   zoneNumber: number;
   actNumber: number;
@@ -353,6 +368,9 @@ export type EventPayloadMap = {
   [GameEvents.SLOT_STAT_UPGRADED]: SlotStatUpgradedPayload;
   [GameEvents.WAVE_STARTED]: WaveStartedPayload;
   [GameEvents.WAVE_COMPLETED]: WaveCompletedPayload;
+  [GameEvents.WAVE_WAITING]: WaveWaitingPayload;
+  [GameEvents.WAVE_HOLD_TOGGLED]: WaveHoldToggledPayload;
+  [GameEvents.WAVE_START_REQUESTED]: WaveStartRequestedPayload;
   [GameEvents.ZONE_COMPLETED]: ZoneCompletedPayload;
   [GameEvents.ZONE_CHANGED]: ZoneChangedPayload;
   [GameEvents.BOSS_SPAWNED]: BossSpawnedPayload;

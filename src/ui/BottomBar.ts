@@ -60,6 +60,12 @@ export class BottomBar {
   private waveProgress!: Phaser.GameObjects.Graphics;
   private enemyCountText!: Phaser.GameObjects.Text;
 
+  // Wave control elements
+  private wavePauseButton!: Phaser.GameObjects.Container;
+  private wavePauseIcon!: Phaser.GameObjects.Text;
+  private waveStartButton!: Phaser.GameObjects.Container;
+  private isWaveHoldActive: boolean = false;
+
   // Constants - Compact layout for 60px height
   private readonly HEIGHT = UI_CONFIG.BOTTOM_BAR.HEIGHT;
   private readonly HP_BAR_HEIGHT = 18;
@@ -399,6 +405,125 @@ export class BottomBar {
     });
     this.enemyCountText.setOrigin(1, 0);
     this.container.add(this.enemyCountText);
+
+    // Wave control buttons
+    this.createWaveControls(progressX - 10, progressY + progressHeight / 2);
+  }
+
+  private createWaveControls(x: number, y: number): void {
+    const buttonSize = 20;
+
+    // Pause/Play toggle button
+    this.wavePauseButton = this.scene.add.container(x - buttonSize / 2, y);
+
+    const pauseBg = this.scene.add.graphics();
+    pauseBg.fillStyle(0x444466, 1);
+    pauseBg.fillCircle(0, 0, buttonSize / 2);
+    this.wavePauseButton.add(pauseBg);
+
+    // Icon text (▶ for auto, ⏸ for hold)
+    this.wavePauseIcon = this.scene.add.text(0, 0, '⏸', {
+      fontSize: '10px',
+      color: '#ffffff',
+    });
+    this.wavePauseIcon.setOrigin(0.5);
+    this.wavePauseButton.add(this.wavePauseIcon);
+
+    // Hit area
+    const hitArea = this.scene.add.rectangle(0, 0, buttonSize, buttonSize, 0x000000, 0);
+    hitArea.setInteractive({ useHandCursor: true });
+
+    hitArea.on('pointerover', () => {
+      pauseBg.clear();
+      pauseBg.fillStyle(0x666688, 1);
+      pauseBg.fillCircle(0, 0, buttonSize / 2);
+    });
+
+    hitArea.on('pointerout', () => {
+      pauseBg.clear();
+      pauseBg.fillStyle(0x444466, 1);
+      pauseBg.fillCircle(0, 0, buttonSize / 2);
+    });
+
+    hitArea.on('pointerdown', () => {
+      this.toggleWaveHold();
+    });
+
+    this.wavePauseButton.add(hitArea);
+    this.container.add(this.wavePauseButton);
+
+    // "Start Wave" button (shown when waiting for manual start)
+    this.createStartWaveButton(x - buttonSize - 50, y);
+  }
+
+  private createStartWaveButton(x: number, y: number): void {
+    this.waveStartButton = this.scene.add.container(x, y);
+
+    const buttonWidth = 50;
+    const buttonHeight = 16;
+
+    const bg = this.scene.add.graphics();
+    bg.fillStyle(0x4ade80, 1);
+    bg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 4);
+    this.waveStartButton.add(bg);
+
+    const text = this.scene.add.text(0, 0, 'START', {
+      fontSize: '9px',
+      color: '#1a1a2e',
+      fontStyle: 'bold',
+    });
+    text.setOrigin(0.5);
+    this.waveStartButton.add(text);
+
+    const hitArea = this.scene.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x000000, 0);
+    hitArea.setInteractive({ useHandCursor: true });
+
+    hitArea.on('pointerover', () => {
+      bg.clear();
+      bg.fillStyle(0x6ee7a7, 1);
+      bg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 4);
+    });
+
+    hitArea.on('pointerout', () => {
+      bg.clear();
+      bg.fillStyle(0x4ade80, 1);
+      bg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 4);
+    });
+
+    hitArea.on('pointerdown', () => {
+      this.onStartWaveClicked();
+    });
+
+    this.waveStartButton.add(hitArea);
+    this.waveStartButton.setVisible(false); // Hidden by default
+    this.container.add(this.waveStartButton);
+  }
+
+  private toggleWaveHold(): void {
+    this.isWaveHoldActive = !this.isWaveHoldActive;
+    this.updateWavePauseIcon();
+
+    // Emit event instead of direct call
+    this.eventManager.emit(GameEvents.WAVE_HOLD_TOGGLED, { hold: this.isWaveHoldActive });
+  }
+
+  private updateWavePauseIcon(): void {
+    // When hold is active, show play icon (meaning "click to resume auto")
+    // When hold is inactive, show pause icon (meaning "click to hold")
+    this.wavePauseIcon.setText(this.isWaveHoldActive ? '▶' : '⏸');
+  }
+
+  private onStartWaveClicked(): void {
+    // Emit event instead of direct call
+    this.eventManager.emit(GameEvents.WAVE_START_REQUESTED, {});
+    this.waveStartButton.setVisible(false);
+  }
+
+  private onWaveWaiting(): void {
+    // Show the start wave button when waiting for manual start
+    if (this.isWaveHoldActive) {
+      this.waveStartButton.setVisible(true);
+    }
   }
 
   private subscribeToEvents(): void {
@@ -421,6 +546,7 @@ export class BottomBar {
     this.eventManager.on(GameEvents.WAVE_COMPLETED, this.onWaveCompleted, this);
     this.eventManager.on(GameEvents.ENEMY_DIED, this.onEnemyDied, this);
     this.eventManager.on(GameEvents.ZONE_CHANGED, this.onZoneChanged, this);
+    this.eventManager.on(GameEvents.WAVE_WAITING, this.onWaveWaiting, this);
   }
 
   // === HP Bar Methods ===
@@ -852,6 +978,7 @@ export class BottomBar {
     this.eventManager.off(GameEvents.WAVE_COMPLETED, this.onWaveCompleted, this);
     this.eventManager.off(GameEvents.ENEMY_DIED, this.onEnemyDied, this);
     this.eventManager.off(GameEvents.ZONE_CHANGED, this.onZoneChanged, this);
+    this.eventManager.off(GameEvents.WAVE_WAITING, this.onWaveWaiting, this);
 
     this.scene.tweens.killTweensOf(this.nearDeathButton);
     this.container.destroy(true);

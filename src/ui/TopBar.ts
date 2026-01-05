@@ -28,8 +28,15 @@ export class TopBar {
   // Left section - Gold
   private goldIcon!: Phaser.GameObjects.Graphics;
   private goldText!: Phaser.GameObjects.Text;
+  private goldRateText!: Phaser.GameObjects.Text;
   private displayedGold: number = 0;
   private goldTween: Phaser.Tweens.Tween | null = null;
+
+  // Gold rate tracking
+  private goldHistory: { time: number; amount: number }[] = [];
+  private readonly GOLD_RATE_WINDOW = 10000; // 10 second window for rate calculation
+  private goldRateUpdateTimer: number = 0;
+  private readonly GOLD_RATE_UPDATE_INTERVAL = 500; // Update rate display every 500ms
 
   // Center section - Level & XP
   private levelText!: Phaser.GameObjects.Text;
@@ -37,9 +44,10 @@ export class TopBar {
   private xpBar!: Phaser.GameObjects.Graphics;
   private xpText!: Phaser.GameObjects.Text;
 
-  // Right section - Zone
+  // Right section - Zone and Flee
   private zoneText!: Phaser.GameObjects.Text;
   private zoneSelectionPanel: ZoneSelectionPanel | null = null;
+  private fleeButton!: Phaser.GameObjects.Container;
 
   // Constants
   private readonly HEIGHT = UI_CONFIG.TOP_BAR.HEIGHT;
@@ -56,6 +64,7 @@ export class TopBar {
     this.createBackground();
     this.createGoldSection();
     this.createLevelSection();
+    this.createFleeButton();
     this.createZoneSection();
     this.subscribeToEvents();
     this.updateAll();
@@ -98,6 +107,14 @@ export class TopBar {
     });
     this.goldText.setOrigin(0, 0.5);
     this.container.add(this.goldText);
+
+    // Gold rate text (positioned after gold amount, updated dynamically)
+    this.goldRateText = this.scene.add.text(x + 100, y, '', {
+      fontSize: '14px',
+      color: '#4ade80', // Green for positive income
+    });
+    this.goldRateText.setOrigin(0, 0.5);
+    this.container.add(this.goldRateText);
   }
 
   private createLevelSection(): void {
@@ -138,8 +155,82 @@ export class TopBar {
     this.container.add(this.xpText);
   }
 
+  private createFleeButton(): void {
+    const buttonWidth = 55;
+    const buttonHeight = 28;
+    const x = GAME_CONFIG.WIDTH - this.PADDING - buttonWidth / 2;
+    const y = this.HEIGHT / 2;
+
+    this.fleeButton = this.scene.add.container(x, y);
+
+    // Button background
+    const bg = this.scene.add.graphics();
+    bg.fillStyle(0x8b0000, 1); // Dark red
+    bg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 4);
+    bg.lineStyle(1, 0xcc3333, 1);
+    bg.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 4);
+    this.fleeButton.add(bg);
+
+    // Button text
+    const text = this.scene.add.text(0, 0, 'FLEE', {
+      fontSize: '12px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+    });
+    text.setOrigin(0.5);
+    this.fleeButton.add(text);
+
+    // Hit area
+    const hitArea = this.scene.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x000000, 0);
+    hitArea.setInteractive({ useHandCursor: true });
+
+    hitArea.on('pointerover', () => {
+      bg.clear();
+      bg.fillStyle(0xaa2222, 1); // Lighter red on hover
+      bg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 4);
+      bg.lineStyle(1, 0xff4444, 1);
+      bg.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 4);
+    });
+
+    hitArea.on('pointerout', () => {
+      bg.clear();
+      bg.fillStyle(0x8b0000, 1);
+      bg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 4);
+      bg.lineStyle(1, 0xcc3333, 1);
+      bg.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 4);
+    });
+
+    hitArea.on('pointerdown', () => {
+      this.onFleeClicked();
+    });
+
+    this.fleeButton.add(hitArea);
+    this.container.add(this.fleeButton);
+  }
+
+  private onFleeClicked(): void {
+    // Get current zone before fleeing
+    const previousAct = this.gameState.getCurrentAct();
+    const previousZone = this.gameState.getCurrentZone();
+
+    // Retreat to Act 1 Zone 1
+    this.gameState.setZone(1, 1);
+    this.eventManager.emit(GameEvents.ZONE_CHANGED, {
+      previousAct,
+      previousZone,
+      newAct: 1,
+      newZone: 1,
+    });
+
+    if (import.meta.env.DEV) {
+      console.log('[TopBar] Fled to Act 1, Zone 1');
+    }
+  }
+
   private createZoneSection(): void {
-    const x = GAME_CONFIG.WIDTH - this.PADDING;
+    // Position zone text to the left of the flee button
+    const fleeButtonWidth = 55;
+    const x = GAME_CONFIG.WIDTH - this.PADDING - fleeButtonWidth - 12;
     const y = this.HEIGHT / 2;
 
     this.zoneText = this.scene.add.text(x, y, 'Act 1 - Zone 1', {
@@ -221,6 +312,18 @@ export class TopBar {
 
   private onGoldChanged(payload: { newGold: number; change: number }): void {
     this.animateGoldChange(payload.newGold, payload.change);
+
+    // Track positive gold income for rate calculation
+    if (payload.change > 0) {
+      this.goldHistory.push({
+        time: Date.now(),
+        amount: payload.change,
+      });
+
+      // Clean up old entries outside the window
+      const cutoff = Date.now() - this.GOLD_RATE_WINDOW;
+      this.goldHistory = this.goldHistory.filter((entry) => entry.time > cutoff);
+    }
   }
 
   private onXPChanged(): void {
@@ -342,6 +445,63 @@ export class TopBar {
     this.updateLevel(this.gameState.getTankLevel());
     this.updateXPBar();
     this.updateZoneText();
+    this.updateGoldRateDisplay();
+  }
+
+  /**
+   * Update method called each frame (for gold rate timer)
+   */
+  public update(_time: number, delta: number): void {
+    this.goldRateUpdateTimer += delta;
+
+    if (this.goldRateUpdateTimer >= this.GOLD_RATE_UPDATE_INTERVAL) {
+      this.goldRateUpdateTimer = 0;
+      this.updateGoldRateDisplay();
+    }
+  }
+
+  /**
+   * Calculate gold income rate per second
+   */
+  private calculateGoldRate(): number {
+    const now = Date.now();
+    const cutoff = now - this.GOLD_RATE_WINDOW;
+
+    // Filter to entries within window
+    const recentEntries = this.goldHistory.filter((entry) => entry.time > cutoff);
+
+    if (recentEntries.length === 0) {
+      return 0;
+    }
+
+    // Sum up all gold earned
+    const totalGold = recentEntries.reduce((sum, entry) => sum + entry.amount, 0);
+
+    // Calculate time span (use actual window or time since first entry)
+    const oldestEntry = recentEntries[0];
+    if (!oldestEntry) return 0;
+    const timeSpan = Math.max(1000, now - oldestEntry.time); // At least 1 second
+
+    // Return rate per second
+    return (totalGold / timeSpan) * 1000;
+  }
+
+  /**
+   * Update the gold rate display
+   */
+  private updateGoldRateDisplay(): void {
+    const rate = this.calculateGoldRate();
+
+    // Position rate text after gold amount
+    this.goldRateText.x = this.goldText.x + this.goldText.width + 10;
+
+    if (rate > 0) {
+      const formattedRate = this.formatNumber(Math.round(rate));
+      this.goldRateText.setText(`+${formattedRate}/s`);
+      this.goldRateText.setVisible(true);
+    } else {
+      this.goldRateText.setVisible(false);
+    }
   }
 
   private formatNumber(num: number): string {

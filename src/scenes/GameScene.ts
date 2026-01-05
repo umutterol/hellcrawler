@@ -400,6 +400,7 @@ export class GameScene extends Phaser.Scene {
     this.lootSystem.update(time, delta);
 
     // Update UI
+    this.topBar.update(time, delta);
     this.bottomBar.update(time, delta);
     this.bottomBar.updateEnemyCount(this.waveSystem.getEnemiesRemaining());
 

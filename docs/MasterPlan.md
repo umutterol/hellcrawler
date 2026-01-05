@@ -218,9 +218,9 @@ Features specified in UISpec.md but not yet implemented.
 |---|------|------------|--------|
 | 2.61 | ~~Main Menu scene~~ | Medium | ❌ SKIPPED - Game loads directly |
 | 2.62 | Near Death full-screen overlay (per UISpec) | Low | ✅ |
-| 2.63 | Gold income rate display (+5.2K/s in TopBar) | Low | ⏳ |
-| 2.64 | Flee button in TopBar | Low | ⏳ |
-| 2.65 | Wave pause button (delay next wave) | Low | ⏳ |
+| 2.63 | Gold income rate display (+5.2K/s in TopBar) | Low | ✅ |
+| 2.64 | Flee button in TopBar | Low | ✅ |
+| 2.65 | Wave pause button (delay next wave) | Low | ✅ |
 
 **Files to Modify:**
 - `src/ui/panels/InventoryPanel.ts` - Drag/drop, sort, auto-sell, compare
@@ -888,6 +888,64 @@ GameState (current) → Split into:
 ---
 
 ## Changelog
+
+### January 5, 2025 - TIER 2.5 Task 2.65: Wave Pause Button
+
+**Completed Task 2.65: Wave Pause Button**
+
+- **WaveSystem Enhancement:** Added hold/pause mechanism via events:
+  - `holdNextWave` property to delay auto-start of next wave
+  - `waitingForManualStart` state when holding
+  - Listens to `WAVE_HOLD_TOGGLED` and `WAVE_START_REQUESTED` events
+  - Emits `WAVE_WAITING` event when waiting for manual start
+
+- **BottomBar Wave Controls:** Added to wave progress area:
+  - Toggle button (▶/⏸) to hold/resume auto-wave progression
+  - "START" button appears when waiting for manual wave start
+  - Uses event-based communication (avoids circular import issues)
+  - Emits `WAVE_HOLD_TOGGLED` when toggle clicked
+  - Emits `WAVE_START_REQUESTED` when START clicked
+  - Listens to `WAVE_WAITING` to show START button
+
+**Files Modified:**
+- `src/systems/WaveSystem.ts` - Hold wave mechanism with event handlers
+- `src/ui/BottomBar.ts` - Wave control buttons with event emission
+- `src/types/GameEvents.ts` - Added WAVE_WAITING, WAVE_HOLD_TOGGLED, WAVE_START_REQUESTED events
+
+### January 5, 2025 - TIER 2.5 Task 2.64: Flee Button
+
+**Completed Task 2.64: Flee Button in TopBar**
+
+- **Flee Button:** Added emergency retreat button on far right of TopBar:
+  - Dark red button with "FLEE" text
+  - Hover effect (lighter red)
+  - Positioned to the right of zone selector
+  - Retreats to Act 1 Zone 1 when clicked
+  - Emits ZONE_CHANGED event to reset waves and enemies
+
+**Files Modified:**
+- `src/ui/TopBar.ts` - Added flee button and onFleeClicked handler
+
+### January 5, 2025 - TIER 2.5 Task 2.63: Gold Income Rate Display
+
+**Completed Task 2.63: Gold Income Rate Display**
+
+- **TopBar Enhancement:** Added real-time gold income rate display:
+  - Shows "+X.XK/s" next to gold amount when earning gold
+  - Calculates rate using 10-second sliding window
+  - Updates every 500ms for smooth display
+  - Hides when no income (rate = 0)
+  - Uses green color (#4ade80) for positive income
+
+- **Implementation:**
+  - `goldHistory` array tracks {time, amount} for last 10 seconds
+  - `calculateGoldRate()` uses sliding window algorithm
+  - `updateGoldRateDisplay()` formats and positions rate text
+  - Added `update()` method to TopBar, called from GameScene
+
+**Files Modified:**
+- `src/ui/TopBar.ts` - Gold rate tracking and display
+- `src/scenes/GameScene.ts` - Added TopBar.update() call
 
 ### January 5, 2025 - TIER 2.5 Task 2.62: Near Death Overlay
 
