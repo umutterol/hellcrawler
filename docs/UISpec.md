@@ -368,48 +368,46 @@ CLOSED                    OPENING                   OPEN
 
 **Purpose:** Purchase module slots, view unlock requirements
 
+**Note:** Slots 1 and 2 (indices 0 and 1) are always free and start unlocked. Shop only shows purchasable slots 3, 4, and 5 (indices 2, 3, 4).
+
 ```
 ┌─────────────────────────────────────┐
 │ [<<]                         SHOP   │
 ├─────────────────────────────────────┤
-│ MODULE SLOTS                        │
+│ MODULE SLOTS         Gold: 15,000   │
 ├─────────────────────────────────────┤
 │ ┌─────────────────────────────────┐ │
-│ │ SLOT 1                    FREE  │ │  ← Already owned
-│ │ ✓ Unlocked                      │ │
-│ └─────────────────────────────────┘ │
-├─────────────────────────────────────┤
-│ ┌─────────────────────────────────┐ │
-│ │ SLOT 2                          │ │
-│ │ Unlocks 2nd module slot         │ │
-│ │                                 │ │
-│ │ [PURCHASE: 10,000 G]            │ │  ← Purchasable
-│ └─────────────────────────────────┘ │
-├─────────────────────────────────────┤
-│ ┌─────────────────────────────────┐ │
-│ │ SLOT 3                          │ │
+│ │ SLOT 3             FRONT →      │ │  ← Direction indicator
 │ │ Unlocks 3rd module slot         │ │
 │ │                                 │ │
-│ │ [PURCHASE: 50,000 G]            │ │
+│ │ [PURCHASE: 10,000 G]            │ │  ← 10K gold
 │ └─────────────────────────────────┘ │
 ├─────────────────────────────────────┤
 │ ┌─────────────────────────────────┐ │
-│ │ SLOT 4                   LOCKED │ │  ← Locked with requirement
+│ │ SLOT 4             ← BACK       │ │
 │ │ Unlocks 4th module slot         │ │
 │ │                                 │ │
-│ │ 🔒 Defeat Diaboros (Act 8)      │ │
-│ │ Cost: 500,000 G                 │ │
+│ │ [PURCHASE: 20,000 G]            │ │  ← 20K gold
 │ └─────────────────────────────────┘ │
 ├─────────────────────────────────────┤
 │ ┌─────────────────────────────────┐ │
-│ │ SLOT 5                   LOCKED │ │
-│ │ Unlocks 5th module slot         │ │
+│ │ SLOT 5             ⟷ CENTER     │ │  ← LOCKED until Act 6
+│ │ Unlocks center turret           │ │
 │ │                                 │ │
-│ │ 🔒 Defeat all Uber Bosses       │ │
-│ │ Cost: 2,000,000 G               │ │
+│ │ 🔒 Reach Act 6                  │ │
+│ │ Cost: 75,000 G                  │ │  ← 75K gold
 │ └─────────────────────────────────┘ │
 └─────────────────────────────────────┘
 ```
+
+**Slot Costs (Center Tank Design):**
+| Slot | Index | Direction | Cost | Requirement |
+|------|-------|-----------|------|-------------|
+| Slot 1 | 0 | FRONT → | Free | None (starts unlocked) |
+| Slot 2 | 1 | ← BACK | Free | None (starts unlocked) |
+| Slot 3 | 2 | FRONT → | 10,000 G | Gold only |
+| Slot 4 | 3 | ← BACK | 20,000 G | Gold only |
+| Slot 5 | 4 | ⟷ CENTER | 75,000 G | Reach Act 6 |
 
 **Button States:**
 | State | Appearance |
@@ -423,10 +421,10 @@ CLOSED                    OPENING                   OPEN
 | Property | Value |
 |----------|-------|
 | Cards Per Page | 3 |
-| Total Slots | 5 |
-| Total Pages | 2 |
+| Total Purchasable Slots | 3 |
+| Total Pages | 1 |
 
-> **Note:** Page 1 shows Slots 1-3, Page 2 shows Slots 4-5. Pagination controls appear below the slot cards.
+> **Note:** All 3 purchasable slots (3, 4, 5) fit on a single page.
 
 ---
 
@@ -553,9 +551,16 @@ CLOSED                    OPENING                   OPEN
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │ [HP ████████████░░░░] 235,000/300,000                               │
-│ [Slot1] [Slot2] [Slot3] [Slot4] [Slot5]        [Wave 5/7] [▶] [⏸]  │
+│   ←      ←      ⟷      →      →                                    │
+│ [Slot2] [Slot4] [Slot5] [Slot3] [Slot1]        [Wave 5/7] [▶] [⏸]  │
+│  BACK    BACK   CENTER  FRONT   FRONT                               │
 └─────────────────────────────────────────────────────────────────────┘
 ```
+
+**Note:** Slots are displayed in spatial order matching their firing direction:
+- Left side: Back slots (1, 3) attack enemies from the left
+- Center: Slot 5 attacks enemies from both sides
+- Right side: Front slots (0, 2) attack enemies from the right
 
 **HP Bar:**
 - Full width minus padding
@@ -563,11 +568,23 @@ CLOSED                    OPENING                   OPEN
 - Color changes: Green (>50%) → Yellow (25-50%) → Red (<25%)
 - Near Death: Pulsing red + "REVIVE" button appears
 
-**Module Slots:**
-- 5 slots in row
-- Each shows: Module icon, slot level, skill cooldowns
+**Module Slots (Center Tank Design):**
+- 5 slots in row, visually ordered: [← Back] [← Back] [⟷ Center] [Front →] [Front →]
+- Display order: Slot 2, Slot 4, Slot 5, Slot 3, Slot 1 (indices: 1, 3, 4, 2, 0)
+- Direction indicators: ← (attacks left), → (attacks right), ⟷ (attacks both)
+- Color coding: Red (←), Cyan (→), Gold (⟷)
+- Each shows: Module icon, slot level, skill cooldowns, direction indicator
 - Click to select (shows tooltip with stats)
 - Skill buttons appear below selected slot
+
+**Slot Directions:**
+| Visual Position | Slot Index | Direction | Color | Fires At |
+|-----------------|------------|-----------|-------|----------|
+| 1 (leftmost) | 1 | ← | #ff6b6b (red) | Left enemies |
+| 2 | 3 | ← | #ff6b6b (red) | Left enemies |
+| 3 (center) | 4 | ⟷ | #ffd700 (gold) | Both sides |
+| 4 | 2 | → | #4ecdc4 (cyan) | Right enemies |
+| 5 (rightmost) | 0 | → | #4ecdc4 (cyan) | Right enemies |
 
 **Wave Progress:**
 - Shows current wave / total waves
@@ -887,6 +904,15 @@ Panel.refresh() to update content
 ---
 
 ## Changelog
+
+### v1.2 (January 2025)
+- **Center Tank Design:** Added bidirectional combat with direction indicators
+- Updated Bottom Bar to show slot display order matching firing directions
+- Added direction labels (←/→/⟷) to slots in all UI components
+- Updated Shop Panel with new slot costs (Slots 1-2 free, Slot 3: 10K, Slot 4: 20K, Slot 5: 75K + Act 6)
+- Added slot direction color coding (Red=←, Cyan=→, Gold=⟷)
+- Updated Tank Stats panel tabs with direction indicators
+- Updated Inventory panel equipped slots with direction indicators
 
 ### v1.1 (January 2025)
 - Updated dimensions for Desktop Mode (350px height, compact UI)

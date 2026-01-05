@@ -4,7 +4,7 @@ import { PanelType, UI_CONFIG } from '../../config/UIConfig';
 import { getGameState, GameState } from '../../state/GameState';
 import { EventManager, getEventManager } from '../../managers/EventManager';
 import { GameEvents } from '../../types/GameEvents';
-import { GAME_CONFIG } from '../../config/GameConfig';
+import { GAME_CONFIG, SlotDirection } from '../../config/GameConfig';
 
 /**
  * ShopPanel - Sliding panel for purchasing module slots
@@ -23,13 +23,17 @@ export class ShopPanel extends SlidingPanel {
   private currentPage: number = 0;
   private static readonly CARDS_PER_PAGE = 3;
 
-  // Slot requirements (null = no requirement, string = boss requirement)
+  // Slot requirements (null = no requirement, string = progression requirement)
+  // Updated for center tank design:
+  // - Slots 0, 1: Always free (not shown in shop)
+  // - Slots 2, 3: Gold only
+  // - Slot 4: Gold + Act 6 requirement (center turret)
   private static readonly SLOT_REQUIREMENTS: (string | null)[] = [
-    null, // Slot 1: Always unlocked
-    null, // Slot 2: Gold only
-    null, // Slot 3: Gold only
-    'Defeat Diaboros (Act 8)', // Slot 4: Boss requirement
-    'Defeat all Uber Bosses', // Slot 5: Boss requirement
+    null,                      // Slot 0: Free (front, attacks right)
+    null,                      // Slot 1: Free (back, attacks left)
+    null,                      // Slot 2: Gold only (front, attacks right)
+    null,                      // Slot 3: Gold only (back, attacks left)
+    'Reach Act 6',             // Slot 4: Requires Act 6 (center, attacks both)
   ];
 
   constructor(scene: Phaser.Scene) {
@@ -218,6 +222,11 @@ export class ShopPanel extends SlidingPanel {
     const cardWidth = this.getContentWidth();
     const cardHeight = 88;
 
+    // Get direction info for this slot
+    const direction = GAME_CONFIG.SLOT_DIRECTIONS[slotIndex] ?? SlotDirection.Right;
+    const dirLabel = UI_CONFIG.SLOT_DIRECTIONS.LABELS[direction];
+    const dirColor = UI_CONFIG.SLOT_DIRECTIONS.HEX_COLORS[direction];
+
     // Card background
     const cardBg = this.scene.add.graphics();
     cardBg.fillStyle(0x2d2d44, 1);
@@ -233,6 +242,14 @@ export class ShopPanel extends SlidingPanel {
       fontStyle: 'bold',
     });
     container.add(titleText);
+
+    // Direction label (next to title)
+    const dirText = this.scene.add.text(80, 14, dirLabel, {
+      fontSize: '11px',
+      color: dirColor,
+      fontStyle: 'bold',
+    });
+    container.add(dirText);
 
     // Slot description
     const descText = this.scene.add.text(
@@ -402,7 +419,7 @@ export class ShopPanel extends SlidingPanel {
   }
 
   /**
-   * Check if boss requirement is met for a slot
+   * Check if progression requirement is met for a slot
    */
   private checkRequirement(slotIndex: number): boolean {
     const requirement = ShopPanel.SLOT_REQUIREMENTS[slotIndex];
@@ -410,17 +427,14 @@ export class ShopPanel extends SlidingPanel {
       return true; // No requirement
     }
 
-    // Check based on slot index
-    if (slotIndex === 3) {
-      // Slot 4: Defeat Diaboros (Act 8 boss)
-      return this.gameState.getBossesDefeated().includes('diaboros');
-    } else if (slotIndex === 4) {
-      // Slot 5: Defeat all Uber Bosses
-      const ubersDefeated = this.gameState.getUbersDefeated();
-      // For now, check if any uber is defeated (full list TBD)
-      return ubersDefeated.length >= 8; // All 8 uber bosses
+    // Check based on slot index (center tank design)
+    if (slotIndex === 4) {
+      // Slot 5 (center turret): Requires reaching Act 6
+      const currentAct = this.gameState.getCurrentAct();
+      return currentAct >= GAME_CONFIG.SLOT_5_ACT_REQUIREMENT;
     }
 
+    // Default: no requirement met
     return false;
   }
 

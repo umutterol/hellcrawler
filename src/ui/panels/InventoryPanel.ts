@@ -7,6 +7,7 @@ import { GameEvents } from '../../types/GameEvents';
 import { ModuleItemData, ModuleSlotData } from '../../types/ModuleTypes';
 import { Rarity } from '../../types/GameTypes';
 import { MODULE_SELL_VALUES } from '../../modules/ModuleItem';
+import { GAME_CONFIG, SlotDirection } from '../../config/GameConfig';
 
 /**
  * Selection type to track where the selected module is
@@ -173,6 +174,12 @@ export class InventoryPanel extends SlidingPanel {
   ): Phaser.GameObjects.Container {
     const container = this.scene.add.container(x, y);
 
+    // Get direction info for this slot
+    const direction = GAME_CONFIG.SLOT_DIRECTIONS[index] ?? SlotDirection.Right;
+    const dirShort = UI_CONFIG.SLOT_DIRECTIONS.SHORT_LABELS[direction];
+    const dirColor = UI_CONFIG.SLOT_DIRECTIONS.HEX_COLORS[direction];
+    const dirColorValue = UI_CONFIG.SLOT_DIRECTIONS.COLORS[direction];
+
     // Determine if this slot is selected
     const isSelected =
       this.selectedModule?.source === 'equipped' && this.selectedModule?.slotIndex === index;
@@ -185,12 +192,21 @@ export class InventoryPanel extends SlidingPanel {
     slotBg.fillStyle(bgColor, slot?.equipped ? 0.3 : 1);
     slotBg.fillRoundedRect(0, 0, size, size, 4);
 
-    // Border - highlight if selected
-    const borderColor = isSelected ? 0xffffff : UI_CONFIG.COLORS.PANEL_BORDER;
-    const borderAlpha = isSelected ? 1 : 0.5;
+    // Border - use direction color, highlight if selected
+    const borderColor = isSelected ? 0xffffff : dirColorValue;
+    const borderAlpha = isSelected ? 1 : 0.7;
     slotBg.lineStyle(isSelected ? 3 : 2, borderColor, borderAlpha);
     slotBg.strokeRoundedRect(0, 0, size, size, 4);
     container.add(slotBg);
+
+    // Direction indicator (inside slot, top center)
+    const dirIndicator = this.scene.add.text(size / 2, 4, dirShort, {
+      fontSize: '10px',
+      color: dirColor,
+      fontStyle: 'bold',
+    });
+    dirIndicator.setOrigin(0.5, 0);
+    container.add(dirIndicator);
 
     if (slot?.equipped) {
       // Module icon (first letter of type)

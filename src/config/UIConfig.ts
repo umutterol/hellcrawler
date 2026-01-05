@@ -94,6 +94,38 @@ export const UI_CONFIG = {
       color: '#a0a0a0',
     },
   },
+  // Slot direction labels and icons for bidirectional combat UI
+  SLOT_DIRECTIONS: {
+    // Direction labels
+    LABELS: {
+      left: '← BACK',
+      right: 'FRONT →',
+      both: '⟷ CENTER',
+    },
+    // Short labels for compact displays
+    SHORT_LABELS: {
+      left: '←',
+      right: '→',
+      both: '⟷',
+    },
+    // Colors for direction indicators
+    COLORS: {
+      left: 0xff6b6b,   // Red-ish for back/left
+      right: 0x4ecdc4,  // Cyan-ish for front/right
+      both: 0xffd700,   // Gold for center/both
+    },
+    // Hex colors for text
+    HEX_COLORS: {
+      left: '#ff6b6b',
+      right: '#4ecdc4',
+      both: '#ffd700',
+    },
+  },
+
+  // Slot display order for BottomBar (visual left-to-right)
+  // [Back2, Back4, Center5, Front3, Front1] = slot indices [1, 3, 4, 2, 0]
+  // This creates visual grouping: Left attackers | Center | Right attackers
+  SLOT_DISPLAY_ORDER: [1, 3, 4, 2, 0] as readonly number[],
 } as const;
 
 // Panel identifiers

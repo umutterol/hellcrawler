@@ -6,6 +6,7 @@ import { EventManager, getEventManager } from '../../managers/EventManager';
 import { GameEvents } from '../../types/GameEvents';
 import { TankStatType } from '../../types/GameTypes';
 import { SlotStatType } from '../../types/ModuleTypes';
+import { GAME_CONFIG, SlotDirection } from '../../config/GameConfig';
 
 /**
  * Tab types for the panel
@@ -97,11 +98,25 @@ export class TankStatsPanel extends SlidingPanel {
 
   /**
    * Create the tab bar with 6 tabs
+   * Slot tabs show direction indicators (← → ⟷)
    */
   private createTabBar(): void {
     const tabBarY = 0;
     const tabTypes = [TabType.Tank, TabType.Slot1, TabType.Slot2, TabType.Slot3, TabType.Slot4, TabType.Slot5];
-    const tabLabels = ['Tank', 'Slot 1', 'Slot 2', 'Slot 3', 'Slot 4', 'Slot 5'];
+
+    // Get direction labels for slot tabs
+    const dirShort = UI_CONFIG.SLOT_DIRECTIONS.SHORT_LABELS;
+    const directions = GAME_CONFIG.SLOT_DIRECTIONS;
+
+    // Build tab labels with direction indicators for slots
+    const tabLabels = [
+      'Tank',
+      `S1 ${dirShort[directions[0]]}`,  // Slot 1 → (front, attacks right)
+      `S2 ${dirShort[directions[1]]}`,  // Slot 2 ← (back, attacks left)
+      `S3 ${dirShort[directions[2]]}`,  // Slot 3 → (front, attacks right)
+      `S4 ${dirShort[directions[3]]}`,  // Slot 4 ← (back, attacks left)
+      `S5 ${dirShort[directions[4]]}`,  // Slot 5 ⟷ (center, attacks both)
+    ];
 
     for (let i = 0; i < tabTypes.length; i++) {
       const tabType = tabTypes[i]!;
@@ -354,13 +369,27 @@ export class TankStatsPanel extends SlidingPanel {
     const slot = this.gameState.getModuleSlots()[slotIndex];
     const isUnlocked = slot?.unlocked ?? false;
 
-    // Header
+    // Get direction info for this slot
+    const direction = GAME_CONFIG.SLOT_DIRECTIONS[slotIndex] ?? SlotDirection.Right;
+    const dirLabel = UI_CONFIG.SLOT_DIRECTIONS.LABELS[direction];
+    const dirColor = UI_CONFIG.SLOT_DIRECTIONS.HEX_COLORS[direction];
+
+    // Header with slot number
     const header = this.scene.add.text(12, 0, `SLOT ${slotIndex + 1} UPGRADES`, {
       fontSize: '12px',
       color: UI_CONFIG.COLORS.TEXT_SECONDARY,
       fontStyle: 'bold',
     });
     this.contentContainer.add(header);
+
+    // Direction label (aligned right)
+    const dirText = this.scene.add.text(this.getContentWidth() - 24, 0, dirLabel, {
+      fontSize: '11px',
+      color: dirColor,
+      fontStyle: 'bold',
+    });
+    dirText.setOrigin(1, 0);
+    this.contentContainer.add(dirText);
 
     // Divider
     const divider = this.scene.add.graphics();

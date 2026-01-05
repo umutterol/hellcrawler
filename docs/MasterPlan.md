@@ -18,7 +18,7 @@
 | VFX Polish (Weapon Effects) | 🟡 In Progress | None | P0 |
 | **VFX Polish (Gore System)** | ✅ Complete | None | P0 |
 | **Center Tank Redesign (Phase 1A)** | ✅ Complete | None | P1 |
-| **Center Tank UI Refactor (Phase 1B)** | ⏳ Planned | Phase 1A Complete | P1 |
+| **Center Tank UI Refactor (Phase 1B)** | ✅ Complete | None | P1 |
 | Cinematic Module Effects | ⏳ Planned | Center Tank | P2 |
 | **UI Polish & Missing Features** | ⏳ Planned | Center Tank UI | P2.5 |
 | Content Expansion (Acts 2-8) | ⏳ Planned | Center Tank | P3 |
@@ -108,20 +108,20 @@ See `docs/GorePlan.md` for detailed implementation plan.
 | 1.9 | Add Act 6 requirement for Slot 5 | Low | ✅ |
 | 1.10 | Test bidirectional combat balance | Medium | ✅ |
 
-#### Phase 1B: UI Refactoring for Center Tank
+#### Phase 1B: UI Refactoring for Center Tank ✅ COMPLETE
 
 | # | Task | Complexity | Status |
 |---|------|------------|--------|
-| 1.11 | **BottomBar.ts** - Add directional slot layout | Medium | ⏳ |
-| 1.12 | **BottomBar.ts** - Direction indicators (←/→/⟷) | Low | ⏳ |
-| 1.13 | **BottomBar.ts** - Reorder slots: [Back2, Back4, Center5, Front1, Front3] | Low | ⏳ |
-| 1.14 | **TankStatsPanel.ts** - Add direction labels to tabs | Low | ⏳ |
-| 1.15 | **TankStatsPanel.ts** - Show slot firing direction in content | Low | ⏳ |
-| 1.16 | **ShopPanel.ts** - Update slot costs display | Low | ⏳ |
-| 1.17 | **ShopPanel.ts** - Update unlock requirements | Low | ⏳ |
-| 1.18 | **InventoryPanel.ts** - Add direction labels to equipped slots | Low | ⏳ |
-| 1.19 | **UIConfig.ts** - Add slot direction constants | Low | ⏳ |
-| 1.20 | **UISpec.md** - Update with new slot layout diagrams | Low | ⏳ |
+| 1.11 | **BottomBar.ts** - Add directional slot layout | Medium | ✅ |
+| 1.12 | **BottomBar.ts** - Direction indicators (←/→/⟷) | Low | ✅ |
+| 1.13 | **BottomBar.ts** - Reorder slots: [Back2, Back4, Center5, Front1, Front3] | Low | ✅ |
+| 1.14 | **TankStatsPanel.ts** - Add direction labels to tabs | Low | ✅ |
+| 1.15 | **TankStatsPanel.ts** - Show slot firing direction in content | Low | ✅ |
+| 1.16 | **ShopPanel.ts** - Update slot costs display | Low | ✅ |
+| 1.17 | **ShopPanel.ts** - Update unlock requirements | Low | ✅ |
+| 1.18 | **InventoryPanel.ts** - Add direction labels to equipped slots | Low | ✅ |
+| 1.19 | **UIConfig.ts** - Add slot direction constants | Low | ✅ |
+| 1.20 | **UISpec.md** - Update with new slot layout diagrams | Low | ✅ |
 
 **Files to Modify (Core):**
 - `src/config/GameConfig.ts` - Slot positions, costs, requirements
@@ -886,6 +886,70 @@ GameState (current) → Split into:
 ---
 
 ## Changelog
+
+### January 5, 2025 - UI Fixes: Centered Layout + Direction Arrows Inside Slots
+
+**Bug Fix: S2 Slot Showing as Locked**
+- Added migration in `GameState.fromSaveData()` to force slots 0 and 1 unlocked
+- Fixes old localStorage saves that had these slots locked
+
+**BottomBar.ts: Centered HP Bar + Module Slots**
+- HP bar and module slots now centered on screen (x=858)
+- Added `getCenteredStartX()` helper method
+- Direction indicators moved INSIDE slots (top center)
+
+**InventoryPanel.ts: Direction Arrows Inside Slots**
+- Direction indicators moved INSIDE equipped slots (top center)
+- Matches BottomBar visual style
+
+**Files Modified:**
+- `src/state/GameState.ts` - Slot migration fix (lines 1118-1121)
+- `src/ui/BottomBar.ts` - Centered layout + arrows inside
+- `src/ui/panels/InventoryPanel.ts` - Arrows inside
+
+---
+
+### January 5, 2025 - Phase 1B Complete: UI Refactoring for Center Tank
+
+**Phase 1B** (Tasks 1.11-1.20) completed. All UI components now show slot firing directions.
+
+**UIConfig.ts (1.19):**
+- Added `SLOT_DIRECTIONS` constants (labels, short labels, colors)
+- Added `SLOT_DISPLAY_ORDER` array [1, 3, 4, 2, 0] for visual ordering
+
+**BottomBar.ts (1.11-1.13):**
+- Slots now display in spatial order: [← Back] [← Back] [⟷ Center] [Front →] [Front →]
+- Direction indicators (←/→/⟷) appear above each slot
+- Direction-colored borders (Red=←, Cyan=→, Gold=⟷)
+
+**TankStatsPanel.ts (1.14-1.15):**
+- Tab labels now include direction indicators (e.g., "S1 →", "S2 ←", "S5 ⟷")
+- Slot content headers show full direction label (e.g., "← BACK", "FRONT →")
+
+**ShopPanel.ts (1.16-1.17):**
+- Direction labels shown on each slot card
+- Updated requirements: Slot 5 requires "Reach Act 6" (not boss kills)
+- Only shows purchasable slots (3, 4, 5)
+
+**InventoryPanel.ts (1.18):**
+- Equipped slots show direction indicators above them
+- Direction-colored borders on equipped slot boxes
+
+**UISpec.md (1.20):**
+- Updated Bottom Bar diagram with slot display order
+- Updated Shop Panel with new costs and requirements
+- Added slot direction tables and color coding reference
+- Bumped to v1.2
+
+**Files Modified:**
+- `src/config/UIConfig.ts`
+- `src/ui/BottomBar.ts`
+- `src/ui/panels/TankStatsPanel.ts`
+- `src/ui/panels/ShopPanel.ts`
+- `src/ui/panels/InventoryPanel.ts`
+- `docs/UISpec.md`
+
+---
 
 ### January 5, 2025 - Starting Equipment UI Sync Fix
 

@@ -6,7 +6,7 @@ import { ModuleSlot } from '../modules/ModuleSlot';
 import { BaseModule } from '../modules/BaseModule';
 import { GameEvents } from '../types/GameEvents';
 import { UI_CONFIG } from '../config/UIConfig';
-import { GAME_CONFIG } from '../config/GameConfig';
+import { GAME_CONFIG, SlotDirection } from '../config/GameConfig';
 
 /**
  * BottomBar - Fixed bar at bottom of screen
@@ -48,6 +48,10 @@ export class BottomBar {
   private skill2Keys: Phaser.GameObjects.Text[] = [];
   private skill1Autos: Phaser.GameObjects.Text[] = [];
   private skill2Autos: Phaser.GameObjects.Text[] = [];
+  private directionIndicators: Phaser.GameObjects.Text[] = [];
+
+  // Maps visual position to actual slot index (for display order)
+  private displayOrderMap: readonly number[] = UI_CONFIG.SLOT_DISPLAY_ORDER;
 
   // Wave progress elements
   private waveText!: Phaser.GameObjects.Text;
@@ -118,16 +122,22 @@ export class BottomBar {
     return 5 * this.SLOT_SIZE + 4 * this.SLOT_SPACING;
   }
 
+  private getCenteredStartX(): number {
+    const totalWidth = this.getHPBarWidth();
+    return (GAME_CONFIG.WIDTH - totalWidth) / 2;
+  }
+
   private createHPBar(): void {
     const hpBarWidth = this.getHPBarWidth();
     const hpBarY = 4;
+    const startX = this.getCenteredStartX();
 
     // HP Bar background
     this.hpBarBg = this.scene.add.graphics();
     this.hpBarBg.fillStyle(0x333333, 1);
-    this.hpBarBg.fillRoundedRect(this.PADDING, hpBarY, hpBarWidth, this.HP_BAR_HEIGHT, 4);
+    this.hpBarBg.fillRoundedRect(startX, hpBarY, hpBarWidth, this.HP_BAR_HEIGHT, 4);
     this.hpBarBg.lineStyle(1, 0x555555, 1);
-    this.hpBarBg.strokeRoundedRect(this.PADDING, hpBarY, hpBarWidth, this.HP_BAR_HEIGHT, 4);
+    this.hpBarBg.strokeRoundedRect(startX, hpBarY, hpBarWidth, this.HP_BAR_HEIGHT, 4);
     this.container.add(this.hpBarBg);
 
     // HP Bar fill
@@ -135,7 +145,7 @@ export class BottomBar {
     this.container.add(this.hpBar);
 
     // HP Text (centered on bar)
-    this.hpText = this.scene.add.text(this.PADDING + hpBarWidth / 2, hpBarY + this.HP_BAR_HEIGHT / 2, '', {
+    this.hpText = this.scene.add.text(startX + hpBarWidth / 2, hpBarY + this.HP_BAR_HEIGHT / 2, '', {
       fontSize: '11px',
       color: '#ffffff',
       fontStyle: 'bold',
@@ -146,16 +156,16 @@ export class BottomBar {
     this.container.add(this.hpText);
 
     // Near Death revive button (hidden by default)
-    this.createNearDeathButton(hpBarY, hpBarWidth);
+    this.createNearDeathButton(hpBarY, hpBarWidth, startX);
 
     // Initial HP update
     this.updateHPBar();
   }
 
-  private createNearDeathButton(hpBarY: number, hpBarWidth: number): void {
+  private createNearDeathButton(hpBarY: number, hpBarWidth: number, startX: number): void {
     const buttonWidth = 100;
     const buttonHeight = this.HP_BAR_HEIGHT;
-    const buttonX = this.PADDING + hpBarWidth + 10;
+    const buttonX = startX + hpBarWidth + 10;
 
     this.nearDeathButton = this.scene.add.container(buttonX, hpBarY);
     this.nearDeathButton.setVisible(false);
@@ -203,38 +213,47 @@ export class BottomBar {
   }
 
   private createModuleSlots(): void {
-    const startX = this.PADDING;
+    const startX = this.getCenteredStartX();
     const y = this.HP_BAR_HEIGHT + 8; // Closer to HP bar
 
-    // Create 5 slot UI elements
-    for (let i = 0; i < 5; i++) {
-      const slotX = startX + i * (this.SLOT_SIZE + this.SLOT_SPACING);
-      this.createSlotElement(slotX, y, i);
+    // Create 5 slot UI elements using display order
+    // Display order: [Back2, Back4, Center5, Front3, Front1] = [1, 3, 4, 2, 0]
+    // This groups: Left attackers (←) | Center (⟷) | Right attackers (→)
+    for (let visualPos = 0; visualPos < 5; visualPos++) {
+      const slotIndex = this.displayOrderMap[visualPos]!;
+      const slotX = startX + visualPos * (this.SLOT_SIZE + this.SLOT_SPACING);
+      this.createSlotElement(slotX, y, slotIndex, visualPos);
     }
   }
 
-  private createSlotElement(x: number, y: number, index: number): void {
+  private createSlotElement(x: number, y: number, index: number, _visualPos: number): void {
     const size = this.SLOT_SIZE;
 
     // Container for this slot
     const slotContainer = this.scene.add.container(x, y);
     this.container.add(slotContainer);
-    this.slotContainers.push(slotContainer);
+    // Store at the slot index position, not visual position
+    this.slotContainers[index] = slotContainer;
 
-    // Background
+    // Get slot direction for this slot
+    const direction = GAME_CONFIG.SLOT_DIRECTIONS[index] ?? SlotDirection.Right;
+    const dirColors = UI_CONFIG.SLOT_DIRECTIONS.COLORS;
+    const dirShortLabels = UI_CONFIG.SLOT_DIRECTIONS.SHORT_LABELS;
+
+    // Background with direction-colored border
     const background = this.scene.add.rectangle(
       size / 2, size / 2, size, size, 0x333344, 0.9
     );
-    background.setStrokeStyle(2, 0x555566);
+    background.setStrokeStyle(2, dirColors[direction]);
     slotContainer.add(background);
-    this.slotBackgrounds.push(background);
+    this.slotBackgrounds[index] = background;
 
     // Module icon placeholder
     const icon = this.scene.add.rectangle(
       size / 2, size / 2, size - 8, size - 8, 0x666666, 0
     );
     slotContainer.add(icon);
-    this.slotIcons.push(icon);
+    this.slotIcons[index] = icon;
 
     // Slot level text (bottom right) - smaller
     const levelText = this.scene.add.text(size - 2, size - 2, '', {
@@ -245,7 +264,7 @@ export class BottomBar {
     });
     levelText.setOrigin(1, 1);
     slotContainer.add(levelText);
-    this.slotLevelTexts.push(levelText);
+    this.slotLevelTexts[index] = levelText;
 
     // Lock icon (for locked slots - slots 0 and 1 are always unlocked)
     let lockIcon: Phaser.GameObjects.Text | null = null;
@@ -257,16 +276,16 @@ export class BottomBar {
       lockIcon.setVisible(false);
       slotContainer.add(lockIcon);
     }
-    this.slotLockIcons.push(lockIcon);
+    this.slotLockIcons[index] = lockIcon;
 
     // Skill cooldown indicators - positioned inside slot corners
     const skill1Cooldown = this.scene.add.graphics();
     slotContainer.add(skill1Cooldown);
-    this.skill1Cooldowns.push(skill1Cooldown);
+    this.skill1Cooldowns[index] = skill1Cooldown;
 
     const skill2Cooldown = this.scene.add.graphics();
     slotContainer.add(skill2Cooldown);
-    this.skill2Cooldowns.push(skill2Cooldown);
+    this.skill2Cooldowns[index] = skill2Cooldown;
 
     // Skill hotkey labels - inside slot at bottom corners (compact)
     const skill1Key = this.scene.add.text(4, size - 2, `${index * 2 + 1}`, {
@@ -275,7 +294,7 @@ export class BottomBar {
     });
     skill1Key.setOrigin(0, 1);
     slotContainer.add(skill1Key);
-    this.skill1Keys.push(skill1Key);
+    this.skill1Keys[index] = skill1Key;
 
     const skill2Key = this.scene.add.text(size - 4, size - 2, `${index * 2 + 2}`, {
       fontSize: '8px',
@@ -283,7 +302,7 @@ export class BottomBar {
     });
     skill2Key.setOrigin(1, 1);
     slotContainer.add(skill2Key);
-    this.skill2Keys.push(skill2Key);
+    this.skill2Keys[index] = skill2Key;
 
     // Slot number (top left) - smaller
     const slotNum = this.scene.add.text(2, 1, `${index + 1}`, {
@@ -291,6 +310,16 @@ export class BottomBar {
       color: '#666666',
     });
     slotContainer.add(slotNum);
+
+    // Direction indicator (inside slot, top center)
+    const dirIndicator = this.scene.add.text(size / 2, 2, dirShortLabels[direction], {
+      fontSize: '9px',
+      color: UI_CONFIG.SLOT_DIRECTIONS.HEX_COLORS[direction],
+      fontStyle: 'bold',
+    });
+    dirIndicator.setOrigin(0.5, 0);
+    slotContainer.add(dirIndicator);
+    this.directionIndicators[index] = dirIndicator;
 
     // Auto-mode indicators - inside slot at top corners
     const skill1Auto = this.scene.add.text(4, 10, 'A', {
@@ -301,7 +330,7 @@ export class BottomBar {
     skill1Auto.setOrigin(0, 0);
     skill1Auto.setVisible(false);
     slotContainer.add(skill1Auto);
-    this.skill1Autos.push(skill1Auto);
+    this.skill1Autos[index] = skill1Auto;
 
     const skill2Auto = this.scene.add.text(size - 4, 10, 'A', {
       fontSize: '7px',
@@ -311,7 +340,7 @@ export class BottomBar {
     skill2Auto.setOrigin(1, 0);
     skill2Auto.setVisible(false);
     slotContainer.add(skill2Auto);
-    this.skill2Autos.push(skill2Auto);
+    this.skill2Autos[index] = skill2Auto;
   }
 
   private createWaveProgress(): void {
@@ -381,6 +410,7 @@ export class BottomBar {
 
     const hpBarWidth = this.getHPBarWidth();
     const hpBarY = 4;
+    const startX = this.getCenteredStartX();
 
     this.hpBar.clear();
 
@@ -396,7 +426,7 @@ export class BottomBar {
     if (percent > 0) {
       this.hpBar.fillStyle(color, 1);
       this.hpBar.fillRoundedRect(
-        this.PADDING + 2,
+        startX + 2,
         hpBarY + 2,
         (hpBarWidth - 4) * percent,
         this.HP_BAR_HEIGHT - 4,
@@ -460,6 +490,10 @@ export class BottomBar {
     const isUnlocked = slot.isUnlocked();
     const equipped = slot.getEquipped();
 
+    // Get direction color for this slot
+    const direction = GAME_CONFIG.SLOT_DIRECTIONS[index] ?? SlotDirection.Right;
+    const dirColor = UI_CONFIG.SLOT_DIRECTIONS.COLORS[direction];
+
     // Update lock state
     if (lockIcon) {
       lockIcon.setVisible(!isUnlocked);
@@ -477,6 +511,7 @@ export class BottomBar {
       const moduleColor = this.MODULE_COLORS[equipped.type] ?? 0xffffff;
 
       background.setFillStyle(0x333344, 0.9);
+      // Use rarity color for border when equipped, but keep direction color as subtle outer glow
       background.setStrokeStyle(3, rarityColor);
       icon.setFillStyle(moduleColor, 1);
       // Show total stat levels (damage + attackSpeed + CDR)
@@ -487,7 +522,8 @@ export class BottomBar {
       skill2Key.setVisible(true);
     } else {
       background.setFillStyle(0x333344, 0.9);
-      background.setStrokeStyle(2, 0x555566);
+      // Use direction color for empty unlocked slots
+      background.setStrokeStyle(2, dirColor);
       icon.setFillStyle(0x000000, 0);
       // Show total stat levels
       const stats = slot.getStats();

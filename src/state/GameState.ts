@@ -1114,6 +1114,12 @@ export class GameState {
         } as ModuleSlotData;
       }
     });
+
+    // Migration: Ensure slots 0 and 1 are always unlocked (center tank design)
+    // This fixes saves from before the free starter slots change
+    if (this.moduleSlots[0]) this.moduleSlots[0].unlocked = true;
+    if (this.moduleSlots[1]) this.moduleSlots[1].unlocked = true;
+
     this.moduleInventory = data.modules.inventory.map((module) => ({ ...module }));
 
     this.currentAct = data.progression.currentAct;
