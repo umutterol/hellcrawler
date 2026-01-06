@@ -889,6 +889,39 @@ GameState (current) → Split into:
 
 ## Changelog
 
+### January 6, 2025 - Critical Bug Fixes: Boss Sprite, Hitbox, and Missiles
+
+**Fixed Three Critical Gameplay Bugs:**
+
+1. **Boss Sprite Fix** - Corrupted Sentinel was displaying all 5 animation frames at once (stretched):
+   - Root cause: `sentinel-idle.png` (960x144 spritesheet with 5 frames) was loaded as `load.image` instead of `load.spritesheet`
+   - Fix: Changed to `load.spritesheet` with proper `frameWidth: 192, frameHeight: 144`
+   - Added `sentinel-idle-anim` animation (5 frames at 6fps)
+   - Updated Enemy.ts to play the animation for CorruptedSentinel case
+
+2. **Enemy-Tank Hitbox Fix** - Enemies were not dealing damage to tank:
+   - Root cause: Tank hitbox offset was 100px but enemies stop at 200px from tank center (STOP_DISTANCE_FROM_TANK)
+   - With hitbox width of 120px, hitbox only extended to 160px (100 + 60 half-width), leaving a 40px gap
+   - Fix: Increased `hitboxOffsetX` from 100 to 140, so hitbox now extends to 200px (140 + 60)
+
+3. **Missile AoE Fix** - Arcing missiles were missing targets:
+   - Root cause: AoE radius was only 40px, but enemies move 60-100px during the 800ms missile flight time
+   - Fix: Increased `AOE_RADIUS` from 40 to 100 pixels
+   - Missiles now reliably hit enemies that move during flight
+
+**Files Modified:**
+- `src/scenes/BootScene.ts` - Spritesheet loading and animation creation
+- `src/entities/Enemy.ts` - Boss animation playback
+- `src/entities/Tank.ts` - Hitbox offset adjustment
+- `src/modules/MissilePodModule.ts` - AoE radius increase
+
+**Testing Verified:**
+- ✅ Boss sprite displays correctly with animated single frames
+- ✅ Enemies deal damage to tank (Near Death state triggered)
+- ✅ Missiles fire, arc through sky, and deal AoE damage
+
+---
+
 ### January 5, 2025 - TIER 2.5 Task 2.65: Wave Pause Button
 
 **Completed Task 2.65: Wave Pause Button**
