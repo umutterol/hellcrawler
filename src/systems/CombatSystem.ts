@@ -5,6 +5,7 @@ import { Projectile, ProjectileType, ProjectileConfig } from '../entities/Projec
 import { getGameState } from '../state/GameState';
 import { getSettingsManager } from '../managers/SettingsManager';
 import { GAME_CONFIG } from '../config/GameConfig';
+import { getHitboxManager, HitboxManager } from '../managers/HitboxManager';
 
 /**
  * CombatSystem - Handles all combat interactions
@@ -22,11 +23,10 @@ export class CombatSystem {
   private enemies: Phaser.GameObjects.Group;
   private projectiles: Phaser.GameObjects.Group;
   private gameState: ReturnType<typeof getGameState>;
+  private hitboxManager: HitboxManager;
 
-  // Collision overlaps
+  // Collision overlaps (projectile-enemy only - tank melee is distance-based)
   private projectileEnemyOverlap: Phaser.Physics.Arcade.Collider | null = null;
-  private enemyTankOverlapRight: Phaser.Physics.Arcade.Collider | null = null;
-  private enemyTankOverlapLeft: Phaser.Physics.Arcade.Collider | null = null;
 
   constructor(
     scene: Phaser.Scene,
@@ -39,12 +39,13 @@ export class CombatSystem {
     this.enemies = enemies;
     this.projectiles = projectiles;
     this.gameState = getGameState();
+    this.hitboxManager = getHitboxManager();
 
     this.setupCollisions();
   }
 
   private setupCollisions(): void {
-    // Projectile vs Enemy
+    // Projectile vs Enemy (physics-based - working well)
     this.projectileEnemyOverlap = this.scene.physics.add.overlap(
       this.projectiles,
       this.enemies,
@@ -53,33 +54,13 @@ export class CombatSystem {
       this
     );
 
-    // Enemy vs Tank hitboxes (melee range) - bidirectional combat
-    // Use both left and right hitboxes for enemies from both sides
-    const hitboxes = this.tank.getHitboxes();
-
-    // Right hitbox - enemies from right side
-    this.enemyTankOverlapRight = this.scene.physics.add.overlap(
-      this.enemies,
-      hitboxes.right,
-      this.onEnemyReachTank as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
-      undefined,
-      this
-    );
-
-    // Left hitbox - enemies from left side
-    this.enemyTankOverlapLeft = this.scene.physics.add.overlap(
-      this.enemies,
-      hitboxes.left,
-      this.onEnemyReachTank as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
-      undefined,
-      this
-    );
+    // Note: Enemy vs Tank melee is now handled via distance-based checks
+    // in the update() loop using HitboxManager. This is more reliable
+    // and predictable than physics overlap with offset hitboxes.
 
     if (import.meta.env.DEV) {
-      console.log('[CombatSystem] Enemy-tank overlaps registered:',
-        `right=${this.enemyTankOverlapRight ? 'success' : 'failed'}`,
-        `left=${this.enemyTankOverlapLeft ? 'success' : 'failed'}`
-      );
+      console.log('[CombatSystem] Projectile-enemy overlap registered');
+      console.log('[CombatSystem] Enemy-tank melee uses distance-based checks');
     }
   }
 
@@ -119,11 +100,14 @@ export class CombatSystem {
     // Handle lifesteal
     this.processLifesteal(damage);
 
-    // Play hit effect
-    projectile.playHitEffect();
+    // Get enemy's visual center for hit effect (not hitbox position)
+    const enemyCenter = enemy.getCenter();
 
-    // Spawn damage number at enemy center (enemy.y is at feet due to origin 0.5, 1)
-    this.spawnDamageNumber(enemy.x, enemy.y - 16, damage, isCrit);
+    // Play hit effect at enemy's visual center
+    projectile.playHitEffect(enemyCenter.x, enemyCenter.y);
+
+    // Spawn damage number at enemy center
+    this.spawnDamageNumber(enemyCenter.x, enemyCenter.y, damage, isCrit);
 
     // Deactivate projectile if not piercing
     if (projectile.shouldDeactivateOnHit()) {
@@ -174,58 +158,30 @@ export class CombatSystem {
   }
 
   /**
-   * Handle enemy reaching the tank for melee attack
+   * Handle enemy melee attack on tank
+   * Called when an enemy is within melee range and ready to attack
    */
-  private onEnemyReachTank(
-    obj1: Phaser.GameObjects.GameObject,
-    obj2: Phaser.GameObjects.GameObject
-  ): void {
-    if (import.meta.env.DEV) {
-      console.log(`[CombatSystem] onEnemyReachTank called: obj1=${obj1.constructor.name}, obj2=${obj2.constructor.name}`);
-    }
-
-    // Determine which object is the enemy (could be either depending on overlap order)
-    let enemy: Enemy | null = null;
-
-    if (obj1 instanceof Enemy) {
-      enemy = obj1;
-    } else if (obj2 instanceof Enemy) {
-      enemy = obj2;
-    }
-
-    if (!enemy) {
-      if (import.meta.env.DEV) {
-        console.warn('[CombatSystem] Neither object is an Enemy!');
-      }
-      return;
-    }
-
+  private handleEnemyMelee(enemy: Enemy, currentTime: number): void {
     if (!enemy.active || !enemy.isAlive()) {
-      if (import.meta.env.DEV) {
-        console.log(`[CombatSystem] Enemy not active/alive: active=${enemy.active}, alive=${enemy.isAlive()}`);
-      }
       return;
     }
 
-    const currentTime = this.scene.time.now;
     const tankPos = this.tank.getPosition();
 
-    // Since overlap callback fired, enemy is in contact with tank hitbox - they can attack
-    // No need for additional distance check - physics overlap handles proximity
+    // Check if enemy can attack (cooldown)
     if (enemy.canAttack(currentTime)) {
       const damage = enemy.attack(currentTime);
-      if (import.meta.env.DEV) {
-        console.log(`[CombatSystem] Enemy ${enemy.getId()} attacking, damage=${damage}`);
-      }
       if (damage > 0) {
         const config = enemy.getConfig();
         this.gameState.takeDamage(damage, enemy.getId(), config?.category === 'boss' ? 'boss' : 'enemy');
 
         // Spawn damage number on tank
         this.spawnDamageNumber(tankPos.x, tankPos.y - 30, damage, false, true);
+
+        if (import.meta.env.DEV) {
+          console.log(`[CombatSystem] Enemy ${enemy.getId()} melee attack, damage=${damage}`);
+        }
       }
-    } else if (import.meta.env.DEV) {
-      console.log(`[CombatSystem] Enemy ${enemy.getId()} cannot attack yet (cooldown)`);
     }
   }
 
@@ -386,14 +342,27 @@ export class CombatSystem {
 
   /**
    * Update loop
-   * Note: Cannon removed - all damage now comes from equipped modules
+   * Handles enemy melee attacks via distance-based collision detection
    */
   public update(time: number, _delta: number): void {
+    const tankPos = this.tank.getPosition();
+
+    // Check all active enemies for melee range
+    const activeEnemies = this.enemies.getChildren().filter(
+      (child) => (child as Enemy).active && (child as Enemy).isAlive()
+    ) as Enemy[];
+
+    for (const enemy of activeEnemies) {
+      // Check if enemy is in melee range using HitboxManager
+      if (this.hitboxManager.isEnemyInMeleeRange(enemy, tankPos.x)) {
+        this.handleEnemyMelee(enemy, time);
+      }
+    }
+
     // Debug: Log active counts periodically (every 5 seconds to reduce spam)
     if (import.meta.env.DEV && Math.floor(time / 5000) !== Math.floor((time - _delta) / 5000)) {
       const activeProjectiles = this.projectiles.getChildren().filter(p => p.active).length;
-      const activeEnemies = this.enemies.getChildren().filter(e => (e as Enemy).active && (e as Enemy).isAlive()).length;
-      console.log(`[CombatSystem] Active: ${activeProjectiles} projectiles, ${activeEnemies} enemies`);
+      console.log(`[CombatSystem] Active: ${activeProjectiles} projectiles, ${activeEnemies.length} enemies`);
     }
   }
 
@@ -403,12 +372,6 @@ export class CombatSystem {
   public destroy(): void {
     if (this.projectileEnemyOverlap) {
       this.projectileEnemyOverlap.destroy();
-    }
-    if (this.enemyTankOverlapRight) {
-      this.enemyTankOverlapRight.destroy();
-    }
-    if (this.enemyTankOverlapLeft) {
-      this.enemyTankOverlapLeft.destroy();
     }
   }
 }

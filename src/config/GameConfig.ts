@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { BootScene } from '../scenes/BootScene';
 import { GameScene } from '../scenes/GameScene';
+import { EnemyType } from '../types/EnemyTypes';
 
 /**
  * Core game configuration constants
@@ -146,6 +147,48 @@ export const GAME_CONFIG = {
     // General
     SCREEN_SHAKE_DURATION: 100,
     BOSS_INTRO_DURATION: 1500,
+  },
+
+  // Enemy stop distance from tank center (used by HitboxManager and Enemy)
+  STOP_DISTANCE_FROM_TANK: 200,
+
+  // Hitbox configurations - explicit bounds for collision detection
+  // All dimensions in pixels, offsets relative to entity origin
+  HITBOX_CONFIGS: {
+    tank: {
+      // Tank attack range (where enemies can hit tank)
+      // Enemies stop at STOP_DISTANCE_FROM_TANK and can melee from there
+      attackRange: 200, // matches STOP_DISTANCE_FROM_TANK
+      // Hitbox bounds for debug visualization (relative to tank center)
+      bounds: { width: 80, height: 100, offsetY: -50 },
+    },
+    enemies: {
+      // Fodder enemies
+      [EnemyType.Imp]: { width: 32, height: 48, offsetY: 0 },
+      [EnemyType.Hellhound]: { width: 48, height: 40, offsetY: 0 },
+      [EnemyType.PossessedSoldier]: { width: 32, height: 64, offsetY: 0 },
+      [EnemyType.FireSkull]: { width: 32, height: 32, offsetY: -16 },
+      // Elite enemies
+      [EnemyType.Demon]: { width: 40, height: 56, offsetY: 0 },
+      [EnemyType.Necromancer]: { width: 32, height: 60, offsetY: 0 },
+      [EnemyType.ShadowFiend]: { width: 36, height: 52, offsetY: 0 },
+      [EnemyType.InfernalWarrior]: { width: 44, height: 64, offsetY: 0 },
+      // Super Elite enemies
+      [EnemyType.ArchDemon]: { width: 56, height: 80, offsetY: 0 },
+      [EnemyType.VoidReaver]: { width: 48, height: 72, offsetY: 0 },
+      // Boss enemies
+      [EnemyType.CorruptedSentinel]: { width: 80, height: 120, offsetY: 0 },
+      [EnemyType.InfernalWarlord]: { width: 72, height: 100, offsetY: 0 },
+      [EnemyType.LordOfFlames]: { width: 64, height: 96, offsetY: 0 },
+      // Default for any unspecified type
+      default: { width: 32, height: 48, offsetY: 0 },
+    } as Record<EnemyType | 'default', { width: number; height: number; offsetY: number }>,
+  },
+
+  // Debug settings
+  DEBUG: {
+    SHOW_HITBOXES: false, // Toggle hitbox visualization
+    SHOW_ATTACK_RANGE: false, // Toggle tank attack range visualization
   },
 } as const;
 

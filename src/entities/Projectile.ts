@@ -329,12 +329,17 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite implements IPoolabl
 
   /**
    * Play hit effect (called by CombatSystem)
+   * @param x - Optional X position for the effect (defaults to projectile position)
+   * @param y - Optional Y position for the effect (defaults to projectile position)
    */
-  public playHitEffect(): void {
+  public playHitEffect(x?: number, y?: number): void {
+    const effectX = x ?? this.x;
+    const effectY = y ?? this.y;
+
     if (this.config?.aoeRadius && this.config.aoeRadius > 0) {
-      this.playAoEEffect();
+      this.playAoEEffect(effectX, effectY);
     } else {
-      this.playImpactEffect();
+      this.playImpactEffect(effectX, effectY);
     }
   }
 
@@ -342,14 +347,14 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite implements IPoolabl
    * Play impact effect for single-target hits
    * Creates a bright flash with spark particles + dust puff (per GDD 4.6)
    */
-  private playImpactEffect(): void {
+  private playImpactEffect(effectX: number, effectY: number): void {
     const isCrit = this.config?.isCrit || false;
     const isBullet = this.config?.type === ProjectileType.Bullet;
     const baseColor = isCrit ? 0xffff00 : 0xffffff;
     const sparkColor = isCrit ? 0xffaa00 : 0xffffcc;
 
     // Core flash (bright center)
-    const flash = this.scene.add.circle(this.x, this.y, isCrit ? 14 : 10, baseColor, 1);
+    const flash = this.scene.add.circle(effectX, effectY, isCrit ? 14 : 10, baseColor, 1);
     flash.setDepth(GAME_CONFIG.DEPTH.EFFECTS);
 
     this.scene.tweens.add({
@@ -367,13 +372,13 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite implements IPoolabl
       const angle = (i / sparkCount) * Math.PI * 2 + Math.random() * 0.3;
       const distance = 15 + Math.random() * 10;
 
-      const spark = this.scene.add.circle(this.x, this.y, 3, sparkColor, 0.9);
+      const spark = this.scene.add.circle(effectX, effectY, 3, sparkColor, 0.9);
       spark.setDepth(GAME_CONFIG.DEPTH.EFFECTS);
 
       this.scene.tweens.add({
         targets: spark,
-        x: this.x + Math.cos(angle) * distance,
-        y: this.y + Math.sin(angle) * distance,
+        x: effectX + Math.cos(angle) * distance,
+        y: effectY + Math.sin(angle) * distance,
         scale: 0,
         alpha: 0,
         duration: 120 + Math.random() * 60,
@@ -384,7 +389,7 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite implements IPoolabl
 
     // Dust puff for bullet impacts (per GDD 4.6)
     if (isBullet) {
-      this.playDustPuff();
+      this.playDustPuff(effectX, effectY);
     }
   }
 
@@ -392,7 +397,7 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite implements IPoolabl
    * Create dust puff effect for bullet impacts
    * Small grey-brown particles that drift upward
    */
-  private playDustPuff(): void {
+  private playDustPuff(effectX: number, effectY: number): void {
     const dustCount = 3;
     const dustColors = [0x888888, 0x999999, 0x777766];
 
@@ -402,7 +407,7 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite implements IPoolabl
       const offsetY = Phaser.Math.FloatBetween(-4, 4);
       const size = 4 + Math.random() * 3;
 
-      const dust = this.scene.add.circle(this.x + offsetX, this.y + offsetY, size, color, 0.4);
+      const dust = this.scene.add.circle(effectX + offsetX, effectY + offsetY, size, color, 0.4);
       dust.setDepth(GAME_CONFIG.DEPTH.EFFECTS - 3);
 
       // Dust drifts upward and expands
@@ -423,12 +428,12 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite implements IPoolabl
    * Play AoE explosion effect for missiles/explosives
    * Creates an expanding shockwave with fire particles
    */
-  private playAoEEffect(): void {
+  private playAoEEffect(effectX: number, effectY: number): void {
     const radius = this.config?.aoeRadius || 50;
     const isCrit = this.config?.isCrit || false;
 
     // Inner explosion flash (bright core)
-    const core = this.scene.add.circle(this.x, this.y, 8, 0xffffff, 1);
+    const core = this.scene.add.circle(effectX, effectY, 8, 0xffffff, 1);
     core.setDepth(GAME_CONFIG.DEPTH.EFFECTS);
 
     this.scene.tweens.add({
@@ -440,7 +445,7 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite implements IPoolabl
     });
 
     // Middle fire ring (orange)
-    const fireRing = this.scene.add.circle(this.x, this.y, 5, 0xff6600, 0.8);
+    const fireRing = this.scene.add.circle(effectX, effectY, 5, 0xff6600, 0.8);
     fireRing.setDepth(GAME_CONFIG.DEPTH.EFFECTS - 1);
 
     this.scene.tweens.add({
@@ -453,7 +458,7 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite implements IPoolabl
     });
 
     // Outer shockwave ring (expanding circle outline)
-    const shockwave = this.scene.add.circle(this.x, this.y, 10, 0xff4400, 0);
+    const shockwave = this.scene.add.circle(effectX, effectY, 10, 0xff4400, 0);
     shockwave.setStrokeStyle(3, 0xff8800, 0.6);
     shockwave.setDepth(GAME_CONFIG.DEPTH.EFFECTS - 2);
 
@@ -474,13 +479,13 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite implements IPoolabl
       const size = 4 + Math.random() * 4;
       const color = Math.random() > 0.5 ? 0xff6600 : 0xffaa00;
 
-      const particle = this.scene.add.circle(this.x, this.y, size, color, 0.8);
+      const particle = this.scene.add.circle(effectX, effectY, size, color, 0.8);
       particle.setDepth(GAME_CONFIG.DEPTH.EFFECTS);
 
       this.scene.tweens.add({
         targets: particle,
-        x: this.x + Math.cos(angle) * distance,
-        y: this.y + Math.sin(angle) * distance - 20, // Rise slightly
+        x: effectX + Math.cos(angle) * distance,
+        y: effectY + Math.sin(angle) * distance - 20, // Rise slightly
         scale: 0,
         alpha: 0,
         duration: 200 + Math.random() * 100,

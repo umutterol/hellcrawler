@@ -48,8 +48,6 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
   private static readonly HEALTH_BAR_WIDTH = 50;
   private static readonly HEALTH_BAR_HEIGHT = 6;
   private static readonly HEALTH_BAR_PADDING = 8; // Pixels above sprite top
-  // Stop distance from tank center (not using GAME_CONFIG to avoid circular dependency)
-  private static readonly STOP_DISTANCE_FROM_TANK = 200;
   private static idCounter: number = 0;
 
   constructor(scene: Phaser.Scene, x: number = 0, y: number = 0) {
@@ -116,19 +114,20 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
       // Reset body position explicitly to match sprite
       body.reset(x, y);
 
-      // Set tall hitbox from ground level to 2x sprite height
-      // This ensures projectiles can hit enemies regardless of visual height
-      const spriteHeight = this.displayHeight || 32;
-      const spriteWidth = this.displayWidth || 32;
-      const hitboxHeight = spriteHeight * 2;
-      const hitboxWidth = Math.max(24, spriteWidth * 0.6);
+      // Get hitbox config for this enemy type from GAME_CONFIG
+      const hitboxConfig = GAME_CONFIG.HITBOX_CONFIGS.enemies[config.type]
+        ?? GAME_CONFIG.HITBOX_CONFIGS.enemies.default;
 
-      body.setSize(hitboxWidth, hitboxHeight);
+      // Apply scale to hitbox dimensions
+      const scaledWidth = hitboxConfig.width * this.scaleX;
+      const scaledHeight = hitboxConfig.height * this.scaleY;
+      const scaledOffsetY = hitboxConfig.offsetY * this.scaleY;
+
+      body.setSize(scaledWidth, scaledHeight);
       // Offset so bottom of hitbox aligns with sprite feet (origin is 0.5, 1)
-      // Use displayWidth/displayHeight to match the scaled sprite
       body.setOffset(
-        (spriteWidth - hitboxWidth) / 2,
-        spriteHeight - hitboxHeight
+        (this.displayWidth - scaledWidth) / 2,
+        this.displayHeight - scaledHeight + scaledOffsetY
       );
     }
 
@@ -574,10 +573,21 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
   }
 
   /**
-   * Get current position
+   * Get current position (at feet due to origin 0.5, 1)
    */
   public getPosition(): { x: number; y: number } {
     return { x: this.x, y: this.y };
+  }
+
+  /**
+   * Get the visual center of the enemy sprite
+   * Since origin is (0.5, 1), y is at feet - center is y - displayHeight/2
+   */
+  public getCenter(): { x: number; y: number } {
+    return {
+      x: this.x,
+      y: this.y - this.displayHeight / 2,
+    };
   }
 
   /**
@@ -618,8 +628,9 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
     if (!this.active) return;
 
     // Calculate stop positions dynamically (tank is at TANK_X, enemies stop STOP_DISTANCE away)
-    const stopXFromRight = GAME_CONFIG.TANK_X + Enemy.STOP_DISTANCE_FROM_TANK;
-    const stopXFromLeft = GAME_CONFIG.TANK_X - Enemy.STOP_DISTANCE_FROM_TANK;
+    const stopDistance = GAME_CONFIG.STOP_DISTANCE_FROM_TANK;
+    const stopXFromRight = GAME_CONFIG.TANK_X + stopDistance;
+    const stopXFromLeft = GAME_CONFIG.TANK_X - stopDistance;
 
     // Stop at tank position based on spawn side
     if (this.spawnSide === 'right') {

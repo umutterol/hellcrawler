@@ -192,13 +192,14 @@ export class ModuleSprite extends Phaser.GameObjects.Container {
       return;
     }
 
-    // Calculate angle to target
+    // Calculate angle to target (use enemy's visual center, not feet)
     const worldPos = this.getWorldPosition();
+    const enemyCenter = closest.getCenter();
     const targetAngle = Phaser.Math.Angle.Between(
       worldPos.x,
       worldPos.y,
-      closest.x,
-      closest.y
+      enemyCenter.x,
+      enemyCenter.y
     );
 
     // Clamp rotation within limits of base angle
@@ -254,7 +255,9 @@ export class ModuleSprite extends Phaser.GameObjects.Container {
         if (this.slotDirection === SlotDirection.Left && spawnSide !== 'left') continue;
       }
 
-      const dist = Phaser.Math.Distance.Between(worldPos.x, worldPos.y, enemy.x, enemy.y);
+      // Use enemy center for distance calculation
+      const enemyCenter = enemy.getCenter();
+      const dist = Phaser.Math.Distance.Between(worldPos.x, worldPos.y, enemyCenter.x, enemyCenter.y);
       if (dist < closestDist) {
         closestDist = dist;
         closest = enemy;

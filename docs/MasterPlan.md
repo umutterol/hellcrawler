@@ -889,6 +889,62 @@ GameState (current) → Split into:
 
 ## Changelog
 
+### January 6, 2025 - Hitbox Management Refactor
+
+**Unified Hitbox System Implementation:**
+
+Created a centralized HitboxManager for consistent collision detection across the game. The previous system had inconsistent approaches (physics overlap for tank-enemy, distance-based for module targeting) causing targeting issues.
+
+**Key Changes:**
+
+1. **Created HitboxManager** - Centralized utility class (`src/managers/HitboxManager.ts`):
+   - `getEnemyHitbox()` - Returns hitbox bounds for any enemy
+   - `isEnemyInMeleeRange()` - Distance-based melee range check
+   - `findClosestEnemy()` / `findEnemiesInRange()` - Unified targeting helpers
+   - `drawDebugHitboxes()` - Toggle-able debug visualization (F4 key)
+
+2. **Added HITBOX_CONFIGS** - Explicit bounds in `GameConfig.ts`:
+   - Per-enemy-type hitbox dimensions (Imp, Hellhound, PossessedSoldier, FireSkull, CorruptedSentinel)
+   - Tank attack range configuration
+   - No more sprite-based dynamic calculations
+
+3. **Simplified Tank.ts**:
+   - Removed hitboxLeft and hitboxRight physics sprites
+   - Removed complex offset calculations
+   - Added simple `getMeleeRangeX()` method
+
+4. **Refactored CombatSystem**:
+   - Removed physics overlap for enemy-tank collision
+   - Uses distance-based checks in `update()` loop via HitboxManager
+   - Kept projectile-enemy physics collision (working fine)
+
+5. **Updated BaseModule targeting**:
+   - Now uses HitboxManager for `findClosestEnemy()` and `findEnemiesInRange()`
+   - Single source of truth for all targeting logic
+
+6. **Added F4 Debug Visualization**:
+   - Press F4 in dev mode to toggle hitbox debug overlay
+   - Shows enemy hitboxes (yellow), tank melee range (cyan lines)
+
+**Files Created:**
+- `src/managers/HitboxManager.ts`
+
+**Files Modified:**
+- `src/config/GameConfig.ts` - Added HITBOX_CONFIGS, STOP_DISTANCE_FROM_TANK, DEBUG settings
+- `src/entities/Tank.ts` - Removed physics hitboxes, added getMeleeRangeX()
+- `src/entities/Enemy.ts` - Config-based hitbox sizing
+- `src/systems/CombatSystem.ts` - Distance-based melee checks
+- `src/modules/BaseModule.ts` - HitboxManager integration
+- `src/scenes/GameScene.ts` - F4 debug toggle, hitbox visualization
+
+**Benefits:**
+- Predictable behavior with explicit config
+- Single source of truth (HitboxManager)
+- Easier debugging with F4 visualization
+- Consistent targeting across modules and combat
+
+---
+
 ### January 6, 2025 - Critical Bug Fixes: Boss Sprite, Hitbox, and Missiles
 
 **Fixed Three Critical Gameplay Bugs:**

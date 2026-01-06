@@ -27,6 +27,7 @@ import { initContextMenu, destroyContextMenu } from '../ui/components/ContextMen
 import { ZoneCompletionPanel } from '../ui/components/ZoneCompletionPanel';
 import { NearDeathOverlay } from '../ui/components/NearDeathOverlay';
 import { BalanceDebugOverlay } from '../ui/components/BalanceDebugOverlay';
+import { getHitboxManager, HitboxManager } from '../managers/HitboxManager';
 
 /**
  * Main Game Scene - Core gameplay loop
@@ -95,6 +96,11 @@ export class GameScene extends Phaser.Scene {
 
   // Balance debug overlay (DEV only - toggle with F3)
   private balanceDebugOverlay: BalanceDebugOverlay | null = null;
+
+  // Hitbox debug visualization (DEV only - toggle with F4)
+  private hitboxDebugGraphics: Phaser.GameObjects.Graphics | null = null;
+  private hitboxDebugEnabled: boolean = false;
+  private hitboxManager: HitboxManager | null = null;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -329,6 +335,20 @@ export class GameScene extends Phaser.Scene {
 
       // Balance debug overlay (toggle with F3)
       this.balanceDebugOverlay = new BalanceDebugOverlay(this);
+
+      // Hitbox debug visualization (toggle with F4)
+      this.hitboxManager = getHitboxManager();
+      this.hitboxDebugGraphics = this.add.graphics();
+      this.hitboxDebugGraphics.setDepth(GAME_CONFIG.DEPTH.DEBUG);
+
+      // Add F4 key binding for hitbox debug toggle
+      this.input.keyboard?.on('keydown-F4', () => {
+        this.hitboxDebugEnabled = !this.hitboxDebugEnabled;
+        console.log(`[GameScene] Hitbox debug: ${this.hitboxDebugEnabled ? 'ON' : 'OFF'}`);
+        if (!this.hitboxDebugEnabled && this.hitboxDebugGraphics) {
+          this.hitboxDebugGraphics.clear();
+        }
+      });
     }
   }
 
@@ -419,6 +439,16 @@ export class GameScene extends Phaser.Scene {
       this.balanceDebugOverlay.update();
     }
 
+    // Update hitbox debug visualization
+    if (this.hitboxDebugEnabled && this.hitboxDebugGraphics && this.hitboxManager) {
+      this.hitboxManager.drawDebugHitboxes(
+        this.hitboxDebugGraphics,
+        this.tank,
+        activeEnemies,
+        true // Show tank melee range
+      );
+    }
+
     // Update FPS counter
     this.updateDebugInfo(delta);
   }
@@ -468,6 +498,12 @@ export class GameScene extends Phaser.Scene {
     if (this.balanceDebugOverlay) {
       this.balanceDebugOverlay.destroy();
       this.balanceDebugOverlay = null;
+    }
+
+    // Cleanup hitbox debug graphics
+    if (this.hitboxDebugGraphics) {
+      this.hitboxDebugGraphics.destroy();
+      this.hitboxDebugGraphics = null;
     }
 
     // Cleanup panels

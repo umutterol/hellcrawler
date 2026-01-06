@@ -25,10 +25,6 @@ export class Tank extends Phaser.GameObjects.Container {
   // Visual components
   private bodySprite!: Phaser.GameObjects.Sprite;
 
-  // Physics hitbox for enemy collision (both sides for bidirectional combat)
-  private hitboxLeft!: Phaser.Physics.Arcade.Sprite;
-  private hitboxRight!: Phaser.Physics.Arcade.Sprite;
-
   // Combat state
   private isNearDeath: boolean = false;
   private nearDeathTimer: number = 0;
@@ -63,62 +59,8 @@ export class Tank extends Phaser.GameObjects.Container {
     this.bodySprite.setScale(2); // Scale up the 16-bit sprite
     this.add(this.bodySprite);
 
-    // Create physics hitboxes for enemy collision detection (both sides for center tank)
-    // Tank is at screen center, enemies approach from both left and right
-    // Enemies stop at STOP_DISTANCE_FROM_TANK (200px from tank center)
-    // Hitbox must extend to where enemies stop: offsetX + width/2 >= 200
-    const hitboxWidth = 120;
-    const hitboxHeight = 100;
-    const hitboxOffsetX = 140; // Distance from tank center to hitbox center (reaches 200px with half-width)
-
-    // Right hitbox - enemies from right stop here
-    this.hitboxRight = this.scene.physics.add.sprite(
-      this.x + hitboxOffsetX,
-      this.y,
-      'tank-placeholder'
-    );
-    this.hitboxRight.setVisible(import.meta.env.DEV);
-    this.hitboxRight.setAlpha(0.3);
-    this.hitboxRight.setTint(0x00ff00); // Green for right
-    this.hitboxRight.setImmovable(true);
-    this.hitboxRight.setOrigin(0.5, 0.5);
-    this.hitboxRight.setData('tank', this);
-    this.hitboxRight.setData('side', 'right');
-
-    const bodyRight = this.hitboxRight.body as Phaser.Physics.Arcade.Body;
-    if (bodyRight) {
-      bodyRight.setSize(hitboxWidth, hitboxHeight);
-      const textureHalf = 16;
-      bodyRight.setOffset(-hitboxWidth / 2 + textureHalf, -hitboxHeight / 2 + textureHalf);
-    }
-
-    // Left hitbox - enemies from left stop here
-    this.hitboxLeft = this.scene.physics.add.sprite(
-      this.x - hitboxOffsetX,
-      this.y,
-      'tank-placeholder'
-    );
-    this.hitboxLeft.setVisible(import.meta.env.DEV);
-    this.hitboxLeft.setAlpha(0.3);
-    this.hitboxLeft.setTint(0xff0000); // Red for left
-    this.hitboxLeft.setImmovable(true);
-    this.hitboxLeft.setOrigin(0.5, 0.5);
-    this.hitboxLeft.setData('tank', this);
-    this.hitboxLeft.setData('side', 'left');
-
-    const bodyLeft = this.hitboxLeft.body as Phaser.Physics.Arcade.Body;
-    if (bodyLeft) {
-      bodyLeft.setSize(hitboxWidth, hitboxHeight);
-      const textureHalf = 16;
-      bodyLeft.setOffset(-hitboxWidth / 2 + textureHalf, -hitboxHeight / 2 + textureHalf);
-    }
-
-    if (import.meta.env.DEV) {
-      const bRight = this.hitboxRight.body as Phaser.Physics.Arcade.Body;
-      const bLeft = this.hitboxLeft.body as Phaser.Physics.Arcade.Body;
-      console.log(`[Tank] Right hitbox covers x=${bRight.x}-${bRight.right}, y=${bRight.y}-${bRight.bottom}`);
-      console.log(`[Tank] Left hitbox covers x=${bLeft.x}-${bLeft.right}, y=${bLeft.y}-${bLeft.bottom}`);
-    }
+    // Note: Physics hitboxes removed - enemy melee range is now handled by
+    // HitboxManager using distance-based checks in CombatSystem
   }
 
   private subscribeToEvents(): void {
@@ -263,24 +205,15 @@ export class Tank extends Phaser.GameObjects.Container {
   }
 
   /**
-   * Get both physics hitboxes for collision detection (bidirectional combat)
+   * Get the melee range X boundaries (where enemies can attack the tank)
+   * Uses GAME_CONFIG.STOP_DISTANCE_FROM_TANK for consistent range
    */
-  public getHitboxes(): { left: Phaser.Physics.Arcade.Sprite; right: Phaser.Physics.Arcade.Sprite } {
-    return { left: this.hitboxLeft, right: this.hitboxRight };
-  }
-
-  /**
-   * Get the right hitbox (for backwards compatibility and right-side enemies)
-   */
-  public getHitbox(): Phaser.Physics.Arcade.Sprite {
-    return this.hitboxRight;
-  }
-
-  /**
-   * Get the left hitbox (for left-side enemies)
-   */
-  public getLeftHitbox(): Phaser.Physics.Arcade.Sprite {
-    return this.hitboxLeft;
+  public getMeleeRangeX(): { left: number; right: number } {
+    const range = GAME_CONFIG.STOP_DISTANCE_FROM_TANK;
+    return {
+      left: this.x - range,
+      right: this.x + range,
+    };
   }
 
   /**
@@ -290,12 +223,6 @@ export class Tank extends Phaser.GameObjects.Container {
     this.eventManager.off(GameEvents.DAMAGE_TAKEN, this.onDamageTaken, this);
     this.eventManager.off(GameEvents.TANK_REVIVED, this.onRevived, this);
     this.eventManager.off(GameEvents.TANK_HEALED, this.onHealed, this);
-    if (this.hitboxLeft) {
-      this.hitboxLeft.destroy();
-    }
-    if (this.hitboxRight) {
-      this.hitboxRight.destroy();
-    }
     super.destroy();
   }
 }

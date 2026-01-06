@@ -7,6 +7,7 @@ import { Projectile } from '../entities/Projectile';
 import { Enemy } from '../entities/Enemy';
 import { ModuleSprite } from '../entities/ModuleSprite';
 import { GAME_CONFIG, BALANCE } from '../config/GameConfig';
+import { getHitboxManager, HitboxManager } from '../managers/HitboxManager';
 
 /**
  * Skill runtime state
@@ -30,6 +31,7 @@ interface SkillState {
 export abstract class BaseModule {
   protected scene: Phaser.Scene;
   protected eventManager: EventManager;
+  protected hitboxManager: HitboxManager;
   protected projectileGroup: Phaser.GameObjects.Group | null = null;
 
   // Module data
@@ -76,6 +78,7 @@ export abstract class BaseModule {
   ) {
     this.scene = scene;
     this.eventManager = getEventManager();
+    this.hitboxManager = getHitboxManager();
     this.moduleData = moduleData;
     this.slotIndex = slotIndex;
     this.slotStats = slotStats;
@@ -475,36 +478,19 @@ export abstract class BaseModule {
   }
 
   /**
-   * Helper: Find closest enemy
+   * Helper: Find closest enemy using HitboxManager
    */
   protected findClosestEnemy(enemies: Enemy[]): Enemy | null {
-    let closest: Enemy | null = null;
-    let closestDist = Infinity;
     const firePos = this.getFirePosition();
-
-    for (const enemy of enemies) {
-      if (!enemy.isAlive()) continue;
-
-      const dist = Phaser.Math.Distance.Between(firePos.x, firePos.y, enemy.x, enemy.y);
-      if (dist < closestDist) {
-        closestDist = dist;
-        closest = enemy;
-      }
-    }
-
-    return closest;
+    return this.hitboxManager.findClosestEnemy(firePos.x, firePos.y, enemies);
   }
 
   /**
-   * Helper: Find enemies in range
+   * Helper: Find enemies in range using HitboxManager
    */
   protected findEnemiesInRange(enemies: Enemy[], range: number): Enemy[] {
     const firePos = this.getFirePosition();
-    return enemies.filter((enemy) => {
-      if (!enemy.isAlive()) return false;
-      const dist = Phaser.Math.Distance.Between(firePos.x, firePos.y, enemy.x, enemy.y);
-      return dist <= range;
-    });
+    return this.hitboxManager.findEnemiesInRange(firePos.x, firePos.y, range, enemies);
   }
 
   /**
