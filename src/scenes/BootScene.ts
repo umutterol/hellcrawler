@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { registerShaderPipelines } from '../effects/shaders/ShaderManager';
 
 /**
  * Boot Scene - Asset loading and initialization
@@ -169,6 +170,9 @@ export class BootScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Register shader pipelines (must be done after renderer is ready)
+    registerShaderPipelines(this.game);
+
     // Create animations for sprites
     this.createAnimations();
 

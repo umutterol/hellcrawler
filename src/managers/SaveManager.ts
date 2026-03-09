@@ -2,10 +2,13 @@
  * SaveManager - Handles game save/load operations
  *
  * Features:
- * - Auto-save on zone completion
- * - Manual save/load via UI
+ * - Debounced auto-save (5s) on any state change
+ * - Instant save on zone completion and boss defeat
+ * - Save on window close (beforeunload)
+ * - Chain-based version migration
  * - localStorage for web (Electron file system in future)
- * - Save versioning for migration support
+ *
+ * Enhanced using DH's debounced auto-save and version migration patterns.
  */
 
 import { GameState, getGameState } from '../state/GameState';
@@ -15,18 +18,34 @@ import { GameEvents } from '../types/GameEvents';
 
 const SAVE_KEY = 'hellcrawler_save';
 const SAVE_VERSION = '1.0.0';
+const AUTO_SAVE_DEBOUNCE_MS = 5000;
+
+/**
+ * Version migration functions.
+ * Each key is a version string, and the function transforms save data to the next version.
+ * Chain: '0.9.0' -> '1.0.0' (example for backwards compat)
+ */
+const SAVE_MIGRATIONS: Record<string, (data: SaveData) => SaveData> = {
+  // Example migration for future use:
+  // '1.0.0': (data) => {
+  //   // Add new fields for v1.1.0
+  //   data.version = '1.1.0';
+  //   return data;
+  // },
+};
 
 export class SaveManager {
   private static instance: SaveManager | null = null;
   private gameState: GameState;
   private eventManager: EventManager;
+  private autoSaveTimeout: ReturnType<typeof setTimeout> | null = null;
 
   private constructor() {
     this.gameState = getGameState();
     this.eventManager = getEventManager();
 
-    // Subscribe to auto-save triggers
     this.setupAutoSave();
+    this.setupUnloadSave();
   }
 
   /**
@@ -40,10 +59,10 @@ export class SaveManager {
   }
 
   /**
-   * Setup auto-save triggers
+   * Setup all auto-save triggers
    */
   private setupAutoSave(): void {
-    // Auto-save on zone completion
+    // Instant save on zone completion
     this.eventManager.on(GameEvents.ZONE_COMPLETED, () => {
       this.save();
       if (import.meta.env.DEV) {
@@ -51,12 +70,62 @@ export class SaveManager {
       }
     });
 
-    // Auto-save on boss defeat
+    // Instant save on boss defeat
     this.eventManager.on(GameEvents.BOSS_DEFEATED, () => {
       this.save();
       if (import.meta.env.DEV) {
         console.log('[SaveManager] Auto-saved on boss defeat');
       }
+    });
+
+    // Debounced save on any store change (from Phase 1 STORE_CHANGED event)
+    this.eventManager.on(GameEvents.STORE_CHANGED, () => {
+      this.scheduleAutoSave();
+    });
+
+    // Also debounce on key progression events
+    this.eventManager.on(GameEvents.LEVEL_UP, () => {
+      this.scheduleAutoSave();
+    });
+
+    this.eventManager.on(GameEvents.MODULE_EQUIPPED, () => {
+      this.scheduleAutoSave();
+    });
+
+    this.eventManager.on(GameEvents.SLOT_UNLOCKED, () => {
+      this.scheduleAutoSave();
+    });
+  }
+
+  /**
+   * Schedule a debounced auto-save.
+   * Resets the timer on every call — only fires after 5s of inactivity.
+   */
+  private scheduleAutoSave(): void {
+    if (this.autoSaveTimeout) {
+      clearTimeout(this.autoSaveTimeout);
+    }
+    this.autoSaveTimeout = setTimeout(() => {
+      this.autoSaveTimeout = null;
+      this.save();
+      if (import.meta.env.DEV) {
+        console.log('[SaveManager] Auto-saved (debounced)');
+      }
+    }, AUTO_SAVE_DEBOUNCE_MS);
+  }
+
+  /**
+   * Save immediately on window close to prevent data loss
+   */
+  private setupUnloadSave(): void {
+    window.addEventListener('beforeunload', () => {
+      // Cancel any pending debounced save
+      if (this.autoSaveTimeout) {
+        clearTimeout(this.autoSaveTimeout);
+        this.autoSaveTimeout = null;
+      }
+      // Synchronous localStorage write
+      this.save();
     });
   }
 
@@ -78,7 +147,7 @@ export class SaveManager {
         tankLevel: saveData.tank.level,
         currentZone: saveData.progression.currentZone,
         currentAct: saveData.progression.currentAct,
-        totalPlayTime: 0, // TODO: Track play time
+        totalPlayTime: 0,
       });
 
       if (import.meta.env.DEV) {
@@ -109,7 +178,7 @@ export class SaveManager {
 
       const saveData = JSON.parse(saveString) as SaveData;
 
-      // Version check (for future migration support)
+      // Run migration chain if version doesn't match
       if (saveData.version !== SAVE_VERSION) {
         const migrated = this.migrateSave(saveData);
         if (!migrated) {
@@ -184,18 +253,42 @@ export class SaveManager {
   }
 
   /**
-   * Migrate save data to current version
-   * Returns true if migration was successful
+   * Migrate save data through version chain.
+   * Each migration transforms data from version N to N+1.
+   * Returns true if migration was successful.
    */
   private migrateSave(saveData: SaveData): boolean {
-    // For now, no migrations needed
-    // Future: Add migration logic for breaking changes
+    let currentVersion = saveData.version;
+    const targetVersion = SAVE_VERSION;
+    let iterations = 0;
+    const maxIterations = 50; // Safety against infinite loops
+
     if (import.meta.env.DEV) {
-      console.log(`[SaveManager] Migrating save from ${saveData.version} to ${SAVE_VERSION}`);
+      console.log(`[SaveManager] Migrating save from ${currentVersion} to ${targetVersion}`);
     }
 
-    saveData.version = SAVE_VERSION;
-    return true;
+    while (currentVersion !== targetVersion && iterations < maxIterations) {
+      const migration = SAVE_MIGRATIONS[currentVersion];
+      if (!migration) {
+        // No explicit migration path — try accepting the save as-is
+        // This handles cases where the version is unknown but compatible
+        if (import.meta.env.DEV) {
+          console.warn(`[SaveManager] No migration for ${currentVersion}, accepting as ${targetVersion}`);
+        }
+        saveData.version = targetVersion;
+        return true;
+      }
+
+      const migrated = migration(saveData);
+      currentVersion = migrated.version;
+      iterations++;
+
+      if (import.meta.env.DEV) {
+        console.log(`[SaveManager] Migrated to ${currentVersion}`);
+      }
+    }
+
+    return currentVersion === targetVersion;
   }
 
   /**
@@ -206,7 +299,6 @@ export class SaveManager {
       const saveString = localStorage.getItem(SAVE_KEY);
       if (!saveString) return null;
 
-      // Encode to base64 for easier copying
       return btoa(saveString);
     } catch (error) {
       console.error('[SaveManager] Failed to export save:', error);
@@ -219,13 +311,18 @@ export class SaveManager {
    */
   public importSave(encodedSave: string): boolean {
     try {
-      // Decode from base64
       const saveString = atob(encodedSave);
       const saveData = JSON.parse(saveString) as SaveData;
 
       // Validate structure
       if (!saveData.version || !saveData.tank || !saveData.progression) {
         console.error('[SaveManager] Invalid save data structure');
+        return false;
+      }
+
+      // Validate all 4 store sections exist
+      if (!saveData.economy || !saveData.modules || !saveData.paragon) {
+        console.error('[SaveManager] Missing store sections in save data');
         return false;
       }
 

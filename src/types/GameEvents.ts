@@ -64,6 +64,14 @@ export enum GameEvents {
 
   // Settings Events
   SETTINGS_CHANGED = 'settings:changed',
+
+  // Status Effect Events
+  STATUS_EFFECT_APPLIED = 'effect:applied',
+  STATUS_EFFECT_REMOVED = 'effect:removed',
+  STATUS_EFFECT_TICK = 'effect:tick',
+
+  // Store Events (for auto-save debouncing)
+  STORE_CHANGED = 'state:store_changed',
 }
 
 /**
@@ -343,6 +351,31 @@ export interface SettingsChangedPayload {
   newValue: unknown;
 }
 
+// Status Effect Event Payloads
+export interface StatusEffectAppliedPayload {
+  targetId: string;
+  effectType: string;
+  stacks: number;
+  duration: number;
+}
+
+export interface StatusEffectRemovedPayload {
+  targetId: string;
+  effectType: string;
+}
+
+export interface StatusEffectTickPayload {
+  targetId: string;
+  effectType: string;
+  stacks: number;
+}
+
+// Store Event Payloads
+export interface StoreChangedPayload {
+  storeName: string;
+  field: string;
+}
+
 /**
  * Type mapping for event payloads
  * Maps each event to its corresponding payload type
@@ -384,4 +417,8 @@ export type EventPayloadMap = {
   [GameEvents.PANEL_OPENED]: PanelOpenedPayload;
   [GameEvents.PANEL_CLOSED]: PanelClosedPayload;
   [GameEvents.SETTINGS_CHANGED]: SettingsChangedPayload;
+  [GameEvents.STATUS_EFFECT_APPLIED]: StatusEffectAppliedPayload;
+  [GameEvents.STATUS_EFFECT_REMOVED]: StatusEffectRemovedPayload;
+  [GameEvents.STATUS_EFFECT_TICK]: StatusEffectTickPayload;
+  [GameEvents.STORE_CHANGED]: StoreChangedPayload;
 };

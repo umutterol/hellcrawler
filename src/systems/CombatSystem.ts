@@ -6,6 +6,8 @@ import { getGameState } from '../state/GameState';
 import { getSettingsManager } from '../managers/SettingsManager';
 import { GAME_CONFIG } from '../config/GameConfig';
 import { getHitboxManager, HitboxManager } from '../managers/HitboxManager';
+import { getStatusEffectManager, StatusEffectTickResult } from '../systems/StatusEffectManager';
+import { StatusEffectType } from '../types/StatusEffectTypes';
 
 /**
  * CombatSystem - Handles all combat interactions
@@ -99,6 +101,16 @@ export class CombatSystem {
 
     // Handle lifesteal
     this.processLifesteal(damage);
+
+    // Apply status effects from projectile
+    const statusSources = projectile.getStatusEffects();
+    if (statusSources && statusSources.length > 0) {
+      const statusManager = getStatusEffectManager();
+      const currentTime = this.scene.time.now;
+      for (const source of statusSources) {
+        statusManager.applyEffect(enemy.getId(), source, currentTime);
+      }
+    }
 
     // Get enemy's visual center for hit effect (not hitbox position)
     const enemyCenter = enemy.getCenter();
@@ -343,6 +355,7 @@ export class CombatSystem {
   /**
    * Update loop
    * Handles enemy melee attacks via distance-based collision detection
+   * and status effect ticking
    */
   public update(time: number, _delta: number): void {
     const tankPos = this.tank.getPosition();
@@ -359,10 +372,50 @@ export class CombatSystem {
       }
     }
 
+    // Update status effects and process DoT ticks
+    const statusManager = getStatusEffectManager();
+    const tickResults = statusManager.update(time, _delta);
+    this.processStatusEffectTicks(tickResults, activeEnemies);
+
     // Debug: Log active counts periodically (every 5 seconds to reduce spam)
     if (import.meta.env.DEV && Math.floor(time / 5000) !== Math.floor((time - _delta) / 5000)) {
       const activeProjectiles = this.projectiles.getChildren().filter(p => p.active).length;
       console.log(`[CombatSystem] Active: ${activeProjectiles} projectiles, ${activeEnemies.length} enemies`);
+    }
+  }
+
+  /**
+   * Process status effect tick results — apply DoT damage
+   */
+  private processStatusEffectTicks(
+    results: StatusEffectTickResult[],
+    activeEnemies: Enemy[]
+  ): void {
+    for (const result of results) {
+      if (result.event !== 'tick') continue;
+
+      // Find the enemy by ID
+      const enemy = activeEnemies.find((e) => e.getId() === result.targetId);
+      if (!enemy || !enemy.isAlive()) continue;
+
+      let dotDamage = 0;
+
+      switch (result.type) {
+        case StatusEffectType.Poison:
+          // Poison: 2% max HP per tick per stack
+          dotDamage = Math.max(1, Math.floor(enemy.getMaxHP() * 0.02 * result.stacks));
+          break;
+        case StatusEffectType.Burning:
+          // Burning: flat 5 damage per tick per stack
+          dotDamage = 5 * result.stacks;
+          break;
+      }
+
+      if (dotDamage > 0) {
+        enemy.takeDamage(dotDamage, false);
+        const center = enemy.getCenter();
+        this.spawnDamageNumber(center.x, center.y, dotDamage, false);
+      }
     }
   }
 

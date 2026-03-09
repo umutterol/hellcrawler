@@ -5,7 +5,8 @@
 
 import Phaser from 'phaser';
 import { getEventManager } from '../../managers/EventManager';
-import { GameEvents, EnemyDiedPayload } from '../../types/GameEvents';
+import { getSettingsManager } from '../../managers/SettingsManager';
+import { GameEvents, EnemyDiedPayload, SettingsChangedPayload } from '../../types/GameEvents';
 import { Gib } from './Gib';
 import { BloodParticle } from './BloodParticle';
 import {
@@ -68,6 +69,9 @@ export class GoreManager {
   /** Bound enemy died handler */
   private boundOnEnemyDied: ((payload: EnemyDiedPayload) => void) | null = null;
 
+  /** Bound settings changed handler */
+  private boundOnSettingsChanged: ((payload: SettingsChangedPayload) => void) | null = null;
+
   constructor() {
     // Private constructor for singleton
   }
@@ -81,7 +85,10 @@ export class GoreManager {
     }
 
     this.scene = scene;
-    this.intensity = DEFAULT_GORE_INTENSITY;
+
+    // Read initial intensity from settings
+    const settingsManager = getSettingsManager();
+    this.intensity = settingsManager.goreIntensity;
 
     // Create pools
     this.createGibPool();
@@ -95,6 +102,10 @@ export class GoreManager {
     // Listen for enemy deaths
     this.boundOnEnemyDied = this.onEnemyDied.bind(this);
     getEventManager().on(GameEvents.ENEMY_DIED, this.boundOnEnemyDied);
+
+    // Listen for settings changes
+    this.boundOnSettingsChanged = this.onSettingsChanged.bind(this);
+    getEventManager().on(GameEvents.SETTINGS_CHANGED, this.boundOnSettingsChanged);
 
     this.isInitialized = true;
   }
@@ -114,6 +125,11 @@ export class GoreManager {
     if (this.boundOnEnemyDied) {
       getEventManager().off(GameEvents.ENEMY_DIED, this.boundOnEnemyDied);
       this.boundOnEnemyDied = null;
+    }
+
+    if (this.boundOnSettingsChanged) {
+      getEventManager().off(GameEvents.SETTINGS_CHANGED, this.boundOnSettingsChanged);
+      this.boundOnSettingsChanged = null;
     }
 
     // Destroy all pooled objects
@@ -205,10 +221,21 @@ export class GoreManager {
   }
 
   /**
+   * Handle settings changed event
+   */
+  private onSettingsChanged(payload: SettingsChangedPayload): void {
+    if (payload.key === 'goreIntensity') {
+      this.intensity = payload.newValue as GoreIntensity;
+      if (import.meta.env.DEV) {
+        console.log('[GoreManager] Intensity changed to:', this.intensity);
+      }
+    }
+  }
+
+  /**
    * Handle enemy death event
    */
   private onEnemyDied(payload: EnemyDiedPayload): void {
-
     // Check if gore data is included in payload
     const goreData = (payload as EnemyDiedPayload & {
       x?: number;

@@ -23,6 +23,7 @@
 | Cinematic Module Effects (Phase 2B) | ⏳ Planned | Phase 2A | P2 |
 | **UI Polish & Missing Features** | ⏳ Planned | Center Tank UI | P2.5 |
 | Content Expansion (Acts 2-8) | ⏳ Planned | Center Tank | P3 |
+| **Infrastructure Acceleration** | ✅ Complete | None | P0.5 |
 | Audio System | ⏸️ Paused | Assets needed | P4 |
 | Faction Allegiance System | ⏳ Planned | All Acts Complete | P5 |
 | The Void (Endgame) | ⏳ Planned | Faction System | P6 |
@@ -67,7 +68,7 @@ See `docs/GorePlan.md` for detailed implementation plan.
 | 0.12 | Create GoreManager.ts (singleton orchestrator) | Medium | ✅ |
 | 0.13 | Integrate with Enemy.ts death + event payload | Low | ✅ |
 | 0.14 | Load gib sprites in BootScene.ts | Low | ✅ |
-| 0.15 | Add gore intensity setting (Off/Low/High) | Low | ⏳ |
+| 0.15 | Add gore intensity setting (Off/Low/High) | Low | ✅ |
 
 **Files to Create:**
 - `src/effects/gore/GoreTypes.ts`
@@ -691,6 +692,93 @@ TIER 4 (Audio) can run in parallel with ANY tier (waiting for assets)
 
 ---
 
+## Ralph Loop Prompt Templates
+
+Ready-to-use prompts for the Ralph Wiggum technique. Copy these directly into `/ralph-loop` commands.
+
+### 1. Drag & Drop Module Equipping (Task 2.51)
+
+```
+Implement drag & drop for module equipping in InventoryPanel.
+Requirements:
+- Drag modules from inventory grid to equipped slots
+- Visual feedback during drag (ghost image, drop zones highlight)
+- Snap back if dropped outside valid slot
+- Module swapping when dropping on occupied slot
+- Works with existing click-to-select system
+Check InventoryPanel.ts for current selection/equip logic.
+Output <promise>DRAG DROP DONE</promise> when drag equip works.
+```
+**Command:** `/ralph-loop "..." --max-iterations 8 --completion-promise "DRAG DROP DONE"`
+
+### 2. Tesla Coil Module (Task 2.8)
+
+```
+Implement Tesla Coil module with chain lightning effect.
+Requirements:
+- Charge-up animation (1s) before firing
+- Lightning bolt to primary target
+- Chain to 2-3 nearby enemies (within 150px)
+- Branching visual effect (jagged lines)
+- Damage split: 100% primary, 60% chain targets
+Check MachineGunModule.ts and MissilePodModule.ts for patterns.
+Output <promise>TESLA DONE</promise> when chain lightning works.
+```
+**Command:** `/ralph-loop "..." --max-iterations 10 --completion-promise "TESLA DONE"`
+
+### 3. Act 2 Content (Tasks 3.1-3.4)
+
+```
+Implement Act 2 enemies and zones.
+Requirements:
+- 4 enemies: Demon (tank), VampireBat (fast), Ghost (phasing), Firebat (ranged)
+- 2 zones with 7 waves each (bidirectional spawns)
+- Gargoyle boss (stone form + dive attack)
+- Enemy stats per BalanceGuide.md Act 2 scaling
+Check Enemy.ts for patterns, WaveSystem.ts for spawning.
+Output <promise>ACT 2 DONE</promise> when Act 2 playable.
+```
+**Command:** `/ralph-loop "..." --max-iterations 15 --completion-promise "ACT 2 DONE"`
+
+### 4. Gore Intensity Settings (Task 0.15) - COMPLETED
+
+```
+Add gore intensity setting to SettingsPanel.
+Requirements:
+- Off/Low/High toggle in SettingsPanel.ts
+- Save to SettingsManager
+- GoreManager reads setting and adjusts spawn counts
+- 'Off' disables all gore effects
+Check existing goreIntensity in GoreConfig.ts.
+Output <promise>GORE SETTINGS DONE</promise> when toggle works.
+```
+**Command:** `/ralph-loop "..." --max-iterations 8 --completion-promise "GORE SETTINGS DONE"`
+
+### 5. Muzzle Flash VFX Fix (Task 0.7)
+
+```
+Fix cannon muzzle flash and recoil effect.
+Requirements:
+- Muzzle flash sprite at barrel tip on fire
+- Brief recoil animation (barrel kicks back)
+- Flash duration ~100ms
+- No physics changes, purely visual
+Previous attempt reverted, start fresh.
+Check Tank.ts for cannon firing logic.
+Output <promise>MUZZLE FLASH DONE</promise> when flash visible on fire.
+```
+**Command:** `/ralph-loop "..." --max-iterations 6 --completion-promise "MUZZLE FLASH DONE"`
+
+### Usage Notes
+
+- **Max iterations:** Start with 6-8 for simpler tasks, 10-15 for complex ones
+- **Completion promise:** Must match exactly in output `<promise>...</promise>`
+- **Context:** Ralph sees all files it modifies, building on previous iterations
+- **Best for:** Multi-file changes that need iterative refinement
+- **Not ideal for:** Simple one-file edits, research tasks, or exploration
+
+---
+
 ## Current Status
 
 | Milestone | Status | Last Updated |
@@ -888,6 +976,96 @@ GameState (current) → Split into:
 ---
 
 ## Changelog
+
+### February 11, 2025 - Infrastructure Acceleration (Phases 1-4)
+
+**Phase 1: State Refactor — Split GameState into 4 Stores**
+- Created `BaseStore.ts` abstract base with `emitChange()` for auto-save
+- Created `TankStore.ts` (level, XP, stats, combat methods)
+- Created `EconomyStore.ts` (gold, essences, infernal cores)
+- Created `InventoryStore.ts` (module slots, inventory, equip/sell)
+- Created `ProgressionStore.ts` (act/zone/wave, boss tracking, paragon)
+- Rewrote `GameState.ts` as thin facade — zero consumer changes needed
+- Added `STORE_CHANGED` event to GameEvents
+
+**Phase 2: Enhanced Save System**
+- Rewrote `SaveManager.ts` with 5s debounced auto-save on `STORE_CHANGED`
+- Added `beforeunload` handler for save on tab close
+- Added chain-based version migration system
+- Added "Saved" fade indicator to `TopBar.ts`
+
+**Phase 3: Audio System**
+- Created `AudioManager.ts` with SFX pooling, music crossfade, event-driven triggers
+- Volume sync via `SETTINGS_CHANGED` event
+- Rate variation (0.9-1.1 pitch) for natural feel
+- Integrated into `GameScene.ts` (init, music start, cleanup)
+
+**Phase 4: Status Effects System**
+- Created `StatusEffectTypes.ts` (Poison, Burning, Shock, Slow, ShieldBreak, Disarm)
+- Created `StatusEffectManager.ts` singleton with apply/tick/remove/query
+- Added `statusEffects` field to `ProjectileConfig` in `Projectile.ts`
+- Integrated into `CombatSystem.ts`: status application on hit, DoT processing in update loop
+- Integrated into `Enemy.ts`: stun stops movement/attacks, slow reduces speed, disarm blocks attacks
+- Status effect tint visuals on enemies (priority-based)
+- Pool-safe cleanup via `removeAllEffects()` on deactivate
+
+**Phase 5: Shader Effects**
+- Created `DamageFlashPipeline.ts` - smoothstep ease-out damage flash (replaces crude setTint toggle)
+- Created `HueRotatePipeline.ts` - hue rotation for status effect visuals
+- Created `CRTEffectPipeline.ts` - CRT/TV scanlines, barrel distortion, chromatic aberration
+- Created `ShaderManager.ts` - pipeline registration, WebGL detection, tint-based Canvas fallback
+- Registered pipelines in `BootScene.ts` create()
+- Replaced `Enemy.flashWhite()` with shader-based smooth flash
+- Added `setupSpriteShaders()`/`clearSpriteShaders()` in Enemy activate/deactivate cycle
+
+**Files Created:**
+- `src/state/BaseStore.ts`, `TankStore.ts`, `EconomyStore.ts`, `InventoryStore.ts`, `ProgressionStore.ts`
+- `src/managers/AudioManager.ts`
+- `src/types/StatusEffectTypes.ts`
+- `src/systems/StatusEffectManager.ts`
+- `src/effects/shaders/DamageFlashPipeline.ts`, `HueRotatePipeline.ts`, `CRTEffectPipeline.ts`, `ShaderManager.ts`
+
+**Files Modified:**
+- `src/state/GameState.ts` (facade rewrite)
+- `src/types/GameEvents.ts` (store/status effect events)
+- `src/managers/SaveManager.ts` (auto-save, migration)
+- `src/ui/TopBar.ts` (save indicator)
+- `src/scenes/GameScene.ts` (audio init)
+- `src/entities/Projectile.ts` (status effect config)
+- `src/systems/CombatSystem.ts` (status effect integration)
+- `src/entities/Enemy.ts` (status effects + shader flash + status visuals)
+- `src/scenes/BootScene.ts` (shader pipeline registration)
+
+### January 6, 2025 - Gore Intensity Settings (Task 0.15)
+
+**Implemented Gore Intensity UI Setting:**
+
+Added user-configurable gore intensity setting to the Settings panel with Off/Low/High options.
+
+**Changes:**
+
+1. **SettingsManager.ts:**
+   - Added `goreIntensity: GoreIntensity` to GameSettings interface
+   - Added default value (High)
+   - Added getter for goreIntensity
+
+2. **SettingsPanel.ts:**
+   - Added new GORE section between Gameplay and Audio
+   - Created radio button UI for Off/Low/High selection
+   - Added RadioRowData interface and tracking
+   - Shifted subsequent sections down by 60px
+
+3. **GoreManager.ts:**
+   - Now reads initial intensity from SettingsManager on init
+   - Listens for SETTINGS_CHANGED event to update intensity in real-time
+   - Added onSettingsChanged handler
+
+**Files Modified:**
+- `src/managers/SettingsManager.ts`
+- `src/ui/panels/SettingsPanel.ts`
+- `src/effects/gore/GoreManager.ts`
+
+---
 
 ### January 6, 2025 - Hitbox Management Refactor
 

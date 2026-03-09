@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { IPoolable } from '../managers/PoolManager';
 import { GAME_CONFIG } from '../config/GameConfig';
+import { StatusEffectSource } from '../types/StatusEffectTypes';
 
 /**
  * Projectile type enumeration
@@ -24,6 +25,8 @@ export interface ProjectileConfig {
   aoeRadius?: number;
   homingTarget?: Phaser.GameObjects.GameObject;
   lifetime?: number;
+  /** Status effects this projectile can apply on hit */
+  statusEffects?: StatusEffectSource[];
 }
 
 /**
@@ -238,6 +241,13 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite implements IPoolabl
    */
   public getId(): string {
     return this.projectileId;
+  }
+
+  /**
+   * Get status effects this projectile can apply
+   */
+  public getStatusEffects(): StatusEffectSource[] | undefined {
+    return this.config?.statusEffects;
   }
 
   /**

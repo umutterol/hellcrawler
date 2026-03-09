@@ -5,6 +5,9 @@ import { EventManager, getEventManager } from '../managers/EventManager';
 import { GameEvents } from '../types/GameEvents';
 import { getSettingsManager } from '../managers/SettingsManager';
 import { GAME_CONFIG, getEnemyStatMultiplier } from '../config/GameConfig';
+import { getStatusEffectManager } from '../systems/StatusEffectManager';
+import { StatusEffectType } from '../types/StatusEffectTypes';
+import { setupSpriteShaders, applyDamageFlash, clearSpriteShaders } from '../effects/shaders/ShaderManager';
 
 /**
  * Spawn side type for bidirectional combat
@@ -95,6 +98,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
 
     // Reset attack timing
     this.lastAttackTime = 0;
+    this.hasStatusTint = false;
 
     // Make visible and active
     this.setActive(true);
@@ -102,6 +106,9 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
 
     // Apply visual FIRST so we have correct texture dimensions
     this.applyVisualsByCategory(config.category);
+
+    // Set up shader pipelines for this sprite
+    setupSpriteShaders(this);
 
     // Flip sprite based on spawn side (enemies should face the tank)
     // Sprites face left by default, so flip if coming from left (to face right toward tank)
@@ -145,6 +152,12 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
    * Deactivate this enemy and return to pool
    */
   public deactivate(): void {
+    // Remove all status effects for pool safety
+    getStatusEffectManager().removeAllEffects(this.enemyId);
+
+    // Remove shader pipelines
+    clearSpriteShaders(this);
+
     this.setActive(false);
     this.setVisible(false);
     this.setVelocity(0, 0);
@@ -412,19 +425,15 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
   }
 
   private flashWhite(): void {
-    this.setTint(0xffffff);
-    this.scene.time.delayedCall(50, () => {
-      if (this.active && this.config) {
-        // Restore the appropriate tint based on enemy type
-        this.restoreTint();
-      }
-    });
+    // Use shader-based smooth flash (with tint fallback for Canvas)
+    applyDamageFlash(this, 0.12, 1.0);
   }
 
   /**
-   * Restore the correct tint for this enemy type (for elite/super elite visual distinction)
+   * Apply the base tint for this enemy type (elite/super elite/boss distinction).
+   * Called when status effects expire to restore the correct appearance.
    */
-  private restoreTint(): void {
+  private applyBaseTint(): void {
     if (!this.config) return;
 
     switch (this.config.type) {
@@ -449,6 +458,45 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
       default:
         this.clearTint();
         break;
+    }
+  }
+
+  /** Whether the sprite currently has a status-effect tint applied */
+  private hasStatusTint: boolean = false;
+
+  /**
+   * Update tint based on active status effects.
+   * Priority: Shock (blue) > Burning (orange) > Poison (green) > Slow (light blue) > base tint
+   * Restores base enemy tint when all effects expire.
+   */
+  private updateStatusVisuals(): void {
+    const statusManager = getStatusEffectManager();
+    const effects = statusManager.getActiveEffects(this.enemyId);
+
+    if (effects.length === 0) {
+      // Restore base tint when all effects expire
+      if (this.hasStatusTint) {
+        this.hasStatusTint = false;
+        this.applyBaseTint();
+      }
+      return;
+    }
+
+    this.hasStatusTint = true;
+
+    // Pick highest-priority effect for tint
+    if (effects.some((e) => e.type === StatusEffectType.Shock)) {
+      this.setTint(0x4488ff); // Blue stun
+    } else if (effects.some((e) => e.type === StatusEffectType.Burning)) {
+      this.setTint(0xff6600); // Orange-red burning
+    } else if (effects.some((e) => e.type === StatusEffectType.Poison)) {
+      this.setTint(0x44ff44); // Green poison
+    } else if (effects.some((e) => e.type === StatusEffectType.Slow)) {
+      this.setTint(0x88bbff); // Light blue slow
+    } else if (effects.some((e) => e.type === StatusEffectType.ShieldBreak)) {
+      this.setTint(0xffcc00); // Gold shield break
+    } else if (effects.some((e) => e.type === StatusEffectType.Disarm)) {
+      this.setTint(0xcc44cc); // Purple disarm
     }
   }
 
@@ -533,6 +581,11 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
    * Check if this enemy can attack
    */
   public canAttack(currentTime: number): boolean {
+    // Stunned or disarmed enemies cannot attack
+    const statusManager = getStatusEffectManager();
+    if (statusManager.isStunned(this.enemyId) || statusManager.isDisarmed(this.enemyId)) {
+      return false;
+    }
     return currentTime - this.lastAttackTime >= this.attackCooldown;
   }
 
@@ -612,6 +665,13 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
   }
 
   /**
+   * Get max HP (for DoT calculations)
+   */
+  public getMaxHP(): number {
+    return this.maxHP;
+  }
+
+  /**
    * Get which side this enemy spawned from
    */
   public getSpawnSide(): SpawnSide {
@@ -620,32 +680,48 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements IPoolable {
 
   /**
    * Update loop
-   * Handles bidirectional movement and stop positions
+   * Handles bidirectional movement, stop positions, and status effects
    */
   public preUpdate(time: number, delta: number): void {
     super.preUpdate(time, delta);
 
     if (!this.active) return;
 
+    const statusManager = getStatusEffectManager();
+    const isStunned = statusManager.isStunned(this.enemyId);
+
     // Calculate stop positions dynamically (tank is at TANK_X, enemies stop STOP_DISTANCE away)
     const stopDistance = GAME_CONFIG.STOP_DISTANCE_FROM_TANK;
     const stopXFromRight = GAME_CONFIG.TANK_X + stopDistance;
     const stopXFromLeft = GAME_CONFIG.TANK_X - stopDistance;
 
-    // Stop at tank position based on spawn side
-    if (this.spawnSide === 'right') {
+    // Stop at tank position based on spawn side, or if stunned
+    if (isStunned) {
+      this.setVelocityX(0);
+    } else if (this.spawnSide === 'right') {
       // Enemy from right moves left, stops when reaching tank's right side
       if (this.x <= stopXFromRight) {
         this.setVelocityX(0);
         this.x = stopXFromRight;
+      } else if (this.config) {
+        // Apply slow effect to movement speed
+        const speedMult = statusManager.getSpeedMultiplier(this.enemyId);
+        this.setVelocityX(-this.config.speed * speedMult);
       }
     } else {
       // Enemy from left moves right, stops when reaching tank's left side
       if (this.x >= stopXFromLeft) {
         this.setVelocityX(0);
         this.x = stopXFromLeft;
+      } else if (this.config) {
+        // Apply slow effect to movement speed
+        const speedMult = statusManager.getSpeedMultiplier(this.enemyId);
+        this.setVelocityX(this.config.speed * speedMult);
       }
     }
+
+    // Update status effect visuals
+    this.updateStatusVisuals();
 
     // Only update health bar position (cheap), not redraw
     this.updateHealthBarPosition();

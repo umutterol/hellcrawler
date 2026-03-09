@@ -28,6 +28,7 @@ import { ZoneCompletionPanel } from '../ui/components/ZoneCompletionPanel';
 import { NearDeathOverlay } from '../ui/components/NearDeathOverlay';
 import { BalanceDebugOverlay } from '../ui/components/BalanceDebugOverlay';
 import { getHitboxManager, HitboxManager } from '../managers/HitboxManager';
+import { getAudioManager } from '../managers/AudioManager';
 
 /**
  * Main Game Scene - Core gameplay loop
@@ -149,6 +150,9 @@ export class GameScene extends Phaser.Scene {
 
     // Initialize context menu for right-click menus
     initContextMenu(this);
+
+    // Initialize audio manager
+    getAudioManager().init(this);
 
     // Initialize save manager and try to load saved game
     this.saveManager = getSaveManager();
@@ -393,6 +397,9 @@ export class GameScene extends Phaser.Scene {
     // Reset game state for new game
     // this.gameState.reset(); // Uncomment for fresh start
 
+    // Start combat music
+    getAudioManager().playMusic('music-combat', { fadeIn: 2000 });
+
     // Start first wave with slight delay
     this.time.delayedCall(1000, () => {
       this.waveSystem.startWave(1);
@@ -480,6 +487,7 @@ export class GameScene extends Phaser.Scene {
     this.moduleManager.destroy();
     this.inputManager.destroy();
     getGoreManager().destroy();
+    getAudioManager().destroy();
 
     // Cleanup Desktop Mode (Electron)
     if (this._clickThroughManager) {

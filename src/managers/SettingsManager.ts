@@ -11,6 +11,7 @@
 
 import { EventManager, getEventManager } from './EventManager';
 import { GameEvents } from '../types/GameEvents';
+import { GoreIntensity } from '../effects/gore/GoreTypes';
 
 /**
  * Game settings interface
@@ -40,6 +41,9 @@ export interface GameSettings {
   inventorySortMethod: InventorySortMethod;
   inventorySortDirection: SortDirection;
   autoSellUncommon: boolean;
+
+  // Gore settings
+  goreIntensity: GoreIntensity;
 
   // Audio settings (0-100)
   masterVolume: number;
@@ -75,6 +79,9 @@ const DEFAULT_SETTINGS: GameSettings = {
   inventorySortMethod: 'rarity',
   inventorySortDirection: 'desc',
   autoSellUncommon: false, // Off by default - player must opt-in
+
+  // Gore - high by default for full effect
+  goreIntensity: GoreIntensity.High,
 
   // Audio - reasonable defaults
   masterVolume: 80,
@@ -311,6 +318,12 @@ export class SettingsManager {
 
   public get autoSellUncommon(): boolean {
     return this.settings.autoSellUncommon;
+  }
+
+  // Gore getter
+
+  public get goreIntensity(): GoreIntensity {
+    return this.settings.goreIntensity;
   }
 
   /**

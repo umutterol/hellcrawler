@@ -3,6 +3,7 @@ import { SlidingPanel } from './SlidingPanel';
 import { PanelType, UI_CONFIG } from '../../config/UIConfig';
 import { getSaveManager } from '../../managers/SaveManager';
 import { getSettingsManager, GameSettings } from '../../managers/SettingsManager';
+import { GoreIntensity } from '../../effects/gore/GoreTypes';
 
 /**
  * Toggle row data for tracking interactive elements
@@ -27,6 +28,14 @@ interface SliderRowData {
 }
 
 /**
+ * Radio button row data for tracking interactive elements
+ */
+interface RadioRowData {
+  key: keyof GameSettings;
+  options: { value: string; label: string; button: Phaser.GameObjects.Rectangle; text: Phaser.GameObjects.Text }[];
+}
+
+/**
  * SettingsPanel - Sliding panel for game settings
  *
  * Based on UISpec.md:
@@ -39,6 +48,7 @@ interface SliderRowData {
 export class SettingsPanel extends SlidingPanel {
   private toggleRows: ToggleRowData[] = [];
   private sliderRows: SliderRowData[] = [];
+  private radioRows: RadioRowData[] = [];
   private isDraggingSlider: boolean = false;
   private activeSlider: SliderRowData | null = null;
 
@@ -54,9 +64,11 @@ export class SettingsPanel extends SlidingPanel {
   protected createContent(): void {
     this.toggleRows = [];
     this.sliderRows = [];
+    this.radioRows = [];
 
     this.createDisplaySection();
     this.createGameplaySection();
+    this.createGoreSection();
     this.createAudioSection();
     this.createBackgroundLayersSection();
     this.createDesktopModeSection();
@@ -70,9 +82,9 @@ export class SettingsPanel extends SlidingPanel {
     // Calculate total content height for scrolling
     // Save section is the last section and its Y position depends on Electron mode
     const settingsManager = getSettingsManager();
-    const saveYOffset = settingsManager.isElectron() ? 852 : 747;
+    const saveYOffset = settingsManager.isElectron() ? 912 : 807;
     // Save section contains: divider + save button (y=16, h=36) + quit button (y=60, h=36)
-    const totalContentHeight = saveYOffset + 60 + 36 + 20; // ~843-948px depending on mode
+    const totalContentHeight = saveYOffset + 60 + 36 + 20; // ~903-1008px depending on mode
     this.setContentHeight(totalContentHeight);
   }
 
@@ -150,10 +162,145 @@ export class SettingsPanel extends SlidingPanel {
   }
 
   /**
+   * Create gore settings section
+   */
+  private createGoreSection(): void {
+    const sectionContainer = this.scene.add.container(16, 264);
+
+    // Section header
+    const headerText = this.scene.add.text(0, 0, 'GORE', {
+      fontFamily: 'Arial',
+      fontSize: '14px',
+      color: UI_CONFIG.COLORS.TEXT_SECONDARY,
+      fontStyle: 'bold',
+    });
+    sectionContainer.add(headerText);
+
+    // Divider
+    const divider = this.scene.add.graphics();
+    divider.lineStyle(1, UI_CONFIG.COLORS.PANEL_BORDER, 0.5);
+    divider.lineBetween(0, 20, this.getContentWidth(), 20);
+    sectionContainer.add(divider);
+
+    // Radio button row for gore intensity
+    const radioRow = this.createRadioRow(
+      'Gore Intensity',
+      'goreIntensity',
+      [
+        { value: GoreIntensity.Off, label: 'OFF' },
+        { value: GoreIntensity.Low, label: 'LOW' },
+        { value: GoreIntensity.High, label: 'HIGH' },
+      ],
+      32
+    );
+    sectionContainer.add(radioRow);
+
+    this.addToContent(sectionContainer);
+  }
+
+  /**
+   * Create a radio button row with multiple options
+   */
+  private createRadioRow(
+    label: string,
+    key: keyof GameSettings,
+    options: { value: string; label: string }[],
+    y: number
+  ): Phaser.GameObjects.Container {
+    const container = this.scene.add.container(0, y);
+    const settingsManager = getSettingsManager();
+    const currentValue = settingsManager.getSetting(key) as string;
+
+    // Label
+    const labelText = this.scene.add.text(0, 0, label, {
+      fontSize: '13px',
+      color: UI_CONFIG.COLORS.TEXT_PRIMARY,
+    });
+    container.add(labelText);
+
+    // Radio buttons
+    const buttonWidth = 55;
+    const buttonHeight = 24;
+    const buttonSpacing = 4;
+    const startX = this.getContentWidth() - (options.length * (buttonWidth + buttonSpacing) - buttonSpacing) - 16;
+
+    const rowData: RadioRowData = {
+      key,
+      options: [],
+    };
+
+    options.forEach((option, index) => {
+      const buttonX = startX + index * (buttonWidth + buttonSpacing);
+      const isSelected = currentValue === option.value;
+
+      // Button background
+      const button = this.scene.add.rectangle(
+        buttonX + buttonWidth / 2,
+        buttonHeight / 2 - 2,
+        buttonWidth,
+        buttonHeight,
+        isSelected ? UI_CONFIG.COLORS.HEALTH_GREEN : 0x3d3d3d
+      );
+      button.setInteractive({ useHandCursor: true });
+      container.add(button);
+
+      // Button text
+      const text = this.scene.add.text(buttonX + buttonWidth / 2, buttonHeight / 2 - 2, option.label, {
+        fontSize: '11px',
+        color: isSelected ? '#000000' : UI_CONFIG.COLORS.TEXT_PRIMARY,
+        fontStyle: 'bold',
+      });
+      text.setOrigin(0.5);
+      container.add(text);
+
+      // Store option data
+      rowData.options.push({ value: option.value, label: option.label, button, text });
+
+      // Click handler
+      button.on('pointerdown', () => {
+        settingsManager.setSetting(key, option.value as GameSettings[typeof key]);
+        this.updateRadioVisual(rowData, option.value);
+      });
+
+      // Hover effects
+      button.on('pointerover', () => {
+        if (currentValue !== option.value) {
+          button.setFillStyle(0x555555);
+        }
+      });
+
+      button.on('pointerout', () => {
+        const current = settingsManager.getSetting(key) as string;
+        if (current !== option.value) {
+          button.setFillStyle(0x3d3d3d);
+        }
+      });
+    });
+
+    this.radioRows.push(rowData);
+    return container;
+  }
+
+  /**
+   * Update radio button visual state
+   */
+  private updateRadioVisual(rowData: RadioRowData, selectedValue: string): void {
+    for (const option of rowData.options) {
+      const isSelected = option.value === selectedValue;
+      option.button.setFillStyle(isSelected ? UI_CONFIG.COLORS.HEALTH_GREEN : 0x3d3d3d);
+      option.text.setStyle({
+        fontSize: '11px',
+        color: isSelected ? '#000000' : UI_CONFIG.COLORS.TEXT_PRIMARY,
+        fontStyle: 'bold',
+      });
+    }
+  }
+
+  /**
    * Create audio settings section
    */
   private createAudioSection(): void {
-    const sectionContainer = this.scene.add.container(16, 292);
+    const sectionContainer = this.scene.add.container(16, 352);
 
     // Section header
     const headerText = this.scene.add.text(0, 0, 'AUDIO', {
@@ -449,7 +596,7 @@ export class SettingsPanel extends SlidingPanel {
    * Create background layers visibility section
    */
   private createBackgroundLayersSection(): void {
-    const sectionContainer = this.scene.add.container(16, 422);
+    const sectionContainer = this.scene.add.container(16, 482);
 
     // Section header
     const headerText = this.scene.add.text(0, 0, 'BACKGROUND LAYERS', {
@@ -492,7 +639,7 @@ export class SettingsPanel extends SlidingPanel {
       return; // Skip this section in web browser
     }
 
-    const sectionContainer = this.scene.add.container(16, 587);
+    const sectionContainer = this.scene.add.container(16, 647);
 
     // Section header
     const headerText = this.scene.add.text(0, 0, 'DESKTOP MODE', {
@@ -548,7 +695,7 @@ export class SettingsPanel extends SlidingPanel {
   private createControlsSection(): void {
     // Adjust Y position based on whether Desktop Mode section is shown
     const settingsManager = getSettingsManager();
-    const yOffset = settingsManager.isElectron() ? 692 : 587;
+    const yOffset = settingsManager.isElectron() ? 752 : 647;
     const sectionContainer = this.scene.add.container(16, yOffset);
 
     // Section header
@@ -593,7 +740,7 @@ export class SettingsPanel extends SlidingPanel {
   private createSaveSection(): void {
     // Adjust Y position based on whether Desktop Mode section is shown
     const settingsManager = getSettingsManager();
-    const yOffset = settingsManager.isElectron() ? 852 : 747;
+    const yOffset = settingsManager.isElectron() ? 912 : 807;
     const sectionContainer = this.scene.add.container(16, yOffset);
 
     // Divider
@@ -713,6 +860,12 @@ export class SettingsPanel extends SlidingPanel {
       this.updateSliderVisual(row, value);
     }
 
+    // Update all radio visuals
+    for (const row of this.radioRows) {
+      const value = settingsManager.getSetting(row.key) as string;
+      this.updateRadioVisual(row, value);
+    }
+
     if (import.meta.env.DEV) {
       console.log('[SettingsPanel] Refreshed with current settings');
     }
@@ -726,6 +879,7 @@ export class SettingsPanel extends SlidingPanel {
     this.scene.input.off('pointerup', this.onPointerUp, this);
     this.toggleRows = [];
     this.sliderRows = [];
+    this.radioRows = [];
     super.destroy();
   }
 }

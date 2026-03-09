@@ -49,6 +49,9 @@ export class TopBar {
   private zoneSelectionPanel: ZoneSelectionPanel | null = null;
   private fleeButton!: Phaser.GameObjects.Container;
 
+  // Save indicator
+  private saveIndicator!: Phaser.GameObjects.Text;
+
   // Constants
   private readonly HEIGHT = UI_CONFIG.TOP_BAR.HEIGHT;
   private readonly PADDING = 16;
@@ -66,6 +69,7 @@ export class TopBar {
     this.createLevelSection();
     this.createFleeButton();
     this.createZoneSection();
+    this.createSaveIndicator();
     this.subscribeToEvents();
     this.updateAll();
   }
@@ -294,12 +298,42 @@ export class TopBar {
     }
   }
 
+  private createSaveIndicator(): void {
+    // Position near top-right, before zone text
+    this.saveIndicator = this.scene.add.text(
+      GAME_CONFIG.WIDTH - 220,
+      this.HEIGHT / 2,
+      'Saved',
+      {
+        fontSize: '12px',
+        color: '#6ee7b7', // Soft green
+      }
+    );
+    this.saveIndicator.setOrigin(0.5, 0.5);
+    this.saveIndicator.setAlpha(0);
+    this.container.add(this.saveIndicator);
+  }
+
+  private showSaveIndicator(): void {
+    // Fade in, hold, fade out
+    this.scene.tweens.killTweensOf(this.saveIndicator);
+    this.saveIndicator.setAlpha(1);
+    this.scene.tweens.add({
+      targets: this.saveIndicator,
+      alpha: 0,
+      duration: 800,
+      delay: 700,
+      ease: 'Power2',
+    });
+  }
+
   private subscribeToEvents(): void {
     this.eventManager.on(GameEvents.GOLD_CHANGED, this.onGoldChanged, this);
     this.eventManager.on(GameEvents.XP_GAINED, this.onXPChanged, this);
     this.eventManager.on(GameEvents.LEVEL_UP, this.onLevelUp, this);
     this.eventManager.on(GameEvents.ZONE_CHANGED, this.onZoneChanged, this);
     this.eventManager.on(GameEvents.ZONE_COMPLETED, this.onZoneCompleted, this);
+    this.eventManager.on(GameEvents.GAME_SAVED, this.onGameSaved, this);
   }
 
   private onZoneChanged(): void {
@@ -308,6 +342,10 @@ export class TopBar {
 
   private onZoneCompleted(): void {
     this.updateZoneText();
+  }
+
+  private onGameSaved(): void {
+    this.showSaveIndicator();
   }
 
   private onGoldChanged(payload: { newGold: number; change: number }): void {
