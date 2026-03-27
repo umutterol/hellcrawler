@@ -1,0 +1,150 @@
+name: Electron Make
+run-name: >-
+  Electron Make →
+  ${{ github.ref_name }} -
+  ${{ (inputs.mode) }} -
+  ${{ (inputs.version) }} -
+  ${{ fromJSON(inputs.build_macos) && 'macOS ' || ' ' }}
+  ${{ fromJSON(inputs.build_windows) && 'Windows ' || ' ' }}
+  ${{ fromJSON(inputs.build_linux) && 'Linux' || ' ' }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: VERSION (example 1.0.0)
+        required: true
+        default: ''
+        type: string
+      build_macos:
+        description: Build for macOS
+        required: false
+        default: false
+        type: boolean
+      build_windows:
+        description: Build for Windows
+        required: false
+        default: false
+        type: boolean
+      build_linux:
+        description: Build for Linux (Ubuntu)
+        required: false
+        default: false
+        type: boolean
+      storage_key:
+        description: STORAGE_KEY (add '_demo' suffix for demo builds)
+        required: true
+        default: 'com.telazer.games.desktop_heroes'
+        type: string
+      mode:
+        description: Build MODE (prod, demo, prototype, dev)
+        required: true
+        default: prod
+        type: choice
+        options: [prod, demo, prototype, dev]
+      debug:
+        description: DEBUG flag (keep it false for production)
+        required: true
+        default: false
+        type: choice
+        options: [true, false]
+      log:
+        description: LOG flag (keep it false for production)
+        required: true
+        default: false
+        type: choice
+        options: [true, false]
+      dont_compress_data:
+        description: DONT_COMPRESS_DATA flag (keep it false for production)
+        required: true
+        default: false
+        type: choice
+        options: [true, false]
+      platform_env:
+        description: PLATFORM env var (electron, web, dev). Usually electron.
+        required: true
+        default: electron
+        type: choice
+        options: [electron, web, dev]
+
+jobs:
+  prep:
+    name: Prepare matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
+    steps:
+      - id: set
+        shell: bash
+        run: |
+          mac=${{ fromJSON(inputs.build_macos) && 'true' || 'false' }}
+          win=${{ fromJSON(inputs.build_windows) && 'true' || 'false' }}
+          lin=${{ fromJSON(inputs.build_linux) && 'true' || 'false' }}
+
+          # Build JSON array of OSes
+          os_list=()
+          [[ "$mac" == "true" ]] && os_list+=("\"macos-latest\"")
+          [[ "$win" == "true" ]] && os_list+=("\"windows-latest\"")
+          [[ "$lin" == "true" ]] && os_list+=("\"ubuntu-latest\"")
+
+          if [[ ${#os_list[@]} -eq 0 ]]; then
+            # Empty matrix (no jobs will run)
+            echo 'matrix={"os":[]}' >> "$GITHUB_OUTPUT"
+          else
+            printf 'matrix={"os":[%s]}\n' "$(IFS=, ; echo "${os_list[*]}")" >> "$GITHUB_OUTPUT"
+          fi
+
+  make:
+    name: Build (${{ matrix.os }})
+    needs: prep
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prep.outputs.matrix) }}
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate .env from inputs
+        run: |
+          : > .env
+          [[ -n "${{ inputs.version }}" ]] && echo "VERSION=${{ inputs.version }}" >> .env
+          [[ -n "${{ inputs.storage_key }}" ]] && echo "STORAGE_KEY=${{ inputs.storage_key }}" >> .env
+          echo "DEBUG=${{ inputs.debug }}" >> .env
+          echo "LOG=${{ inputs.log }}" >> .env
+          echo "PLATFORM=${{ inputs.platform_env }}" >> .env
+          echo "DONT_COMPRESS_DATA=${{ inputs.dont_compress_data }}" >> .env
+          echo "MODE=${{ inputs.mode }}" >> .env
+          echo "--- .env content ---"; cat .env
+
+      - name: Build
+        run: |
+          case "${{ runner.os }}" in
+            macOS)   npm run make:mac ;;
+            Windows) npm run make:win ;;
+            Linux)   npm run make:linux ;;
+          esac
+
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-heroes-${{ runner.os }}-artifacts
+          path: |
+            out/make/**
+            out/**.zip
+          if-no-files-found: warn

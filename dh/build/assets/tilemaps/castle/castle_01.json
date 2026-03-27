@@ -1,0 +1,124 @@
+{
+  "compressionlevel": -1,
+  "height": 13,
+  "infinite": false,
+  "layers": [
+    {
+      "data": [
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 328, 329, 330, 0, 0, 0, 0, 0, 0, 0, 360, 361, 362, 0, 0, 0, 0, 0, 390, 391, 392, 393, 394, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+      ],
+      "height": 13,
+      "id": 1,
+      "name": "Tile Layer 1",
+      "opacity": 1,
+      "properties": [
+        {
+          "name": "isFront",
+          "type": "bool",
+          "value": false
+        }
+      ],
+      "type": "tilelayer",
+      "visible": true,
+      "width": 10,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "data": [
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1034, 1035, 1036, 1034, 1035,
+        1036, 1037, 1034, 1035, 1036, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1119, 1120, 1121, 3221226597,
+        3221226596, 3221226595, 3221226594, 3221226593, 3221226592, 3221226591, 3221226591, 3221226599, 3221226598
+      ],
+      "height": 13,
+      "id": 2,
+      "name": "ground",
+      "opacity": 1,
+      "properties": [
+        {
+          "name": "isFront",
+          "type": "bool",
+          "value": true
+        }
+      ],
+      "type": "tilelayer",
+      "visible": true,
+      "width": 10,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "data": [
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2083, 2084, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+      ],
+      "height": 13,
+      "id": 4,
+      "name": "Tile Layer 3",
+      "opacity": 1,
+      "type": "tilelayer",
+      "visible": true,
+      "width": 10,
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "nextlayerid": 5,
+  "nextobjectid": 1,
+  "orientation": "orthogonal",
+  "renderorder": "right-up",
+  "tiledversion": "1.11.0",
+  "tileheight": 16,
+  "tilesets": [
+    {
+      "columns": 32,
+      "firstgid": 1,
+      "image": "..\/..\/sheets\/walls.png",
+      "imageheight": 512,
+      "imagewidth": 512,
+      "margin": 0,
+      "name": "walls",
+      "spacing": 0,
+      "tilecount": 1024,
+      "tileheight": 16,
+      "tilewidth": 16
+    },
+    {
+      "columns": 30,
+      "firstgid": 1025,
+      "image": "..\/..\/sheets\/walls_side_top.png",
+      "imageheight": 304,
+      "imagewidth": 480,
+      "margin": 0,
+      "name": "walls_side_top",
+      "spacing": 0,
+      "tilecount": 570,
+      "tileheight": 16,
+      "tilewidth": 16
+    },
+    {
+      "columns": 23,
+      "firstgid": 1595,
+      "image": "..\/..\/sheets\/environment.png",
+      "imageheight": 480,
+      "imagewidth": 368,
+      "margin": 0,
+      "name": "environment",
+      "spacing": 0,
+      "tilecount": 690,
+      "tileheight": 16,
+      "tilewidth": 16
+    }
+  ],
+  "tilewidth": 16,
+  "type": "map",
+  "version": "1.10",
+  "width": 10
+}

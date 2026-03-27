@@ -186,16 +186,16 @@ export class ModuleItem {
       case ModuleType.ShieldGenerator:
         return [
           {
-            name: 'Energy Barrier',
+            name: 'Reinforce',
             cooldown: 25,
-            duration: 0,
-            description: 'Block the next 3 instances of damage',
+            duration: 8,
+            description: 'Restore full shield + 50% bonus for 8 seconds',
           },
           {
-            name: 'Reflect Shield',
+            name: 'Reflect',
             cooldown: 35,
-            duration: 5,
-            description: 'Return 30% of damage taken for 5 seconds',
+            duration: 6,
+            description: 'Reflect 30% damage to attackers for 6 seconds',
           },
         ];
 
@@ -204,14 +204,14 @@ export class ModuleItem {
           {
             name: 'Focused Beam',
             cooldown: 20,
-            duration: 3,
-            description: 'Channel for 3s, damage increases each second',
+            duration: 4,
+            description: '+200% damage to locked target for 4 seconds',
           },
           {
-            name: 'Thermal Overload',
+            name: 'Sweep',
             cooldown: 25,
-            duration: 4,
-            description: 'Enemies hit burn for 50% damage over 4 seconds',
+            duration: 3,
+            description: 'Beam hits all enemies in line for 3 seconds',
           },
         ];
 
@@ -221,13 +221,13 @@ export class ModuleItem {
             name: 'Chain Lightning',
             cooldown: 12,
             duration: 0,
-            description: 'Lightning jumps to 4 additional enemies',
+            description: 'Lightning chains to 3 additional nearby enemies',
           },
           {
-            name: 'Static Field',
+            name: 'Overload',
             cooldown: 30,
             duration: 6,
-            description: 'Enemies take 20% more damage for 6 seconds',
+            description: '+100% damage, 100% shock chance for 6 seconds',
           },
         ];
 
@@ -252,46 +252,46 @@ export class ModuleItem {
           {
             name: 'Pulse',
             cooldown: 20,
-            duration: 3,
-            description: 'Stun all enemies for 3 seconds',
+            duration: 0,
+            description: 'Shock all enemies for 3 seconds',
           },
           {
             name: 'Overcharge',
             cooldown: 40,
-            duration: 0,
-            description: 'Deal massive damage to all enemies',
+            duration: 6,
+            description: '+300% damage + 100% shock for 6 seconds',
           },
         ];
 
       case ModuleType.Mortar:
         return [
           {
-            name: 'Artillery Strike',
-            cooldown: 18,
+            name: 'Aimed Shot',
+            cooldown: 12,
             duration: 0,
-            description: 'Fire 3 shells at random enemy positions',
+            description: 'Next shot +50% crit chance',
           },
           {
-            name: 'Carpet Bombing',
-            cooldown: 35,
-            duration: 0,
-            description: 'Bombard a wide area for heavy AoE damage',
+            name: 'Dead Eye',
+            cooldown: 30,
+            duration: 8,
+            description: '+100% crit chance, +50% crit damage for 8 seconds',
           },
         ];
 
       case ModuleType.MainCannon:
         return [
           {
-            name: 'Piercing Shot',
-            cooldown: 20,
+            name: 'Scatter Blast',
+            cooldown: 15,
             duration: 0,
-            description: 'Shot pierces through all enemies',
+            description: '12 pellets in 60-degree cone',
           },
           {
-            name: 'Critical Strike',
-            cooldown: 30,
+            name: 'Slug Round',
+            cooldown: 25,
             duration: 0,
-            description: 'Guaranteed critical hit with +100% damage',
+            description: '1 piercing projectile with 8x damage',
           },
         ];
 

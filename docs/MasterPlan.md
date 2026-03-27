@@ -20,7 +20,7 @@
 | **Center Tank Redesign (Phase 1A)** | ✅ Complete | None | P1 |
 | **Center Tank UI Refactor (Phase 1B)** | ✅ Complete | None | P1 |
 | **Module Independence (Phase 2A)** | ✅ Complete | None | P2 |
-| Cinematic Module Effects (Phase 2B) | ⏳ Planned | Phase 2A | P2 |
+| Cinematic Module Effects (Phase 2B) | ✅ Complete | Phase 2A | P2 |
 | **UI Polish & Missing Features** | ⏳ Planned | Center Tank UI | P2.5 |
 | Content Expansion (Acts 2-8) | ⏳ Planned | Center Tank | P3 |
 | **Infrastructure Acceleration** | ✅ Complete | None | P0.5 |
@@ -176,9 +176,9 @@ Module sprites become independent entities with dramatic visual effects.
 |---|--------|--------|--------|
 | 2.6 | Missile Pod | Vertical launch → arc → dive | ✅ |
 | 2.7 | Machine Gun | Tracers + shell casings | ✅ |
-| 2.8 | Tesla Coil | Charge-up + branching lightning | ⏸️ (module not implemented) |
-| 2.9 | Mortar | Sky trajectory + target indicator | ⏸️ (module not implemented) |
-| 2.10 | Others | As time permits | ⏳ |
+| 2.8 | Tesla Coil | Chain lightning + overload | ✅ (module implemented) |
+| 2.9 | Sniper Cannon (Mortar) | High-damage single shot + crit skills | ✅ (module implemented) |
+| 2.10 | Others (Shotgun, Flamethrower, Laser, Shield, EMP) | All implemented | ✅ |
 
 **Exit Criteria:**
 - Modules visually rotate toward targets
@@ -790,8 +790,8 @@ Output <promise>MUZZLE FLASH DONE</promise> when flash visible on fire.
 | Center Tank | ✅ Complete | Jan 5, 2025 |
 | Module Independence | ✅ Complete | Jan 5, 2025 |
 
-**Current Phase:** Module Independence (Phase 2A) Complete ✅
-**Next Phase:** Cinematic Module Effects (Phase 2B) or UI Polish (TIER 2.5)
+**Current Phase:** All 10 module types implemented ✅
+**Next Phase:** UI Polish (TIER 2.5) or Content Expansion (TIER 3)
 **Audio Status:** ⏸️ Paused (waiting for assets)
 
 ---
@@ -976,6 +976,44 @@ GameState (current) → Split into:
 ---
 
 ## Changelog
+
+### March 9, 2026 - Implement 7 Remaining Weapon/Utility Modules (Tier 2)
+
+**Implemented all 7 remaining module types with placeholder VFX:**
+
+**Stream A: Projectile-Based Modules**
+- `TeslaCoilModule.ts` — 800ms fire rate, 18 damage, 40% Shock chance, chain lightning skill (3 chains), overload skill (+100% damage + 100% shock for 6s). VFX: blue zigzag lightning beams
+- `SniperCannonModule.ts` — 2500ms fire rate, 80 damage, innate +20% crit bonus, aimed shot skill (+50% crit next shot), dead eye skill (+100% crit + 50% crit damage for 8s). VFX: large muzzle flash
+- `ShotgunTurretModule.ts` — 1200ms fire rate, 6 damage/pellet x 8 in 30-degree cone, scatter blast skill (12 pellets 60-degree cone), slug round skill (1 piercing 8x damage). VFX: fan-shaped muzzle flash
+
+**Stream B: Direct-Damage Modules (No Projectile Pool)**
+- `FlamethrowerModule.ts` — 200ms tick, 3 damage/tick, 200px 45-degree cone, 30% Burning chance, napalm skill (5s ground DoT zone), inferno skill (triple cone width + 3x damage for 4s). VFX: semi-transparent orange cone with flicker
+- `LaserBatteryModule.ts` — 100ms tick, 5 damage/tick, target lock, periodic ShieldBreak, focused beam skill (+200% damage for 4s), sweep skill (line-of-sight all enemies for 3s). VFX: red pulsing-width beam line
+
+**Stream C: Utility/Support Modules**
+- `ShieldGeneratorModule.ts` — No firing, shield HP (50 + 10/slot level), 5/s regen after 3s no-hit, absorbs damage via DAMAGE_TAKEN event, reinforce skill (full shield + 50% bonus for 8s), reflect skill (30% damage reflected for 6s). VFX: blue circle around tank
+- `EMPDeviceModule.ts` — 3000ms fire rate, 15 damage, 300px AoE pulse, 25% Shock chance, pulse skill (shock ALL enemies for 3s), overcharge skill (+300% damage + 100% shock for 6s). VFX: expanding blue ring
+
+**Shared File Updates:**
+- `ModuleItem.ts` — Updated skill definitions for Mortar (→Aimed Shot/Dead Eye), MainCannon (→Scatter Blast/Slug Round), ShieldGenerator (→Reinforce/Reflect), LaserCutter (→Focused Beam/Sweep), TeslaCoil (→Chain Lightning/Overload), EMPEmitter (→Pulse/Overcharge with corrected durations)
+- `ModuleFactory.ts` — Added all 7 new module instantiations
+- `index.ts` — Added all 7 new module exports
+
+**Files Created:**
+- `src/modules/TeslaCoilModule.ts`
+- `src/modules/SniperCannonModule.ts`
+- `src/modules/ShotgunTurretModule.ts`
+- `src/modules/FlamethrowerModule.ts`
+- `src/modules/LaserBatteryModule.ts`
+- `src/modules/ShieldGeneratorModule.ts`
+- `src/modules/EMPDeviceModule.ts`
+
+**Files Modified:**
+- `src/modules/ModuleItem.ts` (skill definitions)
+- `src/modules/ModuleFactory.ts` (factory cases)
+- `src/modules/index.ts` (exports)
+
+---
 
 ### February 11, 2025 - Infrastructure Acceleration (Phases 1-4)
 

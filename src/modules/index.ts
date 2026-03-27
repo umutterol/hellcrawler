@@ -14,6 +14,13 @@ export { ModuleManager } from './ModuleManager';
 export { MachineGunModule } from './MachineGunModule';
 export { MissilePodModule } from './MissilePodModule';
 export { RepairDroneModule } from './RepairDroneModule';
+export { TeslaCoilModule } from './TeslaCoilModule';
+export { SniperCannonModule } from './SniperCannonModule';
+export { ShotgunTurretModule } from './ShotgunTurretModule';
+export { FlamethrowerModule } from './FlamethrowerModule';
+export { LaserBatteryModule } from './LaserBatteryModule';
+export { ShieldGeneratorModule } from './ShieldGeneratorModule';
+export { EMPDeviceModule } from './EMPDeviceModule';
 
 // Factory
 export { createModule } from './ModuleFactory';
